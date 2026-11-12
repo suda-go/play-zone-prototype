@@ -337,6 +337,8 @@ window.C4 = (() => {
       const g = D.game[p.game] || D.game[D.GAME];
       const r = Store.rank(g.id);
       const st = Battle.stakeOf(p.stake);
+      // 状态类加在页面节点上，重写内容不会清掉：不清的话第二次匹配起一进来就显示“加载中”
+      el.classList.remove('is-found', 'is-loading', 'is-vipfx', 'is-boost');
       el.innerHTML = `
         <div class="mt-sky"><img src="${IMG}fx/galaxy.jpg" alt=""><i class="mt-glow g1"></i><i class="mt-glow g2"></i></div>
         <header class="mt-top safe-top"><button class="icon-btn mt-x" data-act="cancel" aria-label="取消匹配">${UI.ic('x', 26)}</button></header>
