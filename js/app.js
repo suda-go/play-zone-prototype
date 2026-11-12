@@ -50,10 +50,10 @@
   const device = () => document.getElementById('device');
 
   function loadParams() {
-    try { return JSON.parse(sessionStorage.getItem('pz.params')) || {}; } catch (_) { return {}; }
+    try { return JSON.parse(sessionStorage.getItem('pz.params.v5')) || {}; } catch (_) { return {}; }
   }
   function saveParams() {
-    try { sessionStorage.setItem('pz.params', JSON.stringify(params)); } catch (_) { /* 隐私模式下忽略 */ }
+    try { sessionStorage.setItem('pz.params.v5', JSON.stringify(params)); } catch (_) { /* 隐私模式下忽略 */ }
   }
 
   function setActive(id, on) {

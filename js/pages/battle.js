@@ -1,5 +1,5 @@
 /**
- * 对局链路：四子棋引擎、开局入口（金币分场）、B4 玩法引导、E 匹配与对局（含局内语音）、F 结算（含加好友 / 再战TA）
+ * 对局链路：四子棋引擎、开局入口（金币分场）、B4 玩法引导、E 匹配与对局（含局内语音、V5 点对手头像加好友）、F 结算（含加好友 / 再战TA）
  */
 
 /* ================= 四子棋引擎（棋盘 6 行 × 7 列，0 空 1 我 2 对方） ================= */
@@ -410,10 +410,14 @@ window.C4 = (() => {
     G.timers = [];
   }
 
+  // V5：真人对手的头像可以点，看资料、直接加好友；还不是好友时头像右下角有个“+”
+  const canAdd = (uid) => !Store.isFriend(uid) && !Store.s.sent.includes(uid);
   const player = (uid, who) => {
     const p = UI.person(uid);
+    const tap = who === 2 && !p.ai;
+    const tag = tap ? 'button' : 'span';
     return `<div class="gm-pl p${who}">
-      <span class="gm-av"><svg class="gm-ring" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32"/></svg>${UI.av(uid, 54)}<span class="gm-pop"></span><i class="gm-voice" aria-hidden="true"><b></b><b></b><b></b></i></span>
+      <${tag} class="gm-av${tap ? ' is-tap' : ''}"${tap ? ' data-act="opp" aria-label="查看对手资料"' : ''}><svg class="gm-ring" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32"/></svg>${UI.av(uid, 54)}<span class="gm-pop"></span><i class="gm-voice" aria-hidden="true"><b></b><b></b><b></b></i>${tap && canAdd(uid) ? '<i class="gm-add" aria-hidden="true">+</i>' : ''}</${tag}>
       <b>${uid === 'me' ? '你' : UI.esc(p.name)}${p.ai ? ' <i class="ai-tag">AI</i>' : ''}</b>
       <span class="gm-chip"><i class="disc p${who}"></i>${who === 1 ? '蓝方' : '红方'}</span>
     </div>`;
@@ -653,6 +657,51 @@ window.C4 = (() => {
     UI.toast(v.spk ? '已打开对手声音' : '已静音对手');
   }
 
+  /* ---------- V5 对局中点对手头像：看资料、直接加好友（对局照常进行，计时不暂停） ---------- */
+  function oppSheet() {
+    if (!G) return;
+    const uid = G.opp;
+    const P = D.people[uid];
+    if (!P || P.ai) return;
+    const played = Math.max(Store.s.history.filter((h) => h.vs === uid).length, Store.s.mateGames[uid] || 0);
+    const rank = Math.min(4, Math.floor((D.boardFriends.find((x) => x.id === uid)?.score || P.lv * 18) / 100));
+    const btn = () => {
+      if (Store.isFriend(uid)) return `<span class="btn is-disabled btn-lg btn-block">${UI.ic('userCheck', 18)} 已是好友</span>`;
+      if (Store.s.sent.includes(uid)) return `<span class="btn is-disabled btn-lg btn-block">${UI.ic('check', 18)} 已发送好友申请</span>`;
+      if (Store.s.requests.includes(uid)) return `<button class="btn btn-primary btn-lg btn-block" data-act="accept">${UI.ic('userCheck', 18)} 同意好友申请</button>`;
+      return `<button class="btn btn-primary btn-lg btn-block" data-act="add">${UI.ic('userPlus', 18)} 加好友</button>`;
+    };
+    const done = () => {
+      c.$('.op-btn').innerHTML = btn();
+      if (G && G.opp === uid) G.el.querySelector('.gm-pl.p2 .gm-add')?.remove();
+    };
+    const c = UI.sheet({
+      cls: 'sheet-opp',
+      html: `<div class="op-hd">${UI.av(uid, 64, { on: true })}<div class="op-m"><h3>${UI.name(uid)} <span class="tag tag-event">Lv${P.lv}</span></h3><p>${UI.esc(P.bio || '这个人很懒，什么都没写')}</p></div></div>
+        <div class="op-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span><b class="op-tier">${UI.tier(rank, 18)}${D.tiers[rank]}</b>段位</span><span><b>${played}</b>和你玩过</span></div>
+        <div class="op-btn">${btn()}</div>
+        <p class="op-tip">${UI.ic('info', 13)} 对局还在进行，计时不会暂停</p>`,
+      acts: {
+        add: () => {
+          Store.request(uid);
+          done();
+          UI.toast('好友申请已发送');
+          // 演示：对方几秒后通过
+          setTimeout(() => {
+            if (!Store.s.sent.includes(uid)) return;
+            Store.addFriend(uid);
+            UI.notify({ img: P.avatar, title: `${P.name}通过了你的好友申请`, text: '你们已经是好友了，下完这局聊聊吧！' });
+          }, 5000);
+        },
+        accept: () => {
+          Store.addFriend(uid);
+          done();
+          UI.toast(`你和${P.name}已经是好友了`);
+        },
+      },
+    });
+  }
+
   /* ---------- E7 中途退出 ---------- */
   async function quit() {
     if (!G || G.over) return;
@@ -868,6 +917,7 @@ window.C4 = (() => {
       },
       mic: () => toggleMic(),
       spk: () => toggleSpk(),
+      opp: () => oppSheet(),
     },
   });
 })();

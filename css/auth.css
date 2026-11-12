@@ -10,7 +10,7 @@
 .lg-hero { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--status-h) + 10px) 24px 14px; text-align: center; }
 .lg-icon { width: 88px; height: 88px; border-radius: 25px; box-shadow: 0 0 0 4px rgba(255, 255, 255, .92), 0 18px 34px -12px rgba(0, 0, 0, .6); animation: pop-in .5s var(--spring) both; }
 .lg-name { margin-top: 16px; font-size: 36px; font-weight: 900; line-height: 1.05; letter-spacing: .5px; text-shadow: 0 4px 16px rgba(60, 30, 200, .7); }
-.lg-slogan { margin-top: 6px; font-size: 15.5px; font-weight: 700; letter-spacing: 3px; color: rgba(255, 255, 255, .86); }
+.lg-slogan { margin-top: 8px; font-size: 15.5px; font-weight: 700; font-style: italic; letter-spacing: .3px; color: rgba(255, 255, 255, .88); }
 .lg-art { width: 236px; margin-top: 20px; filter: drop-shadow(0 16px 20px rgba(0, 0, 0, .45)); animation: float 3s ease-in-out infinite; }
 .lg-online { display: flex; align-items: center; gap: 6px; margin-top: 14px; padding: 5px 12px; border-radius: 14px; background: rgba(0, 0, 0, .3); font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, .92); }
 .lg-panel { position: relative; z-index: 2; flex-shrink: 0; padding: 24px 22px calc(var(--home-h) + 12px); border-radius: 28px 28px 0 0; background: #fff; color: var(--text); box-shadow: 0 -16px 40px -20px rgba(0, 0, 0, .65); }

@@ -20,9 +20,9 @@
   UI.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   UI.pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   UI.rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  // 自己的头像：Google / Facebook 登录用第三方头像，游客和邮箱注册是默认头像（Store.s.user.avatar）
+  // 自己的头像：Google / Facebook 登录用第三方头像，游客和邮箱注册是默认头像 happy（Store.s.user.avatar）
   UI.person = (uid) => (uid === 'me'
-    ? { id: 'me', name: Store.s.user.name, lv: Store.s.user.lv, avatar: Store.s.user.avatar || `${IMG}avatars/stella.jpg`, frame: Store.s.equip.frame, bg: Store.s.equip.bg, online: true }
+    ? { id: 'me', name: Store.s.user.name, lv: Store.s.user.lv, avatar: Store.s.user.avatar || `${IMG}avatars/happy.jpg`, frame: Store.s.equip.frame, bg: Store.s.equip.bg, online: true }
     : D.people[uid]);
   UI.game = (id) => D.game[id];
   /** 屏幕内坐标（外框缩放后也准确） */

@@ -1,6 +1,6 @@
 /**
  * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表（顶部「最近一起玩」）、K5 好友申请、
- * K6 添加好友、K7 群聊、K8 好友主页
+ * K6 添加好友、K7 群聊、K8 好友主页；V5 好友私聊顶部的亲密度和一起养的宠物（静态展示）
  * 只有四子棋（D.GAME），邀请好友直接建房，不再选游戏
  */
 (() => {
@@ -247,6 +247,25 @@
     Store.read(id);
   }
 
+  /** V5 好友私聊顶部：亲密度等级，以及两个人一起养的宠物（演示：读 D.intimacy 的静态数据，只展示，没有交互） */
+  const HEART = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.2C.3 8.5 2.2 4.5 6 4.1c2.2-.2 4.2 1 6 3.1 1.8-2.1 3.8-3.3 6-3.1 3.8.4 5.7 4.4 4 7.7C19.5 16.4 12 21 12 21z"/></svg>';
+  function intimacyHtml(uid) {
+    if (!Store.isFriend(uid)) return '';
+    const I = D.intimacy;
+    const pts = I.pts[uid] ?? I.def;
+    const cur = [...I.levels].reverse().find((l) => pts >= l.need);
+    const next = I.levels.find((l) => l.need > pts);
+    const pet = I.pets[uid];
+    return `<div class="im-card ${pet ? 'has-pet' : ''}">
+      <div class="im-main">
+        <div class="im-top"><span class="im-pair">${UI.av('me', 26, { frame: false })}<i class="im-heart">${HEART}</i>${UI.av(uid, 26, { frame: false })}</span><b>亲密度 Lv${cur.lv} · ${cur.name}</b><em class="im-num">${next ? `${pts}/${next.need}` : pts}</em></div>
+        ${next ? UI.bar(pts - cur.need, next.need - cur.need, 'im-bar') : UI.bar(1, 1, 'im-bar')}
+        <span class="im-sub">${next ? '聊天、一起下棋、通话都能涨亲密度' : '已是最高等级'}</span>
+      </div>
+      ${pet ? `<div class="im-pet"><img src="${pet.img}" alt="${pet.name}"><span><b>${pet.name}</b><small>一起养了${pet.days}天</small></span><i class="im-tag">示意</i></div>` : ''}
+    </div>`;
+  }
+
   /** 模拟回复：私聊在线好友会回，群里随机一人回 */
   function autoReply(id, text) {
     const c = Store.s.chats[id];
@@ -283,6 +302,7 @@
           <button class="icon-btn" data-go="profile" data-uid="${c.with}" aria-label="个人主页">${UI.ic('users', 21)}</button>`
         : c.type === 'group' ? `<button class="icon-btn" data-act="groupInfo" aria-label="群信息">${UI.ic('more', 22)}</button>` : '';
       el.innerHTML = `${UI.nav({ title: c.type === 'dm' ? UI.name(c.with) : UI.esc(title), sub: UI.esc(sub), cls: 'is-white dm-nav', right })}
+        ${c.type === 'dm' ? intimacyHtml(c.with) : ''}
         <div class="body dm-msgs" data-scroll="chat">${msgsHtml(id)}</div>
         ${c.type === 'system' ? '<div class="dm-ro">官方账号暂不支持回复</div>' : `
         <div class="dm-emoji" hidden>${EMOJI.map((e) => `<button data-act="emoji" data-e="${e}">${e}</button>`).join('')}</div>

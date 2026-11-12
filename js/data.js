@@ -276,6 +276,20 @@
   D.chatOrder = ['lily', 'squad', 'kai', 'system', 'mia', 'alex'];
   D.replies = ['哈哈，不错嘛 😄', '好啊，来一局！', '等我5分钟', '打得好！', '😂😂😂', '下次记得叫上我！', '马上到 🏃', '你变强了！'];
 
+  /* ---------- V5 好友亲密度和一起养的宠物（演示：静态数据，只展示，不做计算和交互） ---------- */
+  D.intimacy = {
+    levels: [
+      { lv: 1, name: '初识', need: 0 },
+      { lv: 2, name: '熟络', need: 200 },
+      { lv: 3, name: '好朋友', need: 500 },
+      { lv: 4, name: '挚友', need: 1000 },
+      { lv: 5, name: '灵魂伴侣', need: 2000 },
+    ],
+    pts: { lily: 1360, daniel: 760, mia: 520, kai: 380, alex: 240 }, // 和各好友的亲密度，其他好友用 def
+    def: 60,
+    pets: { lily: { name: '豆豆', img: `${IMG}pet/doudou.svg`, days: 12 } }, // 示例只有莉莉
+  };
+
   /* ---------- 局内表情 ---------- */
   D.emojis = ['happy', 'love', 'laugh', 'wink', 'cool', 'tongue', 'shock', 'cry', 'angry', 'sleepy', 'dizzy', 'star'];
   D.phrases = ['你好！👋', '好棋！', '快点啦！⏰', '差一点哦 😏', '哎呀！', '你真厉害！', '看我的！', '打得好 🤝'];

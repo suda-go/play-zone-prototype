@@ -261,3 +261,21 @@
 .pf-call .row-main span { font-size: 10.5px; }
 .pf-call-ic { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--g-green); color: #fff; }
 .pf-call-ic.is-video { background: var(--g-purple); }
+
+/* ---------- V5 好友私聊：亲密度、一起养的宠物（演示：静态展示） ---------- */
+.im-card { flex-shrink: 0; display: flex; align-items: stretch; gap: 10px; margin: 8px 12px 0; padding: 10px 12px; border-radius: 18px; background: linear-gradient(135deg, #fff0f6, #f2ecff); box-shadow: inset 0 0 0 1px rgba(255, 92, 154, .2), 0 6px 16px -12px rgba(160, 60, 140, .6); }
+.im-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.im-top { display: flex; align-items: center; gap: 8px; }
+.im-top b { font-size: 14px; font-weight: 900; color: #c2185b; white-space: nowrap; }
+.im-num { margin-left: auto; font: 700 11.5px var(--num); font-style: normal; color: #9a5a7a; white-space: nowrap; }
+.im-pair { flex-shrink: 0; display: flex; align-items: center; }
+.im-pair .av-img { box-shadow: 0 0 0 2px #fff; }
+.im-heart { position: relative; z-index: 1; width: 18px; height: 18px; margin: 0 -5px; display: grid; place-items: center; border-radius: 50%; background: #fff; color: #ff4d8d; box-shadow: 0 2px 6px rgba(255, 77, 141, .35); }
+.im-bar { height: 6px; background: rgba(255, 77, 141, .14); }
+.im-bar > i { background: linear-gradient(90deg, #ff9ec4, #ff4d8d); }
+.im-sub { font-size: 11px; color: #9a5a7a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.im-pet { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px dashed rgba(194, 24, 91, .28); }
+.im-pet img { width: 54px; height: 54px; animation: float 2.6s ease-in-out infinite; }
+.im-pet b { display: block; font-size: 13px; font-weight: 900; color: #6b3fa0; }
+.im-pet small { display: block; font-size: 10.5px; color: #8a7aa8; white-space: nowrap; }
+.im-tag { position: absolute; top: -6px; right: -6px; padding: 0 5px; border-radius: 6px; background: rgba(107, 63, 160, .12); color: #6b3fa0; font-size: 9.5px; font-weight: 800; font-style: normal; line-height: 15px; }

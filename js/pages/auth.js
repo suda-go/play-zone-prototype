@@ -20,7 +20,9 @@
 
   const IMG = D.IMG;
   const STELLA = `${IMG}avatars/stella.jpg`;
-  const DEFAULT_AV = `${IMG}avatars/default.svg`;
+  // 默认头像和昵称：游客、邮箱注册的新账号用（Google / Facebook 用第三方的）
+  const DEFAULT_AV = `${IMG}avatars/happy.jpg`;
+  const DEFAULT_NAME = 'happy';
   const DEMO = { email: 'demo@soulgame.com', pwd: 'soul2026', name: '星星' }; // 预置的演示邮箱账号
   const CODE_TTL = 10 * 60 * 1000; // 验证码 10 分钟有效
   const RESEND = 60;               // 重新获取验证码的间隔（秒）
@@ -58,8 +60,8 @@
 
   const idGoogle = () => ({ by: 'google', id: `google:${PROVIDER.google.email}`, email: PROVIDER.google.email, name: PROVIDER.google.name, avatar: PROVIDER.google.avatar });
   const idFacebook = () => ({ by: 'facebook', id: `facebook:${PROVIDER.facebook.fbid}`, name: PROVIDER.facebook.name, avatar: PROVIDER.facebook.avatar });
-  const idEmail = (email, name, avatar = DEFAULT_AV) => ({ by: 'email', id: `email:${email}`, email, name, avatar });
-  const idGuest = () => ({ by: 'guest', id: `guest:${Store.s.user.uid}`, name: `游客${Store.s.user.uid.slice(-4)}`, avatar: DEFAULT_AV });
+  const idEmail = (email, name = DEFAULT_NAME, avatar = DEFAULT_AV) => ({ by: 'email', id: `email:${email}`, email, name, avatar });
+  const idGuest = () => ({ by: 'guest', id: `guest:${Store.s.user.uid}`, name: DEFAULT_NAME, avatar: DEFAULT_AV });
   const authOf = (idt) => ({ by: idt.by, id: idt.id, email: idt.email || '', name: idt.name, at: Date.now() });
 
   function label() {
@@ -230,7 +232,7 @@
         <div class="lg-hero">
           <img class="lg-icon" src="${IMG}brand/app-icon.png" alt="">
           <h1 class="lg-name">Soulgame</h1>
-          <p class="lg-slogan">先玩游戏，再交朋友</p>
+          <p class="lg-slogan">Soulgame, play with your soulmates.</p>
           <img class="lg-art" src="${IMG}brand/blobs-vs.png" alt="">
           <p class="lg-online"><i class="live-dot"></i>${UI.fmt(D.game[D.GAME].online)}人正在下四子棋</p>
         </div>
@@ -342,7 +344,7 @@
       if (!pwdOk(F.pwd)) { setErr('pwd', '密码要8–20位，同时包含字母和数字'); good = false; }
       if (!good) { Sfx.play('error'); return; }
       await wait();
-      const name = email.split('@')[0].slice(0, 12);
+      const name = DEFAULT_NAME;
       Store.s.accounts[email] = { h: hash(email, F.pwd), name, at: Date.now() };
       Store.save();
       F.pwd = ''; F.code = ''; F.sent = null; F.left = 0;

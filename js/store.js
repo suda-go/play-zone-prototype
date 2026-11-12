@@ -1,12 +1,12 @@
 /**
- * 状态层：全部运行数据存在 localStorage（键 soulgame.v1），刷新后保留
+ * 状态层：全部运行数据存在 localStorage（键 soulgame.v5，和同域名下其他版本的预览分开存），刷新后保留
  * 每次修改后 emit(type, meta)，ui.js 订阅后同步余额、红点
  * Store.reset() 清空数据回到新用户状态（需要重新登录）；Store.reset(seed) 换账号登录时用，新状态里预先写入登录信息
  */
 (() => {
   'use strict';
 
-  const KEY = 'soulgame.v1';
+  const KEY = 'soulgame.v5';
   const subs = [];
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });
@@ -31,7 +31,8 @@
       welcome: false,
       tips: {},
       lastExit: 0,
-      user: { name: '星星', uid: '82640317', bio: '四子棋重度玩家 · 快加我！', lv: 3, exp: 320 },
+      // 默认昵称 happy、默认头像 avatars/happy.jpg（游客和邮箱注册用）；Google / Facebook 登录换成第三方的昵称和头像
+      user: { name: 'happy', uid: '82640317', bio: '四子棋重度玩家 · 快加我！', lv: 3, exp: 320 },
       gems: 0, coins: 0, boost: 0, pass: 0,
       mi: 25,
       adFree: false, vip: false, firstPay: {},
@@ -351,7 +352,7 @@
   const unread = () => Object.values(s.chats).reduce((a, c) => a + (c.unread || 0), 0);
   function newGroup(members) {
     const id = 'g' + Date.now().toString(36);
-    const names = ['星星', ...members.map((m) => D.people[m].name)];
+    const names = [s.user.name, ...members.map((m) => D.people[m].name)];
     s.chats[id] = {
       type: 'group', name: names.slice(0, 3).join('、') + (names.length > 3 ? '…' : ''), members, unread: 0,
       msgs: [{ from: 'system', text: `你创建了群聊，成员有${members.map((m) => D.people[m].name).join('、')}`, t: now() }],
