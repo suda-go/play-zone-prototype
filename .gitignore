@@ -1,0 +1,8 @@
+# 测试截图、备份、测试浏览器数据
+.stage/
+# 竞品调研与内部文档（不公开）
+docs/
+references/
+designs/
+# 系统文件
+.DS_Store
