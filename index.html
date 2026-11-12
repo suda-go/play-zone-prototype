@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/me.css">
   <link rel="stylesheet" href="css/vip.css">
   <link rel="stylesheet" href="css/call.css">
+  <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
   <!-- 共享渐变：表情团子、段位徽章（放在不隐藏的 SVG 里，避免 Chrome 引用失效） -->
@@ -36,7 +37,11 @@
 
         <!-- 页面：内容由 js/pages/*.js 渲染 -->
         <main class="pages">
-          <!-- 频道 4 个 Tab（Play 为启动页） -->
+          <!-- V4 登录：没登录时从登录页启动 -->
+          <section class="page" data-page="login" data-status="light"></section>
+          <section class="page" data-page="email"></section>
+
+          <!-- 频道 4 个 Tab（登录后 Play 为启动页） -->
           <section class="page" data-page="play"></section>
           <section class="page" data-page="rooms"></section>
           <section class="page" data-page="chat"></section>
@@ -96,6 +101,7 @@
   <script src="js/data.js"></script>
   <script src="js/store.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/pages/auth.js"></script>
   <script src="js/pages/play.js"></script>
   <script src="js/pages/battle.js"></script>
   <script src="js/pages/tasks.js"></script>

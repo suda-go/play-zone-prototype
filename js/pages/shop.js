@@ -85,7 +85,7 @@
           Store.equip(kind, id);
           c.close();
           App.refresh('shop');
-          UI.notify({ img: `${IMG}avatars/stella.jpg`, title: `${it.name}已装备`, text: '去个人主页看看效果吧', btn: '查看', onTap: () => App.tab('me') });
+          UI.notify({ img: UI.person('me').avatar, title: `${it.name}已装备`, text: '去个人主页看看效果吧', btn: '查看', onTap: () => App.tab('me') });
         },
         unequip: () => {
           Store.equip(kind, kind === 'frame' ? null : kind === 'bubble' ? 'default' : 'aurora');

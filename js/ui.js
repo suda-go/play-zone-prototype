@@ -20,8 +20,9 @@
   UI.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   UI.pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   UI.rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  // 自己的头像：Google / Facebook 登录用第三方头像，游客和邮箱注册是默认头像（Store.s.user.avatar）
   UI.person = (uid) => (uid === 'me'
-    ? { id: 'me', name: Store.s.user.name, lv: Store.s.user.lv, avatar: `${IMG}avatars/stella.jpg`, frame: Store.s.equip.frame, bg: Store.s.equip.bg, online: true }
+    ? { id: 'me', name: Store.s.user.name, lv: Store.s.user.lv, avatar: Store.s.user.avatar || `${IMG}avatars/stella.jpg`, frame: Store.s.equip.frame, bg: Store.s.equip.bg, online: true }
     : D.people[uid]);
   UI.game = (id) => D.game[id];
   /** 屏幕内坐标（外框缩放后也准确） */
@@ -89,6 +90,10 @@
     gamepad: '<path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6C2.6 9.4 2 14.5 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.4-1.4a2 2 0 0 1 1.4-.6h4.4a2 2 0 0 1 1.4.6L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.5-.6-6.6-.7-7.3a4 4 0 0 0-4-3.7z"/>',
     door: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.6v16.1a1 1 0 0 1-1.2 1L5 20V5.6a2 2 0 0 1 1.5-1.9l4-1A2 2 0 0 1 13 4.6Z"/>',
     eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+    eyeOff: '<path d="M10.7 5.1A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m2 2 20 20"/>',
+    mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    user: '<circle cx="12" cy="8" r="4.5"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    play: '<path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor" stroke="none"/>',
     phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
     trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
     star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
@@ -461,8 +466,10 @@
   };
   UI.demo = (what = '此功能') => UI.toast(`演示不包含${what}`);
 
-  /* ---------- 顶部通知横幅（好友邀请、对方出招等） ---------- */
-  UI.notify = ({ img, title, text, btn, onTap, ms = 6000 }) => {
+  /* ---------- 顶部通知横幅（好友邀请、对方出招等） ----------
+   * 登录页上不弹 app 内的通知（退出登录后还在跑的定时器），force 为 true 时照常弹（例如邮箱验证码） */
+  UI.notify = ({ img, title, text, btn, onTap, ms = 6000, force = false }) => {
+    if (!force && window.Auth && !Auth.ok()) return () => {};
     document.querySelectorAll('.notif').forEach((n) => n.remove());
     const el = document.createElement('div');
     el.className = 'notif';
@@ -752,13 +759,13 @@ Store.on((type, meta) => {
  * UI.floater.add(fn, prio)  注册数据源（prio 大的优先），fn() 返回 null 或
  *   { id, uid, title, sub, urgent, board, close, onTap }
  *   id + key 用于记住“收起”（key 变了会重新出现），close 为 true 时显示 ×
- * UI.floater.refresh() 立即刷新；对局页、匹配页、结算页、通话页不显示
+ * UI.floater.refresh() 立即刷新；对局页、匹配页、结算页、通话页、登录页不显示
  */
 (() => {
   'use strict';
 
   const UI = window.UI;
-  const HIDE_ON = ['game', 'match', 'result', 'call'];
+  const HIDE_ON = ['game', 'match', 'result', 'call', 'login', 'email'];
   const providers = [];
   const dismissed = {};
   const pos = { side: 'right', y: null };

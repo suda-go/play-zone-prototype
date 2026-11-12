@@ -1,7 +1,9 @@
 /**
- * Play 大厅（单游戏：四子棋主视觉、段位、金币分场、好友），也是 app 的启动页
+ * Play 首页（登录后的启动页）。V4 精简成一屏、不用滚动，参考 Yalla Ludo：
+ *   顶栏 → 赛季段位 / 好友排名两张小卡片 → 四子棋标志 → 玩法入口（快速开始、和好友玩、人机练习、创建房间、超级会员场）
+ *   快速开始一点就匹配；金币分场收进“换场次”弹层
  * 以及启动相关的：B2 新手礼包、B5 退出挽留、B6 离线收益（B3 7 日签到在 tasks.js 顶部）、
- * C3 回合制对局（和 Kai）、C4 好友弹层、K3 好友主动发来邀请
+ * C3 回合制对局（和 Kai，入口是右下角悬浮窗）、K3 好友主动发来邀请
  */
 (() => {
   'use strict';
@@ -49,75 +51,114 @@
     </header>`;
   }
 
-  /** 赛季模块：赛季名、倒计时、我的段位进度、段位奖励轨道、好友排名（段位卡合并进来） */
-  function season() {
+  /** 赛季段位、好友排名：两张小卡片，点开都是排行榜（赛季奖励在排行榜页） */
+  function info() {
     const r = Store.rank(D.GAME);
-    const gs = Store.s.gstats[D.GAME] || { g: 0 };
     const fr = Rank.friendPos(D.GAME);
-    const toNext = Math.ceil((100 - r.pts) / 25);
-    const next = D.season.rewards.find((x) => x.tier > r.tier);
-    const ahead = fr.ahead ? `再赢${fr.ahead.wins}局超过${D.people[fr.ahead.id].name}` : '好友中第一！';
-    return `<section class="ss" data-go="rank">
-      <div class="ss-hd">
-        <img class="ss-trophy" src="${IMG}ui/trophy.png" alt="">
-        <span class="ss-tt"><small>赛季进行中</small><b>${D.season.name}</b></span>
-        <span class="ss-left">${UI.ic('clock', 13)}${D.season.left}</span>
-      </div>
-      <div class="ss-me">
-        ${UI.tier(r.tier, 52)}
-        <span class="ss-me-m"><b>${D.tiers[r.tier]} <small>${r.pts}/100分</small></b>${UI.bar(r.pts, 100, 'is-gold')}
-          <span>${r.tier < 4 ? `再赢<em>${toNext}</em>局升${D.tiers[r.tier + 1]}${next ? `，得${next.text}` : ''}` : '已达最高段位！'}</span></span>
-        <span class="ss-me-s"><b>${Battle.winRate()}</b><span>胜率 · ${gs.g}局</span></span>
-      </div>
-      <div class="ss-track">${D.season.rewards.map((x) => `<span class="ss-step ${x.tier < r.tier ? 'is-done' : x.tier === r.tier ? 'is-now' : ''}">${UI.tier(x.tier, 26)}<b>${D.tiers[x.tier]}</b><i>${x.text}</i></span>`).join('')}</div>
-      <div class="ss-ft"><span>${UI.ic('users', 14)} 好友排名第<b>${fr.pos}</b> · ${ahead}</span><span class="ss-more">排行榜 ${UI.ic('right', 14)}</span></div>
-    </section>`;
+    const days = (D.season.left.match(/^(\d+)天/) || [])[1];
+    return `<div class="hm-info">
+      <button class="hm-card hm-season" data-go="rank">
+        ${UI.tier(r.tier, 40)}
+        <span class="hm-card-m"><small>${D.season.name.split(' · ')[0]}${days ? ` · 剩${days}天` : ''}</small>
+          <b>${D.tiers[r.tier]}<em>${r.pts}/100</em></b>${UI.bar(r.pts, 100, 'is-gold is-thin')}</span>
+      </button>
+      <button class="hm-card hm-rank" data-go="rank">
+        <img src="${IMG}ui/trophy.png" alt="">
+        <span class="hm-card-m"><small>好友排行</small><b>第${fr.pos}名</b><span>全服第${UI.fmt(Rank.myGlobalPos())}名</span></span>
+        ${UI.ic('right', 16, 'hm-card-go')}
+      </button>
+    </div>`;
   }
 
-  /** 在线好友：头像下面直接“一起玩”，不用再选游戏 */
-  function friendsRow() {
-    const list = Store.s.friends.map((id) => D.people[id]).filter((p) => p.online);
-    return `<div class="sec-hd"><h2>在线好友 <em class="sec-n">${list.length}</em></h2><button class="more" data-act="allFriends">全部 ${UI.ic('right', 16)}</button></div>
-      <div class="hscroll lobby-friends" data-scroll="friends">
-        ${list.map((p) => `<div class="lf">
-          <button class="lf-hit" data-act="friend" data-uid="${p.id}">${UI.av(p.id, 54, { on: true })}<b>${p.name}</b><span>${UI.esc(p.status)}</span></button>
-          <button class="lf-play" data-act="playWith" data-uid="${p.id}">一起玩</button>
-        </div>`).join('')}
-        <button class="lf lf-add" data-go="addfriend"><span class="lf-plus">${UI.ic('userPlus', 22)}</span><b>添加</b><span>找好友</span></button>
-      </div>`;
-  }
-
-  /* ================= 单游戏大厅：四子棋主视觉、段位、金币分场、玩法入口 ================= */
-  function hero() {
+  /** 四子棋标志：彩色描边字，下面是在玩人数和玩法说明 */
+  function logo() {
     const g = D.game[D.GAME];
-    return `<section class="lb-hero">
-      <img class="lb-hero-img" src="${g.cover}" alt="">
-      <i class="lb-hero-shade"></i>
-      <div class="lb-hero-top"><span class="lb-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span>
-        <button class="lb-howto" data-act="howto">${UI.ic('book', 14)} 玩法</button></div>
-      <div class="lb-hero-foot"><b>${g.name}</b><span>${g.players}实时对战 · 连成四子就赢</span></div>
-    </section>`;
+    const chars = [...g.name];
+    const x = (i) => 44 + i * 82;
+    return `<div class="hm-logo">
+      <i class="hm-glow"></i><i class="disc p1 hm-d1"></i><i class="disc p2 hm-d2"></i><i class="hm-d3"></i>
+      <svg class="hm-title" viewBox="0 0 252 86" width="252" height="86" role="img" aria-label="${g.name}">
+        <defs>
+          <linearGradient id="hmg1" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#7cc0ff"/><stop offset="1" stop-color="#1f4fe0"/></linearGradient>
+          <linearGradient id="hmg2" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#ff9aa6"/><stop offset="1" stop-color="#e01f3d"/></linearGradient>
+          <linearGradient id="hmg3" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#ffe98a"/><stop offset="1" stop-color="#ff9500"/></linearGradient>
+        </defs>
+        <g class="hm-title-o">${chars.map((ch, i) => `<text x="${x(i)}" y="66">${ch}</text>`).join('')}</g>
+        <g class="hm-title-i">${chars.map((ch, i) => `<text x="${x(i)}" y="66" class="c${i + 1}">${ch}</text>`).join('')}</g>
+      </svg>
+      <div class="hm-meta"><span class="hm-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span><button class="hm-howto" data-act="howto">${UI.ic('book', 13)}玩法</button></div>
+    </div>`;
   }
-  /** 金币分场（参考 Yalla Ludo）：点场次直接开始匹配 */
-  function stakes() {
+
+  /**
+   * 快速开始用的场次：上次的场次能进就用它；进不了（金币不够、会员过期）就换成底注不超过它、能进的最高一档；
+   * 一档都进不了就用已解锁的最低一档（新手场），点开始时由 Battle.quick 弹金币不足，差额最小
+   */
+  function pickStake() {
+    const last = Battle.stakeOf(Store.s.stake);
+    if (Battle.canEnter(last) === 'ok') return last;
+    const normal = D.stakes.filter((x) => !x.vip);
+    const ok = normal.filter((x) => Battle.canEnter(x) === 'ok');
+    const lower = ok.filter((x) => x.bet <= last.bet);
+    return lower[lower.length - 1] || ok[0] || normal.find((x) => Store.s.user.lv >= x.lv) || last;
+  }
+
+  /** 玩法入口：上排两个大块（快速开始、和好友玩），下排三个小块（人机练习、创建房间、超级会员场） */
+  function modes() {
+    const st = pickStake();
+    const online = Store.s.friends.map((id) => D.people[id]).filter((p) => p && p.online);
+    const vs = D.stakes.find((x) => x.vip);
+    const vipOk = Store.vipTier() >= vs.vip;
+    return `<div class="hm-modes">
+      <div class="hm-tile is-quick">
+        <button class="hm-hit" data-act="quick" data-id="${st.id}" aria-label="快速开始 · ${st.name}"></button>
+        <img class="hm-art" src="${IMG}games/c4.jpg" alt="">
+        <b class="hm-name">快速开始</b>
+        <button class="hm-change" data-act="stakes" aria-label="换场次">${st.vip ? '超级场' : st.name} · ${UI.cur('coins', 14)}${UI.fmt(st.bet)}${UI.ic('down', 13)}</button>
+        <span class="hm-go">${UI.ic('play', 14)}开始</span>
+      </div>
+      <button class="hm-tile is-friends" data-act="friends">
+        <img class="hm-art" src="${IMG}brand/blobs-vs.png" alt="">
+        <b class="hm-name">和好友玩</b>
+        <span class="hm-desc">不扣金币 · 不计段位</span>
+        <span class="hm-avs">${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em></span>
+      </button>
+      <button class="hm-tile is-s is-ai" data-act="ai"><img class="hm-art" src="${IMG}brand/mascot.png" alt=""><b class="hm-name">人机练习</b><span class="hm-desc">免费练手</span></button>
+      <button class="hm-tile is-s is-room" data-go="create"><img class="hm-art" src="${IMG}ui/pass.svg" alt=""><b class="hm-name">创建房间</b><span class="hm-desc">公开或私密</span></button>
+      <button class="hm-tile is-s is-vip ${vipOk ? '' : 'is-locked'}" data-act="vipStake"><img class="hm-art" src="${IMG}ui/crown.png" alt=""><b class="hm-name">${vs.name}</b>
+        <span class="hm-desc">${vipOk ? '' : UI.ic('lock', 11)}奖池×${vs.potX}</span></button>
+    </div>`;
+  }
+
+  /** 金币分场（参考 Yalla Ludo）：换场次弹层里点场次直接开始匹配，并记住这次的场次 */
+  function stakeCard(st, i) {
     const s = Store.s;
-    return `<div class="sec-hd"><h2>选择场次</h2><span class="lb-rule">赢家拿走奖池</span></div>
-      <div class="lb-stakes">${D.stakes.map((st, i) => {
-        const k = Battle.canEnter(st);
-        return `<button class="stake st-${i + 1} ${st.vip ? 'is-vip' : ''} ${k === 'lock' || k === 'vip' ? 'is-locked' : ''} ${s.stake === st.id ? 'is-last' : ''}" data-act="stake" data-id="${st.id}">
-          <b class="stake-name">${st.vip ? `${UI.vipTag(2)} ` : ''}${st.name}</b>
-          <span class="stake-bet">${UI.cur('coins', 22)}${UI.fmt(st.bet)}</span>
-          <span class="stake-pot">奖池 ${UI.fmt(Battle.pot(st))}</span>
-          ${k === 'vip' ? `<span class="stake-lock">${UI.ic('crown', 12)} 超级会员专属 · 奖池×${st.potX}</span>` : k === 'lock' ? `<span class="stake-lock">${UI.ic('lock', 12)} Lv${st.lv}解锁</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}${st.vip ? ` · 奖池×${st.potX}` : ''}</span>`}
-          ${s.stake === st.id && k !== 'lock' && k !== 'vip' ? '<i class="stake-tag">上次</i>' : ''}
-          ${st.vip ? `<img class="stake-crown" src="${IMG}ui/crown.png" alt="">` : ''}
-        </button>`;
-      }).join('')}</div>
-      <div class="lb-modes">
-        <button class="lb-mode" data-act="friends"><i class="mode-ic is-blue">${UI.ic('users', 20)}</i><b>和好友玩</b><span>不扣金币</span></button>
-        <button class="lb-mode" data-go="create"><i class="mode-ic is-purple">${UI.ic('door', 20)}</i><b>创建房间</b><span>公开或私密</span></button>
-        <button class="lb-mode" data-act="ai"><i class="mode-ic is-green">${UI.ic('bot', 20)}</i><b>人机练习</b><span>免费练手</span></button>
-      </div>`;
+    const k = Battle.canEnter(st);
+    return `<button class="stake st-${i + 1} ${st.vip ? 'is-vip' : ''} ${k === 'lock' || k === 'vip' ? 'is-locked' : ''} ${s.stake === st.id ? 'is-last' : ''}" data-act="stake" data-id="${st.id}">
+      <b class="stake-name">${st.vip ? `${UI.vipTag(2)} ` : ''}${st.name}</b>
+      <span class="stake-bet">${UI.cur('coins', 22)}${UI.fmt(st.bet)}</span>
+      <span class="stake-pot">奖池 ${UI.fmt(Battle.pot(st))}</span>
+      ${k === 'vip' ? `<span class="stake-lock">${UI.ic('crown', 12)} 超级会员专属 · 奖池×${st.potX}</span>` : k === 'lock' ? `<span class="stake-lock">${UI.ic('lock', 12)} Lv${st.lv}解锁</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}${st.vip ? ` · 奖池×${st.potX}` : ''}</span>`}
+      ${s.stake === st.id && k !== 'lock' && k !== 'vip' ? '<i class="stake-tag">上次</i>' : ''}
+      ${st.vip ? `<img class="stake-crown" src="${IMG}ui/crown.png" alt="">` : ''}
+    </button>`;
+  }
+  function stakeSheet() {
+    const c = UI.sheet({
+      title: '选择场次',
+      sub: '入场扣底注，赢家拿走奖池，平局退还',
+      cls: 'sheet-stakes',
+      html: `<div class="lb-stakes is-sheet">${D.stakes.map(stakeCard).join('')}</div>`,
+      acts: {
+        stake: (el) => {
+          const st = D.stake[el.dataset.id];
+          // 等级不够：留在弹层里提示，其他情况（开局、金币不足、会员专属）交给 Battle.quick
+          if (Battle.canEnter(st) === 'lock') { UI.toast(`${st.name}需要Lv${st.lv}解锁`); Sfx.play('error'); return; }
+          c.close();
+          Battle.quick(st.id);
+        },
+      },
+    });
   }
 
   /* ================= B2 新手礼包、B6 离线收益 ================= */
@@ -134,11 +175,9 @@
       note: '新手礼包',
     });
     await UI.sleep(350);
-    const el = pageEl();
     if (App.top() !== 'play') return;
-    await UI.coach(el.querySelector('.lobby-sign'), '每天签到、做任务，免费领钻石，第7天有大奖！', { key: 'sign' });
-    if (App.top() !== 'play') return;
-    await UI.coach(el.querySelector('.stake'), '选个场次就开局，赢家拿走奖池。先从新手场试试！', { key: 'play', place: 'top' });
+    // 先教开局，让新用户马上玩上第一局；签到的引导等打完第一局回到首页再出（见 shown）
+    await UI.coach(pageEl().querySelector('.hm-tile.is-quick'), '点这里马上开一局，赢家拿走奖池。先从新手场试试！', { key: 'play' });
   }
   const offline = () => UI.reward({
     title: '欢迎回来！',
@@ -253,34 +292,6 @@
     }, ms);
   }
 
-  /* ================= C4 好友弹层 ================= */
-  function friendSheet(uid) {
-    const p = D.people[uid];
-    const room = uid === 'lily' ? Store.room('lily') : null;
-    const c = UI.sheet({
-      html: `<div class="fs-hd">${UI.av(uid, 68, { on: true })}<div class="fs-txt"><h3>${p.name} <span class="tag">Lv${p.lv}</span></h3>
-          <p class="${p.online ? 'is-on' : ''}">${p.online ? UI.esc(p.status) : `离线 · ${p.seen}`}</p></div></div>
-        <div class="fs-fav"><span>四子棋</span><b>${p.games}局 · 胜率${p.win}%</b>${Store.s.mateGames[uid] ? `<em>和你玩过${Store.s.mateGames[uid]}局</em>` : ''}</div>
-        <div class="fs-btns">
-          ${room && room.seats.length < room.max ? `<button class="btn btn-orange btn-lg btn-block" data-act="join">${UI.ic('door', 18)} 加入${p.name}的房间</button>` : ''}
-          <button class="btn btn-primary btn-lg btn-block" data-act="invite">${UI.ic('gamepad', 18)} 邀请一起玩</button>
-          <div class="fs-row">
-            <button class="btn btn-ghost btn-md" data-act="msg">${UI.ic('msg', 16)} 发消息</button>
-            <button class="btn btn-ghost btn-md" data-act="profile">${UI.ic('users', 16)} 主页</button>
-          </div>
-        </div>`,
-      acts: {
-        join: () => { c.close(); Rooms.join('lily'); },
-        invite: () => {
-          c.close();
-          Rooms.withFriend(uid);
-        },
-        msg: () => { c.close(); App.go('dm', { id: uid }); },
-        profile: () => { c.close(); App.go('profile', { uid }); },
-      },
-    });
-  }
-
   /* ================= K3 好友主动发来邀请 ================= */
   function schedulePing() {
     if (Store.s.pinged || pingTimer) return;
@@ -299,18 +310,21 @@
   App.page('play', {
     render(el) {
       el.innerHTML = `<div class="lobby-bg"></div>${header()}
-        <div class="body lobby-body" data-scroll="main">
-          ${hero()}
-          ${season()}
-          ${stakes()}
-          ${friendsRow()}
-          <div class="bottom-space"></div>
+        <div class="body lobby-body hm-body" data-scroll="main">
+          ${info()}
+          ${logo()}
+          ${modes()}
+          <i class="hm-foot" aria-hidden="true"></i>
         </div>
         ${UI.tabbar('play')}`;
     },
-    async shown(el, p) {
+    async shown(el) {
       if (!Store.s.welcome) await welcome();
       else if (pendingOffline) { pendingOffline = false; await offline(); }
+      else if (!Store.s.tips.sign && Store.s.cnt.all.games > 0 && !UI.hasOverlay()) {
+        // 打完第一局回到首页，再介绍签到
+        await UI.coach(el.querySelector('.lobby-sign'), '每天签到、做任务，免费领钻石，第7天有大奖！', { key: 'sign' });
+      }
       schedulePing();
       if (!Store.s.turn.my && !kaiTimer) scheduleKai(9000);
     },
@@ -330,16 +344,15 @@
         UI.toast(`已催${p.name}落子👋`);
         scheduleKai(3500);
       },
-      friend: (el) => friendSheet(el.dataset.uid),
-      allFriends: () => App.tab('chat', { seg: 'friends' }),
-      stake: (el) => Battle.quick(el.dataset.id),
+      quick: (el) => Battle.quick(el.dataset.id),
+      stakes: () => stakeSheet(),
+      vipStake: () => Battle.quick(D.stakes.find((x) => x.vip).id),
       ai: () => Battle.practice(),
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {
         const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '好友房不扣金币、不计段位', onlineOnly: true });
         if (uid) Rooms.withFriend(uid);
       },
-      playWith: (el) => Rooms.withFriend(el.dataset.uid),
     },
   });
 })();

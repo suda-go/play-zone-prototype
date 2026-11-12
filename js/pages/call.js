@@ -411,7 +411,7 @@
     },
   });
 
-  /* ================= 模拟来电：启动约35秒后，莉莉打来一次语音 ================= */
+  /* ================= 模拟来电：进入 app 约35秒后，莉莉打来一次语音 ================= */
   let ringTimer = 0;
   function inGame() {
     const st = App.stack();
@@ -437,7 +437,8 @@
     };
     ringTimer = setTimeout(tryRing, 35000);
   }
-  App.onInit(scheduleRing);
+  // 从登录完成（已登录时是启动）开始计时，避免在登录页上耗掉这35秒
+  Auth.onEnter(scheduleRing);
 
   window.Call = {
     start, incoming,

@@ -19,11 +19,13 @@
  *        App.pop()            直接出栈，不经过拦截
  *        App.backTo(id)       返回到栈里的某页（不在栈里就插到当前页下面）
  *        App.replace(id, p)   替换当前页（默认淡入）
+ *        App.root(id, p)      清空页面栈只留这一页（登录完成进大厅、退出登录回登录页）
  *        App.tab(id)          切换频道底部 Tab
  *        App.refresh()        重渲染当前页并保留滚动位置
  *        App.whenIdle(fn)     等当前转场结束再执行
  *
  * 声明式 data-go="id"（其余 data-* 作为参数）、data-back、data-tab="id"、data-toast="文案"、data-act="名称"
+ * 登录   未登录（Auth.ok() 为 false）时一律从登录页启动，地址栏的 #页面ID 只对登录相关页面生效
  * 调试   地址栏 #页面ID 直接打开该页；Esc 等同安卓返回
  */
 (() => {
@@ -33,6 +35,8 @@
   const EASE = 'cubic-bezier(.32, .72, 0, 1)';
   const HOME = 'play';
   const TABS = ['play', 'rooms', 'chat', 'me'];
+  const LOGIN = 'login';
+  const AUTH_PAGES = ['login', 'email']; // 未登录时能打开的页面
 
   const pages = new Map();
   const hooks = {};
@@ -180,6 +184,22 @@
     animate(from, id, opt.anim || 'fade', () => { setActive(from, false); leave(from); shown(id); });
   }
 
+  /** 清空页面栈，只留 id：登录完成进大厅、退出登录回登录页 */
+  function root(id, p = {}, opt = {}) {
+    if (busy) { idle.push(() => root(id, p, opt)); return; }
+    if (!pages.has(id)) return;
+    params[id] = p;
+    saveParams();
+    const from = top();
+    const removed = stack.filter((r) => r !== from && r !== id);
+    stack = [id];
+    removed.forEach((r) => { setActive(r, false); leave(r); });
+    render(id);
+    setActive(id, true);
+    if (from === id) { shown(id); return; }
+    animate(from, id, opt.anim || 'fade', () => { setActive(from, false); leave(from); shown(id); });
+  }
+
   function tab(id, p) {
     if (busy) { idle.push(() => tab(id, p)); return; }
     const ri = stack.findIndex((s) => TABS.includes(s));
@@ -250,9 +270,16 @@
     let start = location.hash.slice(1);
     if (!pages.has(start)) start = HOME;
     if (pages.get(start).hasAttribute('data-transient')) start = 'play';
-    // Play 是启动页，也是页面栈的根；其他 Tab 直接作为根，二级页压在 Play 上面
-    if (start === HOME || TABS.includes(start)) stack = [start];
-    else stack = [HOME, start];
+    const authed = !window.Auth || Auth.ok();
+    if (!authed) {
+      // 没登录：先到登录页；邮箱页压在登录页上面
+      stack = start === LOGIN || !AUTH_PAGES.includes(start) ? [LOGIN] : [LOGIN, start];
+    } else if (AUTH_PAGES.includes(start)) {
+      stack = [HOME];
+    } else if (start === HOME || TABS.includes(start)) {
+      // Play 是启动页，也是页面栈的根；其他 Tab 直接作为根，二级页压在 Play 上面
+      stack = [start];
+    } else stack = [HOME, start];
     hooks.__init?.forEach((fn) => fn());
     render(top());
     setActive(top(), true);
@@ -269,7 +296,7 @@
 
   window.App = {
     TABS,
-    go, back, pop, backTo, replace, tab, refresh, whenIdle,
+    go, back, pop, backTo, replace, root, tab, refresh, whenIdle,
     top,
     stack: () => [...stack],
     params: (id) => params[id] || {},

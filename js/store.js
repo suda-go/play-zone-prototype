@@ -1,7 +1,7 @@
 /**
  * 状态层：全部运行数据存在 localStorage（键 soulgame.v1），刷新后保留
  * 每次修改后 emit(type, meta)，ui.js 订阅后同步余额、红点
- * Store.reset() 清空数据回到新用户状态
+ * Store.reset() 清空数据回到新用户状态（需要重新登录）；Store.reset(seed) 换账号登录时用，新状态里预先写入登录信息
  */
 (() => {
   'use strict';
@@ -74,6 +74,12 @@
       protectUsed: { week: 0, n: 0 },   // 段位保护卡：本周已用张数
       callPerm: { mic: false, cam: false }, // 通话授权
       rang: false,                      // 是否已模拟过好友来电
+      // V4 登录：auth 当前登录的账号（null 表示没登录）；owner 本机进度属于哪个账号；lastBy 上次用的登录方式；
+      // accounts 邮箱注册表 { 邮箱: { h 密码散列, name, at } }（演示数据只在本机，真实产品在服务端）
+      auth: null,
+      owner: '',
+      lastBy: '',
+      accounts: {},
       visitors: [
         { id: 'hana', t: '10分钟前' }, { id: 'victor', t: '1小时前' }, { id: 'zoe', t: '3小时前' },
         { id: 'marco', t: '昨天' }, { id: 'ruby', t: '昨天' }, { id: 'noah', t: '2天前' },
@@ -486,10 +492,17 @@
     return { vip: canVipDaily(), sign: canSign(), tasks: claimable(), welfare: (canSign() ? 1 : 0) + claimable(), chat: unread(), requests: s.requests.length };
   }
 
-  function reset() {
+  /**
+   * 回到新用户状态并刷新页面
+   * seed 可选：新状态里预先写入的字段（换账号登录时带上登录信息和邮箱注册表），user 按字段合并
+   */
+  function reset(seed) {
     resetting = true;
     try {
-      localStorage.removeItem(KEY);
+      if (seed) {
+        const base = fresh();
+        localStorage.setItem(KEY, JSON.stringify({ ...base, ...seed, user: { ...base.user, ...(seed.user || {}) } }));
+      } else localStorage.removeItem(KEY);
       sessionStorage.clear();
     } catch (_) { /* 忽略 */ }
     location.hash = '#play';

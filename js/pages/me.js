@@ -1,5 +1,6 @@
 /**
- * L 我的：L1 主页头部（含会员条）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包、L6 徽章、L7 设置（含重置演示）
+ * L 我的：L1 主页头部（含会员条、游客绑定提示）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包、L6 徽章、
+ * L7 设置（含账号与退出登录、重置演示）
  */
 (() => {
   'use strict';
@@ -41,6 +42,13 @@
       <span class="me-vip-btn">${Store.canVipDaily() ? '去领取' : '会员中心'}</span></button>`;
   }
 
+  /** V4 游客提示：绑定账号后换手机也能找回进度 */
+  function guestBanner() {
+    if (!Auth.isGuest()) return '';
+    return `<button class="me-guest" data-act="bind"><span class="me-guest-ic">${UI.ic('user', 20)}</span>
+      <span class="me-guest-m"><b>你正在使用游客账号</b><small>绑定账号，换手机也不会丢进度</small></span><span class="me-guest-btn">去绑定</span></button>`;
+  }
+
   /* ================= L1 Me ================= */
   App.page('me', {
     render(el) {
@@ -64,6 +72,7 @@
             <p class="me-bio">${UI.esc(s.user.bio)}</p>
             <div class="me-lv"><span class="me-lv-tag">Lv${s.user.lv}</span>${UI.bar(s.user.exp, need, 'is-green')}<em>${s.user.exp}/${need}经验</em></div>
           </div>
+          ${guestBanner()}
           ${vipBanner()}
           <div class="me-wallet">
             <button data-go="wallet" data-cur="exp">${UI.cur('exp', 30)}<b>Lv${s.user.lv}</b><span>经验${s.user.exp}</span></button>
@@ -93,6 +102,7 @@
       copy: () => UI.toast(`已复制ID ${Store.s.user.uid}`),
       vip: () => (Store.vipTier() ? App.go('vip') : Vip.open(1)),
       friends: () => App.tab('chat', { seg: 'friends' }),
+      bind: () => Auth.bind(),
     },
   });
 
@@ -291,8 +301,20 @@
     render(el) {
       const st = Store.s.settings;
       const row = (key, title, sub) => `<div class="cell"><span class="cell-main">${title}<small>${sub}</small></span>${UI.toggle(st[key], 'toggle', `data-k="${key}"`)}</div>`;
+      // V4 账号：游客可以绑定；正式账号显示登录方式
+      const by = Auth.by();
+      const guest = Auth.isGuest();
+      const accIc = by === 'google' || by === 'facebook' ? Auth.ICON[by] : UI.ic(by === 'email' ? 'mail' : 'user', 20);
+      const account = guest
+        ? `<button class="cell set-acc" data-act="bind"><span class="set-acc-ic is-guest">${accIc}</span><span class="cell-main">账号与绑定<small>${UI.esc(Auth.label())}</small></span><span class="cell-val set-bind">去绑定</span>${UI.ic('right', 18, 'cell-arrow')}</button>`
+        : `<div class="cell set-acc"><span class="set-acc-ic is-${by}">${accIc}</span><span class="cell-main">当前账号<small>${UI.esc(Auth.label())}</small></span><span class="cell-val">已登录</span></div>`;
       el.innerHTML = `${UI.nav({ title: '设置', cls: 'is-white' })}
         <div class="body set-body" data-scroll="main">
+          <div class="set-hd">账号</div>
+          <div class="cells">
+            ${account}
+            <button class="cell set-logout" data-act="logout"><span class="cell-ic">${UI.ic('logout', 20)}</span><span class="cell-main">${guest ? '退出游客账号' : '退出登录'}</span></button>
+          </div>
           <div class="set-hd">通用</div>
           <div class="cells">
             <button class="cell" data-act="lang"><span class="cell-ic">${UI.ic('globe', 20)}</span><span class="cell-main">语言</span><span class="cell-val">${langName(st.lang)}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
@@ -305,7 +327,7 @@
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="gems"><span class="cell-ic">${UI.cur('gems', 20)}</span><span class="cell-main">钻石清零<small>演示没有钻石、无法兑换金币</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家，从登录页重新开始</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
           <p class="set-foot">Soulgame 原型 · 小米游戏中心<br>所有数据仅保存在当前浏览器中。</p>
           <div class="bottom-space"></div>
@@ -342,9 +364,11 @@
         UI.toast('钻石已清零');
       },
       reset: async () => {
-        const ok = await UI.confirm({ title: '确定重置演示？', text: '所有进度、购买和聊天记录都会清空，你将以新玩家身份重新开始。', ok: '重置', danger: true });
+        const ok = await UI.confirm({ title: '确定重置演示？', text: '所有进度、购买、聊天记录和登录信息都会清空，你将以新玩家身份重新开始。', ok: '重置', danger: true });
         if (ok) Store.reset();
       },
+      bind: () => Auth.bind(),
+      logout: () => Auth.logout(),
     },
   });
 })();
