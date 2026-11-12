@@ -1,6 +1,7 @@
 /**
  * J 房间：J1 房间列表、J2 快速加入、J3 创建房间、J4 房间内（座位、聊天、准备、人满倒计时开局）、
- * J5 邀请好友、J6 付费房间需要通行证
+ * J5 邀请好友、J6 高级房需要房卡
+ * 只有四子棋（D.GAME），房间固定2人；房间对局不扣金币、不计段位
  */
 (() => {
   'use strict';
@@ -62,39 +63,29 @@
     join(best.id);
   }
 
-  /** 和好友一起玩：建私密房间并邀请 */
-  function withFriend(uid, game) {
-    const g = D.game[game];
-    const r = Store.createRoom({ name: `${Store.s.user.name}的${g.name}房间`, game, max: Math.min(g.max, 4), private: true, premium: false, lang: '中文' });
-    const st = state(r.id);
-    st.msgs.push({ type: 'sys', text: '房间已创建，快邀请好友入座吧。' });
-    App.go('room', { id: r.id, invite: uid });
-  }
+  /** 默认房间名：只有四子棋一款游戏 */
+  const defName = () => `${Store.s.user.name}的${D.game[D.GAME].name}房间`;
 
-  function pickGame(title, prefer = []) {
-    return new Promise((resolve) => {
-      let picked = null;
-      const ids = [...new Set([...prefer.filter((x) => D.game[x]), 'c4', ...D.forYou])].slice(0, 12);
-      const c = UI.sheet({
-        title, sub: '选择游戏',
-        html: `<div class="pg-grid">${ids.map((id) => `<button class="pg-it" data-act="pick" data-g="${id}"><img src="${D.game[id].icon}" alt=""><b>${D.game[id].name}</b>${D.game[id].playable ? '<i class="tag tag-new">可试玩</i>' : `<i class="pg-cat">${D.game[id].cat}</i>`}</button>`).join('')}</div>`,
-        acts: { pick: (el) => { picked = el.dataset.g; c.close(); } },
-        onClose: () => resolve(picked),
-      });
-    });
+  /** 和好友一起玩：建私密房间并邀请（gameId 可省略，默认四子棋） */
+  function withFriend(uid, game = D.GAME) {
+    const g = D.game[game] || D.game[D.GAME];
+    const r = Store.createRoom({ name: defName(), game: g.id, max: 2, private: true, premium: false, lang: '中文' });
+    const st = state(r.id);
+    st.msgs.push({ type: 'sys', text: '房间已创建，快邀请好友入座吧。好友房不扣金币、不计段位。' });
+    App.go('room', { id: r.id, invite: uid });
   }
 
   /* ================= J1 房间列表 ================= */
   function roomCard(r) {
-    const g = D.game[r.game];
     const full = r.seats.length >= r.max;
+    const left = r.max - r.seats.length;
     const seats = [...Array(r.max).keys()].map((i) => (r.seats[i] ? UI.av(r.seats[i], 26, { frame: false }) : '<i class="seat-dot"></i>')).join('');
     return `<button class="rcard ${r.premium ? 'is-premium' : ''} ${r.mine ? 'is-mine' : ''}" data-act="join" data-id="${r.id}">
-      <img class="rcard-ic" src="${g.icon}" alt="">
+      <span class="rcard-host">${UI.av(r.host, 52, { frame: false })}</span>
       <span class="rcard-m">
         <b>${UI.esc(r.name)}</b>
-        <span>${g.name} · ${r.lang}${r.private ? ` · ${UI.ic('lock', 11)} 私密` : ''}</span>
-        <span class="rcard-seats">${seats}</span>
+        <span>${UI.ic('crown', 11)} ${r.host === 'me' ? '我' : nameOf(r.host)} · ${UI.ic('globe', 11)} ${r.lang}${r.private ? ` · ${UI.ic('lock', 11)} 私密` : ''}</span>
+        <span class="rcard-seats">${seats}<i class="rcard-left">${full ? '人已满' : `还差${left}人`}</i></span>
       </span>
       <span class="rcard-r">
         ${r.premium ? `<span class="tag tag-event">${UI.ic('ticket', 11)} 高级房</span>` : '<span class="tag tag-new">免费</span>'}
@@ -145,41 +136,27 @@
     render(el, p) {
       if (formFor !== p) {
         formFor = p;
-        const g0 = D.game[p.game] || D.game.c4;
-        form = { game: g0.id, max: Math.min(g0.max, 4) > 2 ? 4 : 2, priv: false, premium: false, name: '' };
+        form = { priv: false, premium: false, name: '' };
       }
-      const g = D.game[form.game];
-      if (form.max > g.max) form.max = g.max;
-      const games = [...new Set([form.game, 'c4', ...D.forYou])];
+      const g = D.game[D.GAME];
       el.innerHTML = `${UI.nav({ title: '创建房间', cls: 'is-white' })}
         <div class="body cr-body" data-scroll="main">
-          <div class="cr-sec"><h3>游戏</h3><div class="hscroll cr-games" data-scroll="games">${games.map((id) => `<button class="cr-game ${id === form.game ? 'is-active' : ''}" data-act="game" data-g="${id}"><img src="${D.game[id].icon}" alt=""><span>${D.game[id].name}</span></button>`).join('')}</div></div>
-          <div class="cr-sec"><h3>房间名</h3><div class="field"><input class="cr-name" maxlength="28" placeholder="${UI.esc(`${Store.s.user.name}的${g.name}房间`)}" value="${UI.esc(form.name)}"></div></div>
-          <div class="cr-sec"><h3>人数</h3><div class="cr-seg">${[2, 4, 6].map((n) => `<button class="${n === form.max ? 'is-active' : ''} ${n > g.max ? 'is-off' : ''}" data-act="max" data-n="${n}">${n}</button>`).join('')}</div>
-            <p class="cr-hint">${g.name}支持${g.players}对战</p></div>
+          <div class="cr-sec cr-row cr-mode"><img class="cr-mode-ic" src="${g.icon}" alt=""><div><b>${g.name}</b><span>${g.players}对战 · 约${g.dur}一局</span></div></div>
+          <div class="cr-sec"><h3>房间名</h3><div class="field"><input class="cr-name" maxlength="28" placeholder="${UI.esc(defName())}" value="${UI.esc(form.name)}"></div></div>
           <div class="cr-sec"><h3>谁能加入</h3><div class="cr-privacy">
             <button class="${!form.priv ? 'is-active' : ''}" data-act="priv" data-v="0">${UI.ic('globe', 22)}<b>公开</b><span>所有人都能找到并加入</span></button>
             <button class="${form.priv ? 'is-active' : ''}" data-act="priv" data-v="1">${UI.ic('lock', 22)}<b>私密</b><span>仅限邀请</span></button></div></div>
           <div class="cr-sec cr-row"><div><b>${UI.ic('ticket', 16)} 高级房</b><span>消耗1张房卡 · 在列表中高亮显示</span></div>${UI.toggle(form.premium, 'premium')}</div>
-          <p class="cr-note">${UI.ic('info', 14)} 每局每人消耗${D.COST}钻石。你有${UI.cur('pass', 16)}${Store.s.pass}张房卡。</p>
+          <p class="cr-note">${UI.ic('info', 14)}<span>好友房不扣金币、不计段位，只管和朋友玩。你有${UI.cur('pass', 14)}${Store.s.pass}张房卡。</span></p>
           <div class="bottom-space" style="height:90px"></div>
         </div>
         <div class="cr-foot"><button class="btn btn-primary btn-lg btn-block" data-act="create">创建房间</button></div>`;
     },
     act: {
-      game: (el) => { form.name = pageVal(); form.game = el.dataset.g; App.refresh('create'); },
-      max: (el) => {
-        const n = +el.dataset.n;
-        if (n > D.game[form.game].max) { UI.toast(`${D.game[form.game].name}最多支持${D.game[form.game].max}人`); return; }
-        form.name = pageVal();
-        form.max = n;
-        App.refresh('create');
-      },
       priv: (el) => { form.name = pageVal(); form.priv = el.dataset.v === '1'; App.refresh('create'); },
       premium: () => { form.name = pageVal(); form.premium = !form.premium; App.refresh('create'); },
       create: async () => {
-        const g = D.game[form.game];
-        const name = pageVal().trim() || `${Store.s.user.name}的${g.name}房间`;
+        const name = pageVal().trim() || defName();
         if (form.premium) {
           if (Store.s.pass <= 0) {
             const k = await UI.dialog({ img: `${IMG}ui/pass.svg`, imgCls: 'is-small', title: '需要房卡', text: '创建高级房需消耗1张房卡。', buttons: [{ label: `买1张房卡 · ${UI.cur('coins', 16)} 200`, key: 'buy', cls: 'btn-orange' }, { label: '改建免费房', key: 'free', cls: 'btn-ghost' }] });
@@ -189,7 +166,7 @@
           }
           if (form.premium) Store.add('pass', -1, `房卡 · ${name}`);
         }
-        const r = Store.createRoom({ name, game: form.game, max: form.max, private: form.priv, premium: form.premium, lang: '中文' });
+        const r = Store.createRoom({ name, game: D.GAME, max: 2, private: form.priv, premium: form.premium, lang: '中文' });
         state(r.id).msgs.push({ type: 'sys', text: form.priv ? '私密房间已创建，快邀请好友加入吧。' : '房间已创建，其他玩家可以在列表中找到。' });
         App.replace('room', { id: r.id }, { anim: 'push' });
         UI.toast('房间已创建');
@@ -235,7 +212,7 @@
     if (st.cd) return '<button class="btn btn-ghost btn-lg btn-block" data-act="ready">取消</button>';
     return st.ready.me
       ? '<button class="btn btn-ghost btn-lg btn-block" data-act="ready">取消准备</button>'
-      : `<button class="btn btn-orange btn-lg btn-block" data-act="ready">准备 <span class="btn-price">${UI.cur('gems', 16)}${D.COST}</span></button>`;
+      : '<button class="btn btn-orange btn-lg btn-block" data-act="ready">准备</button>';
   }
 
   /** 局部刷新，不打断输入框和聊天滚动 */
@@ -301,13 +278,7 @@
       if (st.n > 0) { Sfx.play('tick'); paint(r); return; }
       clearInterval(st.cd);
       st.cd = 0;
-      if (Store.s.gems < D.COST) {
-        st.ready.me = false;
-        paint(r);
-        Shop.lack(D.COST, r.game);
-        return;
-      }
-      Store.add('gems', -D.COST, `${D.game[r.game].name} · 房间对局`);
+      // 好友房不扣金币、不计段位，直接开局
       st.ready.me = false;
       paint(r);
       const opp = UI.pick(r.seats.filter((u) => u !== 'me'));
@@ -341,7 +312,7 @@
     render(el, p) {
       const r = Store.room(p.id);
       if (!r) { el.innerHTML = `${UI.nav({ title: '房间' })}${UI.empty('房间已关闭')}`; return; }
-      const g = D.game[r.game];
+      const g = D.game[r.game] || D.game[D.GAME];
       const st = state(r.id);
       r.seats.forEach((u) => { if (u !== 'me' && st.ready[u] === undefined) st.ready[u] = true; });
       el.innerHTML = `
@@ -349,7 +320,7 @@
         ${UI.nav({ title: UI.esc(r.name), sub: `房间号 ${String(parseInt(r.id.replace(/\D/g, '') || '4829', 10) % 900000 + 100000)} · ${r.private ? '私密' : '公开'} · ${r.lang}`, cls: 'is-light', right: `<button class="icon-btn" data-act="invite" aria-label="邀请">${UI.ic('userPlus', 21)}</button><button class="icon-btn" data-act="shareRoom" aria-label="分享">${UI.ic('share', 20)}</button>` })}
         <div class="rm-game">
           <img src="${g.icon}" alt="">
-          <div class="row-main"><b>${g.name}</b><span>${g.players} · 每局${D.COST}钻石${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
+          <div class="row-main"><b>${g.name}</b><span>${g.players} · 不扣金币 · 不计段位${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
           <span class="rm-count">${r.seats.length}/${r.max}</span>
         </div>
         <div class="rm-seats-box">${seatsHtml(r, st)}</div>
@@ -391,7 +362,6 @@
         const r = Store.room(App.params('room').id);
         const st = state(r.id);
         if (st.cd) { clearInterval(st.cd); st.cd = 0; st.ready.me = false; sys(r, '已取消倒计时'); return; }
-        if (!st.ready.me && Store.s.gems < D.COST) { Shop.lack(D.COST, r.game); return; }
         st.ready.me = !st.ready.me;
         Sfx.play('tap');
         paint(r);
@@ -415,7 +385,7 @@
       },
       shareRoom: () => {
         const r = Store.room(App.params('room').id);
-        UI.share({ title: '邀请进房', text: `快来畅玩空间，加入我的房间「${r.name}」！`, game: r.game });
+        UI.share({ title: '邀请进房', text: `快来 Soulgame，加入我的房间「${r.name}」！`, game: r.game });
       },
     },
   });
@@ -425,5 +395,5 @@
     state(r.id).timers.push(setTimeout(() => say(r, UI.pick(others), UI.pick(['😂', '好嘞！', '+1', '冲冲冲', '准备好了！', 'GG'])), 1400 + Math.random() * 1200));
   }
 
-  window.Rooms = { join, withFriend, pickGame, quickJoin };
+  window.Rooms = { join, withFriend, quickJoin };
 })();

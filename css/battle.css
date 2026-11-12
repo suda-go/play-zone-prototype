@@ -60,67 +60,11 @@
 @keyframes win-pulse { from { transform: scale(1); filter: brightness(1); } to { transform: scale(.88); filter: brightness(1.35); } }
 @keyframes win-ring { from { opacity: .55; } to { opacity: 1; } }
 
-/* ---------- D 游戏详情 ---------- */
-.dt-hero { position: absolute; left: 0; right: 0; top: 0; height: 290px; overflow: hidden; background: #1b2550; }
-.dt-hero-img { width: 100%; height: 100%; object-fit: cover; }
-.dt-hero-img.is-blur { filter: blur(26px) saturate(1.4); transform: scale(1.4); }
-.dt-hero-icon { position: absolute; left: 50%; top: 52%; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 28px; box-shadow: 0 0 0 4px rgba(255, 255, 255, .7), 0 16px 34px rgba(0, 0, 0, .4); }
-.dt-shade { position: absolute; inset: 0; background: linear-gradient(rgba(0, 0, 0, .42), rgba(0, 0, 0, 0) 38%, rgba(243, 245, 251, 0) 66%, var(--bg)); }
-.dt-nav { position: absolute; left: 0; right: 0; top: 0; }
-.dt-body { padding-top: 206px; }
-.dt-head { margin: 0 16px; padding: 14px 16px 16px; }
-.dt-head-row { display: flex; gap: 14px; }
-.dt-icon { width: 78px; height: 78px; flex-shrink: 0; margin-top: -38px; border-radius: 20px; object-fit: cover; box-shadow: 0 0 0 4px #fff, 0 10px 20px -8px rgba(0, 0, 0, .4); }
-.dt-info { min-width: 0; }
-.dt-info h1 { font-size: 22px; font-weight: 900; line-height: 1.15; letter-spacing: -.3px; }
-.dt-meta { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-.dt-star { color: #ff9f0a; font-weight: 800; font-size: 13px; }
-.dt-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.dt-desc { margin-top: 12px; font-size: 13.5px; color: var(--text-2); }
-.dt-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 16px 0; }
-.mode {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  padding: 12px 10px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-s);
-  text-align: left; transition: transform .15s;
-}
-.mode:active { transform: scale(.97); }
-.mode b { margin-top: 8px; font-size: 13.5px; font-weight: 800; line-height: 1.2; }
-.mode span { font-size: 11px; color: var(--text-2); line-height: 1.3; }
+/* ---------- 模式图标（大厅“和好友玩 / 创建房间 / 人机练习”） ---------- */
 .mode-ic { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: #fff; }
 .mode-ic.is-blue { background: var(--g-blue); }
 .mode-ic.is-purple { background: var(--g-purple); }
 .mode-ic.is-green { background: var(--g-green); }
-.mode-quick {
-  grid-column: 1 / -1; position: relative; overflow: hidden;
-  min-height: 92px; padding: 18px 16px;
-  background: linear-gradient(115deg, #2c7bff, #6c5cff 58%, #ff5c8a); color: #fff;
-  box-shadow: 0 12px 24px -14px rgba(76, 80, 255, .9);
-}
-.mode-quick b { margin: 0; font-size: 21px; font-weight: 900; }
-.mode-quick span { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: rgba(255, 255, 255, .92); }
-.mode-quick img { position: absolute; right: -14px; bottom: -12px; width: 172px; }
-.dt-rank { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); margin: 12px 16px 0; padding: 14px; text-align: left; }
-.dt-rank-m { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.dt-rank-m b { font-size: 17px; font-weight: 900; }
-.dt-rank-m small { font: 600 12px var(--num); color: var(--text-2); }
-.dt-rank-m > span { font-size: 12.5px; color: var(--text-2); }
-.dt-rank-m em { font-style: normal; font-weight: 900; color: #ff7a2f; }
-.dt-rank-s { display: flex; flex-direction: column; align-items: center; padding-left: 12px; border-left: 1px solid var(--line); }
-.dt-rank-s b { font: 800 20px var(--num); }
-.dt-rank-s span { font-size: 11px; color: var(--text-2); }
-.dt-rank-s small { font-size: 10.5px; color: var(--text-3); }
-.dt-board { margin: 0 16px; padding: 4px 12px; }
-.dt-cells { margin: 12px 16px 0; }
-.dt-cta {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 16px calc(var(--home-h) + 10px);
-  background: rgba(255, 255, 255, .95); backdrop-filter: blur(14px);
-  box-shadow: 0 -.5px 0 var(--line);
-}
-.dt-bal span { display: block; font-size: 11px; color: var(--text-2); }
-.dt-bal b { display: flex; align-items: center; gap: 4px; font: 800 18px var(--num); }
-.dt-cta .btn { flex: 1; }
 
 /* ---------- B4 玩法引导 ---------- */
 .ov-howto .ov-mask { background: #0c0f33; }
@@ -407,3 +351,39 @@
 @keyframes twinkle { 0%, 100% { opacity: .2; transform: scale(.6); } 50% { opacity: 1; transform: scale(1); } }
 @keyframes glove-l { 0%, 100% { transform: scaleX(-1) rotate(-12deg) translateX(0); } 50% { transform: scaleX(-1) rotate(-12deg) translateX(-10px); } }
 @keyframes glove-r { 0%, 100% { transform: rotate(-12deg) translateX(0); } 50% { transform: rotate(-12deg) translateX(10px); } }
+
+/* ---------- V2 匹配页金币场次 ---------- */
+.mt-stake { flex-wrap: wrap; justify-content: center; }
+.mt-stake em { margin: 0 2px; }
+
+/* ---------- V2 C 局内语音：麦克风 / 扬声器开关、头像声波 ---------- */
+.gm-bar-gap { width: 2px; }
+.gm-mic, .gm-spk { color: #8a90a8; }
+.gm-mic.is-on, .gm-spk.is-on { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
+.page.is-myturn .gm-mic, .page.is-myturn .gm-spk { filter: none; opacity: 1; transform: none; }
+.page.is-oppturn .gm-mic, .page.is-oppturn .gm-spk { transform: none; box-shadow: none; }
+.gm-voice { position: absolute; right: -2px; bottom: 2px; z-index: 3; display: none; align-items: flex-end; gap: 2px; height: 18px; padding: 3px 5px; border-radius: 9px; background: #10b981; box-shadow: 0 0 0 2px #fff; }
+.gm-voice b { width: 3px; height: 4px; border-radius: 2px; background: #fff; }
+.gm-pl.is-mic .gm-voice, .gm-pl.is-talking .gm-voice, .gm-pl.is-muted .gm-voice { display: flex; }
+.gm-pl.is-muted .gm-voice { background: #9aa1b5; }
+.gm-pl.is-talking .gm-voice b { animation: voice-bar .45s ease-in-out infinite alternate; }
+.gm-voice b:nth-child(2) { animation-delay: .15s; }
+.gm-voice b:nth-child(3) { animation-delay: .3s; }
+.gm-pl.is-talking .gm-av::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; animation: voice-ring 1s ease-out infinite; pointer-events: none; }
+@keyframes voice-bar { from { height: 3px; } to { height: 12px; } }
+@keyframes voice-ring { from { box-shadow: 0 0 0 0 rgba(16, 185, 129, .75); } to { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); } }
+
+/* ---------- V2 A 结算社交位：加好友 / 再战TA ---------- */
+.rs-mate { display: flex; align-items: center; gap: 10px; margin: 12px 16px 0; padding: 12px; border-radius: 20px; background: rgba(255, 255, 255, .96); color: var(--text); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .5); }
+.rs-mate-m { flex: 1; min-width: 0; }
+.rs-mate-m b { display: block; font-size: 15px; font-weight: 800; }
+.rs-mate-m b i { font: 700 11px var(--num); font-style: normal; color: var(--text-3); }
+.rs-mate-m span { display: block; margin-top: 1px; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-mate-btns { display: flex; flex-direction: column; gap: 6px; }
+.rs-mate .rs-friend { justify-content: center; height: 30px; margin: 0; padding: 0 12px; background: var(--g-blue); color: #fff; font-size: 12.5px; white-space: nowrap; }
+.rs-mate .rs-friend.is-done { background: #eef1f8; color: var(--text-2); }
+.rs-rematch { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; padding: 0 12px; border-radius: 15px; background: var(--g-orange); color: #fff; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.rs-rematch.is-wait { background: #eef1f8; color: var(--text-2); }
+.rs-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+.rs-gain.is-free { height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(255, 255, 255, .22); font-size: 13px; font-weight: 800; }
+.rs-gain.is-neg em { opacity: .75; }

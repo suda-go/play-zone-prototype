@@ -13,15 +13,23 @@
     if (s < 86400) return `${Math.floor(s / 3600)}小时前`;
     return md(t);
   };
-  const bestRank = () => Object.entries(Store.s.ranks).reduce((a, [g, r]) => (!a || r.tier * 100 + r.pts > a.r.tier * 100 + a.r.pts ? { g, r } : a), null);
+  const pct = (w, g) => (g ? Math.round((w / g) * 100) : 0);
+  /** 对局记录右侧：排位局显示金币净变化，好友房 / 练习单独标注 */
+  function matchVal(m) {
+    if (m.practice || m.mode === 'ai') return '<i class="st-tag">练习</i>';
+    if (m.mode === 'room') return '<i class="st-tag">好友局</i>';
+    const n = m.coins || 0;
+    if (!n) return m.draw ? `<i>${UI.cur('coins', 14)}退还底注</i>` : '';
+    return `<i class="${n > 0 ? 'is-up' : 'is-down'}">${UI.cur('coins', 14)}${n > 0 ? '+' : '-'}${UI.fmt(Math.abs(n))}金币</i>`;
+  }
 
   /* ================= L1 Me ================= */
   App.page('me', {
     render(el) {
       const s = Store.s;
       const need = Store.need(s.user.lv);
-      const best = bestRank();
-      const winRate = s.record.games ? Math.round((s.record.wins / s.record.games) * 100) : 0;
+      const r = Store.rank(D.GAME);
+      const winRate = pct(s.record.wins, s.record.games);
       const badges = D.badges.filter((b) => s.badges[b.id]).length;
       const owned = s.owned.frame.length + s.owned.bubble.length + s.owned.bg.length;
       el.innerHTML = `
@@ -45,7 +53,7 @@
           </div>
           <button class="me-stats card" data-go="stats">
             <span><b>${s.record.games}</b>对局</span><span><b>${winRate}%</b>胜率</span>
-            <span>${best ? UI.tier(best.r.tier, 24) : ''}<b>${best ? D.tiers[best.r.tier] : '—'}</b>最高段位</span>
+            <span>${UI.tier(r.tier, 24)}<b>${D.tiers[r.tier]}</b>四子棋段位</span>
             ${UI.ic('right', 18, 'cell-arrow')}
           </button>
           <div class="cells me-cells">
@@ -123,7 +131,7 @@
             <div><span>${UI.cur('coins', 26)}金币</span>${UI.bind('coins')}<button class="btn btn-white btn-sm" data-act="topup" data-cur="coins">充值</button></div>
             <div><span>${UI.cur('exp', 26)}等级</span><b class="num">Lv${s.user.lv}</b><em>${s.user.exp}/${Store.need(s.user.lv)}经验</em></div>
           </div>
-          <p class="wl-rule">钻石：每局${D.COST} · 金币：买装扮和道具 · 经验：用于升级<span class="nowrap">（胜+50，负+20）</span></p>
+          <p class="wl-rule">金币：对局底注、买装扮和道具 · 钻石：充值获得，可兑换金币 · 经验：用于升级<span class="nowrap">（胜+50，负+20）</span></p>
           <div class="pills wl-tabs">${tabs.map(([id, label]) => `<button class="pill ${id === f ? 'is-active' : ''}" data-act="f" data-f="${id}">${label}</button>`).join('')}</div>
           <div class="wl-list">${logs.length ? logs.map((x) => `<div class="wl-row">${UI.cur(x.cur, 30)}<span class="row-main"><b>${UI.esc(x.note)}</b><span>${ago(x.t)}</span></span><em class="${x.n > 0 ? 'is-in' : 'is-out'}">${x.n > 0 ? '+' : ''}${UI.fmt(x.n)}</em></div>`).join('')
             : UI.empty('还没有记录，先去领新手礼包吧！')}</div>
@@ -178,24 +186,30 @@
     },
   });
 
-  /* ================= L3 战绩 ================= */
+  /* ================= L3 战绩（只有四子棋） ================= */
   App.page('stats', {
     render(el) {
       const s = Store.s;
-      const wr = s.record.games ? Math.round((s.record.wins / s.record.games) * 100) : 0;
-      const games = Object.keys(s.gstats).filter((g) => D.game[g]);
+      const g = D.game[D.GAME];
+      const r = Store.rank(D.GAME);
+      const gs = s.gstats[D.GAME] || { g: 0, w: 0 };
+      const name = (id) => (D.people[id] ? D.people[id].name : id === 'bot' ? '人机' : '—');
       el.innerHTML = `${UI.nav({ title: '战绩', cls: 'is-white' })}
         <div class="body st-body" data-scroll="main">
-          <div class="st-sum card"><span><b>${s.record.games}</b>对局</span><span><b>${s.record.wins}</b>胜场</span><span><b>${wr}%</b>胜率</span><span><b>${Math.floor(s.cnt.all.seconds / 60)}分钟</b>游戏时长</span></div>
+          <div class="st-sum card"><span><b>${s.record.games}</b>对局</span><span><b>${s.record.wins}</b>胜场</span><span><b>${pct(s.record.wins, s.record.games)}%</b>胜率</span><span><b>${Math.floor(s.cnt.all.seconds / 60)}分钟</b>游戏时长</span></div>
           <div class="sec-hd"><h2>本赛季段位</h2></div>
-          <div class="cells">${games.map((g) => {
-            const r = Store.rank(g);
-            const gs = s.gstats[g];
-            return `<button class="cell" data-go="detail" data-game="${g}"><img class="st-ic" src="${D.game[g].icon}" alt=""><span class="cell-main">${D.game[g].name}<small>${gs.g}局 · 胜率${gs.g ? Math.round((gs.w / gs.g) * 100) : 0}%</small></span><span class="cell-val">${UI.tier(r.tier, 24)}${D.tiers[r.tier]}${r.pts}分</span></button>`;
-          }).join('')}</div>
+          <div class="st-game card">
+            <img class="st-ic" src="${g.icon}" alt="">
+            <div class="st-game-main"><b>${g.name}</b><span>${UI.tier(r.tier, 20)}${D.tiers[r.tier]} · ${r.pts}/100分</span>
+              <small>${gs.g}局 · 胜${gs.w}局 · 胜率${pct(gs.w, gs.g)}%</small></div>
+            <button class="btn btn-orange btn-sm" data-tab="play">去对局</button>
+          </div>
           <div class="sec-hd"><h2>最近对局</h2></div>
-          <div class="st-list">${s.history.map((m) => `<div class="st-row"><img src="${D.game[m.game].icon}" alt=""><span class="row-main"><b>${D.game[m.game].name} · VS ${D.people[m.vs] ? D.people[m.vs].name : '—'}</b><span>${m.t}${m.practice ? ' · 练习' : ''}</span></span>
-            <em class="${m.win ? 'is-win' : m.draw ? '' : 'is-lose'}">${m.win ? '胜利' : m.draw ? '平局' : '失败'}</em>${m.gems ? `<i>${UI.cur('gems', 14)}+${m.gems}</i>` : ''}</div>`).join('')}</div>
+          <div class="st-list">${s.history.length ? s.history.map((m) => {
+            const st = m.stake && D.stake[m.stake];
+            return `<div class="st-row"><img src="${(D.game[m.game] || g).icon}" alt=""><span class="row-main"><b>VS ${name(m.vs)}</b><span>${m.t}${st ? ` · ${st.name}` : ''}</span></span>
+            <em class="${m.win ? 'is-win' : m.draw ? '' : 'is-lose'}">${m.win ? '胜利' : m.draw ? '平局' : '失败'}</em>${matchVal(m)}</div>`;
+          }).join('') : UI.empty('还没有对局记录')}</div>
           <div class="bottom-space"></div>
         </div>`;
     },
@@ -240,10 +254,11 @@
           <div class="set-hd">演示调试</div>
           <div class="cells">
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-act="gems"><span class="cell-ic">${UI.cur('gems', 20)}</span><span class="cell-main">钻石清零<small>用于演示“钻石不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-act="gems"><span class="cell-ic">${UI.cur('gems', 20)}</span><span class="cell-main">钻石清零<small>演示没有钻石、无法兑换金币</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
-          <p class="set-foot">畅玩空间原型 · 小米游戏中心<br>所有数据仅保存在当前浏览器中。</p>
+          <p class="set-foot">Soulgame 原型 · 小米游戏中心<br>所有数据仅保存在当前浏览器中。</p>
           <div class="bottom-space"></div>
         </div>`;
     },
@@ -268,6 +283,10 @@
         Store.nextDay();
         App.refresh('settings');
         UI.toast(`已进入第${Store.s.day}天，每日任务、签到和广告已刷新`);
+      },
+      coins: () => {
+        if (Store.s.coins) Store.add('coins', -Store.s.coins, '演示：金币清零');
+        UI.toast('金币已清零');
       },
       gems: () => {
         if (Store.s.gems) Store.add('gems', -Store.s.gems, '演示：钻石清零');

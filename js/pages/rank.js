@@ -1,12 +1,12 @@
 /**
- * H 排行榜：H1 好友榜 / 全服榜与游戏筛选、H2 赛季奖励、H3 我的位置与差距、H4 名次变化、H5 分享海报
+ * H 排行榜（只有四子棋）：H1 好友榜 / 全服榜、H2 赛季奖励、H3 我的位置与差距、H4 名次变化、H5 分享海报
  * 分数 = 段位 × 100 + 段内分；我的分数随对局实时变化，排名跟着变
+ * 旧调用传入的 game 参数会被忽略，一律按 D.GAME 计算
  */
 (() => {
   'use strict';
 
   const IMG = D.IMG;
-  const GAMES = ['c4', 'clash', 'bingo', 'strike', 'jet', 'boxing'];
   const BASE_GLOBAL = 1284; // 初始全服名次
   let scope = 'friends';
 
@@ -16,27 +16,19 @@
     for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
     return (h >>> 0) / 4294967296;
   };
-  function friends(game) {
-    const fixed = game === 'c4' ? Object.fromEntries(D.boardFriends.map((x) => [x.id, x])) : {};
-    const list = Store.s.friends.map((id) => fixed[id] || { id, score: Math.round(40 + seed(game + id) * 230), move: Math.round(seed(id + game) * 6) - 3 });
-    list.push({ id: 'me', score: Store.score(game), move: 0, me: true });
+  const G = D.GAME;
+  /** 好友榜：固定分数的好友用 D.boardFriends，新加的好友按 id 生成稳定分数 */
+  function friends() {
+    const fixed = Object.fromEntries(D.boardFriends.map((x) => [x.id, x]));
+    const list = Store.s.friends.map((id) => fixed[id] || { id, score: Math.round(40 + seed(G + id) * 230), move: Math.round(seed(id + G) * 6) - 3 });
+    list.push({ id: 'me', score: Store.score(G), move: 0, me: true });
     return list.sort((a, b) => b.score - a.score || (a.me ? -1 : 1));
   }
-  function global(game) {
-    const list = game === 'c4' ? D.boardGlobal.map((x) => ({ ...x }))
-      : Object.keys(D.people).filter((id) => id !== 'stella' && id !== 'bot').slice(0, 15)
-        .map((id) => ({ id, score: Math.round(360 + seed(id + game) * 140), move: Math.round(seed(game + id) * 8) - 4 }))
-        .sort((a, b) => b.score - a.score);
-    return list;
-  }
-  function myGlobalPos(game) {
-    const sc = Store.score(game);
-    const base = game === 'c4' ? 160 : 0;
-    return Math.max(16, Math.round(BASE_GLOBAL - (sc - base) * 6 + (game === 'c4' ? 0 : 4000)));
-  }
+  const global = () => D.boardGlobal.map((x) => ({ ...x }));
+  const myGlobalPos = () => Math.max(16, Math.round(BASE_GLOBAL - (Store.score(G) - 160) * 6));
   /** 好友榜里我的名次和上一名 */
-  function friendPos(game) {
-    const list = friends(game);
+  function friendPos() {
+    const list = friends();
     const i = list.findIndex((x) => x.me);
     const ahead = i > 0 ? list[i - 1] : null;
     const gap = ahead ? ahead.score - list[i].score : 0;
@@ -47,11 +39,11 @@
   const moveHtml = (m) => (m > 0 ? `<span class="rk-move is-up">▲${m}</span>` : m < 0 ? `<span class="rk-move is-down">▼${-m}</span>` : '<span class="rk-move">–</span>');
   const nameOf = (id) => (id === 'me' ? '我' : D.people[id].name);
 
-  /** D4 详情页里的排行预览：前三 + 我 */
-  function preview(game) {
-    const list = friends(game);
+  /** 排行预览卡片：前三 + 我 */
+  function preview() {
+    const list = friends();
     const top = list.slice(0, 3);
-    const fp = friendPos(game);
+    const fp = friendPos();
     const me = list[fp.pos - 1];
     const rows = [...top];
     if (fp.pos > 3) rows.push(me);
@@ -64,21 +56,21 @@
   }
 
   /* ---------- H5 分享海报 ---------- */
-  function poster(game) {
-    const g = D.game[game];
-    const fp = friendPos(game);
-    const r = Store.rank(game);
+  function poster() {
+    const g = D.game[G];
+    const fp = friendPos();
+    const r = Store.rank(G);
     const c = UI.sheet({
       title: '分享海报',
       sub: '晒晒你本赛季的排名',
       html: `<div class="poster" style="background:${UI.bg(Store.s.equip.bg)}">
           <div class="poster-in">
-            <div class="poster-top"><img src="${IMG}brand/app-icon.png" alt=""><span>畅玩空间<br><small>${D.season.name}</small></span></div>
+            <div class="poster-top"><img src="${IMG}brand/app-icon.png" alt=""><span>Soulgame<br><small>${D.season.name}</small></span></div>
             <div class="poster-av">${UI.av('me', 86)}</div>
             <b class="poster-name">${UI.esc(Store.s.user.name)}</b>
-            <div class="poster-rank"><em>#${scope === 'friends' ? fp.pos : UI.fmt(myGlobalPos(game))}</em><span>${g.name}<br>${scope === 'friends' ? '好友排名' : '全服排名'}</span></div>
+            <div class="poster-rank"><em>#${scope === 'friends' ? fp.pos : UI.fmt(myGlobalPos())}</em><span>${g.name}<br>${scope === 'friends' ? '好友排名' : '全服排名'}</span></div>
             <div class="poster-tier">${UI.tier(r.tier, 30)}${D.tiers[r.tier]} · ${r.pts}/100</div>
-            <div class="poster-foot">${UI.qr(`pz-${Store.s.user.uid}-${game}`, 64)}<span><b>扫码和我一起玩</b>ID ${Store.s.user.uid}</span></div>
+            <div class="poster-foot">${UI.qr(`pz-${Store.s.user.uid}-${G}`, 64)}<span><b>扫码和我一起玩</b>ID ${Store.s.user.uid}</span></div>
           </div>
         </div>
         <div class="poster-btns">
@@ -89,16 +81,16 @@
         save: () => { c.close(); UI.toast('海报已保存到相册'); },
         share: () => {
           c.close();
-          const pos = scope === 'friends' ? fp.pos : myGlobalPos(game);
+          const pos = scope === 'friends' ? fp.pos : myGlobalPos();
           const place = scope === 'friends' ? '好友中' : '全服';
-          UI.share({ title: '分享海报', text: `我在${g.name}${place}排第${pos}名，来挑战我吧！`, game });
+          UI.share({ title: '分享海报', text: `我在 Soulgame 四子棋${place}排第${pos}名，来挑战我吧！`, game: G });
         },
       },
     });
   }
 
   function seasonSheet() {
-    const best = Math.max(...Object.values(Store.s.ranks).map((r) => r.tier));
+    const best = Store.rank(G).tier;
     UI.sheet({
       title: D.season.name,
       sub: `${D.season.left}后结束 · 赛季结束时发放奖励`,
@@ -106,18 +98,16 @@
           ${UI.tier(x.tier, 40)}<div class="row-main"><b>${D.tiers[x.tier]}</b><span>${x.text}</span></div>
           ${x.tier <= best ? `<span class="tag tag-new">${UI.ic('check', 11)} 已达成</span>` : `<span class="tag tag-gray">${x.tier * 100}分</span>`}
         </div>`).join('')}</div>
-        <p class="ss-note">${UI.ic('info', 14)} 按你在所有游戏中的最高段位计算。达到黄金即可立刻解锁赛季头像框。</p>`,
+        <p class="ss-note">${UI.ic('info', 14)} 按你的四子棋段位计算。达到黄金即可立刻解锁赛季头像框。</p>`,
     });
   }
 
   App.page('rank', {
-    render(el, p) {
-      const game = p.game && GAMES.includes(p.game) ? p.game : (p.game ? p.game : 'c4');
-      const games = GAMES.includes(game) ? GAMES : [game, ...GAMES];
-      const list = scope === 'friends' ? friends(game) : global(game);
-      const fp = friendPos(game);
-      const myScore = Store.score(game);
-      const myPos = scope === 'friends' ? fp.pos : myGlobalPos(game);
+    render(el) {
+      const list = scope === 'friends' ? friends() : global();
+      const fp = friendPos();
+      const myScore = Store.score(G);
+      const myPos = scope === 'friends' ? fp.pos : myGlobalPos();
       const top = list.slice(0, 3);
       const rest = list.slice(3);
       const podium = [top[1], top[0], top[2]].map((x, i) => (x ? `<div class="rk-pod p${[2, 1, 3][i]} ${x.me ? 'is-me' : ''}">
@@ -130,7 +120,7 @@
         : `再赢<b>1</b>局，排名约上升150位`;
       el.innerHTML = `
         <div class="rk-hero">
-          ${UI.nav({ title: '排行榜', cls: 'is-light', right: `<button class="icon-btn" data-act="poster" aria-label="分享海报">${UI.ic('share', 21)}</button>` })}
+          ${UI.nav({ title: '四子棋排行榜', cls: 'is-light', right: `<button class="icon-btn" data-act="poster" aria-label="分享海报">${UI.ic('share', 21)}</button>` })}
           <button class="rk-season" data-act="season">
             <img src="${IMG}ui/trophy.png" alt="">
             <span><b>${D.season.name}</b><em>${UI.ic('clock', 12)} ${D.season.left}后结束</em></span>
@@ -140,7 +130,6 @@
             <button class="${scope === 'friends' ? 'is-active' : ''}" data-act="scope" data-s="friends">好友榜</button>
             <button class="${scope === 'global' ? 'is-active' : ''}" data-act="scope" data-s="global">全服榜</button>
           </div>
-          <div class="hscroll rk-games" data-scroll="games">${games.map((id) => `<button class="rk-game ${id === game ? 'is-active' : ''}" data-act="game" data-g="${id}"><img src="${D.game[id].icon}" alt="">${D.game[id].name}</button>`).join('')}</div>
           <div class="rk-podium">${podium}<img class="rk-podium-base" src="${IMG}ui/podium.png" alt=""></div>
         </div>
         <div class="body rk-body" data-scroll="main">
@@ -158,14 +147,13 @@
           <div class="row-main"><b>我 · ${myScore}分</b><span>${gapText}</span></div>
           <button class="btn btn-orange btn-sm" data-act="play">开玩</button>
         </div>`;
-      el.dataset.game = game;
     },
     act: {
       scope: (el) => { scope = el.dataset.s; App.refresh('rank'); },
-      game: (el) => { App.params('rank').game = el.dataset.g; App.refresh('rank'); },
       season: () => seasonSheet(),
-      poster: () => poster(document.querySelector('.page[data-page="rank"]').dataset.game || 'c4'),
-      play: () => Battle.quick(document.querySelector('.page[data-page="rank"]').dataset.game || 'c4'),
+      poster: () => poster(),
+      // 按上次选的金币场开始匹配
+      play: () => Battle.quick(),
     },
   });
 

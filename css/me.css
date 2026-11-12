@@ -89,6 +89,16 @@
 .st-row em.is-win { color: #10a76a; }
 .st-row em.is-lose { color: var(--red); }
 .st-row i { display: flex; align-items: center; gap: 2px; font: 700 12px var(--num); font-style: normal; color: var(--text-2); }
+.st-row i img { width: 14px; height: 14px; border-radius: 0; }
+.st-row i.is-up { color: #e8740c; }
+.st-row i.st-tag { padding: 2px 8px; border-radius: 10px; background: var(--blue-l); color: var(--blue); font: 700 11px/1.5 var(--num); }
+/* 四子棋段位卡 */
+.st-game { display: flex; align-items: center; gap: 12px; margin: 0 16px; padding: 14px; }
+.st-game .st-ic { width: 48px; height: 48px; border-radius: 14px; }
+.st-game-main { flex: 1; min-width: 0; }
+.st-game-main b { display: block; font-size: 16px; font-weight: 800; }
+.st-game-main span { display: flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.st-game-main small { display: block; margin-top: 2px; font: 600 12px var(--num); color: var(--text-3); }
 
 /* ---------- L6 徽章 ---------- */
 .bd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 8px 16px 0; }

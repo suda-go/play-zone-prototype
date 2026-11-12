@@ -1,15 +1,15 @@
 /**
- * 状态层：全部运行数据存在 localStorage（键 playzone.v2），刷新后保留
+ * 状态层：全部运行数据存在 localStorage（键 soulgame.v1），刷新后保留
  * 每次修改后 emit(type, meta)，ui.js 订阅后同步余额、红点
  * Store.reset() 清空数据回到新用户状态
  */
 (() => {
   'use strict';
 
-  const KEY = 'playzone.v2';
+  const KEY = 'soulgame.v1';
   const subs = [];
   const clone = (o) => JSON.parse(JSON.stringify(o));
-  const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, distinct: [], action: [] });
+  const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });
   const now = () => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -45,11 +45,11 @@
       ads: { watched: 0, bonus: false },
       ranks: { c4: { tier: 1, pts: 60 } },
       record: { games: 12, wins: 7 },
-      gstats: { c4: { g: 9, w: 5 }, bingo: { g: 3, w: 2 } },
+      gstats: { c4: { g: 12, w: 7 } },
       history: [
-        { game: 'c4', vs: 'lily', win: false, gems: 0, t: '昨天' },
-        { game: 'c4', vs: 'kai', win: true, gems: 30, t: '昨天' },
-        { game: 'bingo', vs: 'mia', win: false, gems: 0, t: '周一' },
+        { game: 'c4', vs: 'lily', win: false, coins: -100, t: '昨天' },
+        { game: 'c4', vs: 'kai', win: true, coins: 200, t: '昨天' },
+        { game: 'c4', vs: 'mia', win: false, coins: -100, t: '周一' },
       ],
       owned: { frame: [], bubble: ['default'], bg: ['aurora'] },
       equip: { frame: null, bubble: 'default', bg: 'aurora' },
@@ -66,6 +66,9 @@
       doubleNext: false,
       howto: {},
       pinged: false,
+      stake: 's1',                      // 上次选的金币场
+      voice: { mic: false, spk: true }, // 局内语音：麦克风、扬声器
+      mateGames: {},                    // 和每位好友玩过的局数（默契搭档徽章）
     };
   }
 
@@ -160,8 +163,6 @@
     const c = t.group === 'weekly' ? s.cnt.week : (t.group === 'daily' || t.group === 'mystery') ? s.cnt.day : s.cnt.all;
     switch (t.metric) {
       case 'minutes': return Math.floor(c.seconds / 60);
-      case 'distinct': return c.distinct.length;
-      case 'action': return c.action.length;
       case 'friendsAdded': return s.friendsAdded;
       case 'framesEquipped': return s.framesEquipped;
       case 'notify': return s.settings.turn ? 1 : 0;
@@ -288,6 +289,8 @@
     s.friendsAdded += 1;
     s.requests = s.requests.filter((x) => x !== id);
     s.sent = s.sent.filter((x) => x !== id);
+    // 一起对局过的人加成好友：计入限时任务
+    if (s.recent.includes(id)) count('mates');
     checkBadges();
     emit('friend', { id });
   }
@@ -353,7 +356,7 @@
     return r;
   }
   function createRoom(o) {
-    const r = { id: 'my' + Date.now().toString(36), seats: ['me'], host: 'me', lang: '中文', mine: true, ...o };
+    const r = { id: 'my' + Date.now().toString(36), game: D.GAME, max: 2, seats: ['me'], host: 'me', lang: '中文', mine: true, ...o };
     s.rooms.unshift(r);
     checkBadges();
     emit('room', { id: r.id });
@@ -386,6 +389,11 @@
       const gs = (s.gstats[m.game] = s.gstats[m.game] || { g: 0, w: 0 });
       gs.g += 1;
       if (m.win) gs.w += 1;
+      // 和好友对局：计入每周任务和默契搭档徽章
+      if (isFriend(m.vs)) {
+        s.mateGames[m.vs] = (s.mateGames[m.vs] || 0) + 1;
+        count('friendGames');
+      }
     }
     emit('match');
   }
@@ -397,7 +405,7 @@
       social: s.friends.length >= 10,
       host: s.rooms.some((r) => r.mine),
       collector: s.owned.frame.length + s.owned.bubble.length + s.owned.bg.length - 2 >= 3,
-      explorer: s.cnt.all.distinct.length >= 5,
+      explorer: Object.values(s.mateGames).some((n) => n >= 10),
       gold: Object.values(s.ranks).some((r) => r.tier >= 2),
       streak: s.streak.days >= 7,
     };

@@ -10,18 +10,19 @@
   /* ---------- G8 Go：跳到能完成任务的地方 ---------- */
   async function go(target) {
     switch (target) {
-      case 'c4': App.go('detail', { game: 'c4' }); break;
+      case 'c4': App.backTo('play'); break;
       case 'addfriend': App.go('addfriend'); break;
       case 'shop': App.go('shop', { tab: 'decor' }); break;
-      case 'share': UI.share({ title: '分享畅玩空间', text: '快来畅玩空间和我一起玩！', onShared: () => App.refresh('tasks') }); break;
+      case 'share': UI.share({ title: '分享 Soulgame', text: '快来 Soulgame 和我一起玩四子棋！', onShared: () => App.refresh('tasks') }); break;
       case 'ad': Shop.watchAd(); break;
-      case 'lobby': App.backTo('play'); break;
       case 'create': App.go('create', {}); break;
-      case 'action': Lobby.setCat('动作'); App.backTo('play'); break;
+      // 好友页里有"最近一起玩"列表，两类社交任务都去那里
+      case 'friends':
+      case 'recent': App.tab('chat', { seg: 'friends' }); break;
       case 'notify': {
         const k = await UI.dialog({
           art: `<span class="perm-ic">${UI.ic('bell', 40)}</span>`,
-          title: '允许畅玩空间给你发通知吗？',
+          title: '允许 Soulgame 给你发通知吗？',
           text: '回合制游戏轮到你、好友邀请你时，第一时间提醒你。',
           x: false,
           buttons: [{ label: '允许', key: 'ok' }, { label: '不允许', key: 'no', cls: 'btn-ghost' }],

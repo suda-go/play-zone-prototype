@@ -1,6 +1,7 @@
 /**
- * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表、K5 好友申请、
+ * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表（顶部「最近一起玩」）、K5 好友申请、
  * K6 添加好友、K7 群聊、K8 好友主页
+ * 只有四子棋（D.GAME），邀请好友直接建房，不再选游戏
  */
 (() => {
   'use strict';
@@ -24,7 +25,7 @@
   function preview(m) {
     if (!m) return '';
     const who = m.from === 'me' ? '你：' : '';
-    if (m.type === 'invite') return `${who}[游戏邀请] ${D.game[m.game].name}`;
+    if (m.type === 'invite') return `${who}[游戏邀请] ${(D.game[m.game] || D.game[D.GAME]).name}`;
     if (m.type === 'share') return `${who}[分享] ${m.text}`;
     return who + m.text;
   }
@@ -53,6 +54,42 @@
       ${s.requests.length ? `<button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${s.requests.map((u) => D.people[u].name).join('、')}想加你为好友</span></span><i class="count is-inline">${s.requests.length}</i>${UI.ic('right', 18)}</button>` : ''}
       <div class="ch-list">${rows}</div>`;
   }
+  /** 和某人一起下过的局数：对局记录（最多30条）和好友局计数取较大值 */
+  function playedWith(uid) {
+    const n = Store.s.history.filter((h) => h.vs === uid).length;
+    return Math.max(n, Store.s.mateGames[uid] || 0);
+  }
+  /** 最近一起玩：一行说明，优先用最近一局的结果 */
+  function recentLine(uid) {
+    const h = Store.s.history.find((x) => x.vs === uid);
+    if (!h) return '刚刚和你下过一局';
+    const when = /^\d/.test(h.t) ? '今天' : h.t;
+    return `${when}和你下过一局 · ${h.draw ? '平局' : h.win ? '你赢了' : '你输了'}`;
+  }
+  function recentBtn(uid) {
+    const P = D.people[uid];
+    if (Store.isFriend(uid)) {
+      return P.online
+        ? `<span class="fr-rc-r"><i class="fr-rc-ok">${UI.ic('userCheck', 11)} 已是好友</i><button class="btn btn-line btn-sm" data-act="playRecent" data-uid="${uid}">一起玩</button></span>`
+        : `<span class="af-st">${UI.ic('userCheck', 14)} 已是好友</span>`;
+    }
+    if (Store.s.sent.includes(uid)) return '<span class="af-st">已申请</span>';
+    return `<button class="btn btn-primary btn-sm" data-act="addRecent" data-uid="${uid}">${UI.ic('plus', 14)} 加好友</button>`;
+  }
+  /** 好友页顶部「最近一起玩」：最新的在前，每人带加好友按钮 */
+  function recentSec() {
+    const list = Store.s.recent.filter((u) => D.people[u]);
+    const rows = list.map((u) => {
+      const P = D.people[u];
+      return `<div class="fr-row fr-rc" data-go="profile" data-uid="${u}">${UI.av(u, 46, { on: true })}
+        <span class="row-main"><b>${P.name} <i class="fr-lv">Lv${P.lv}</i></b><span>${recentLine(u)}</span></span>
+        ${recentBtn(u)}</div>`;
+    }).join('');
+    return `<section class="fr-recent" id="fr-recent">
+      <div class="fr-hd fr-recent-hd">最近一起玩${list.length ? ` · ${list.length}` : ''}<span>加个好友，下次直接约</span></div>
+      ${rows || '<p class="fr-recent-empty">和别人对局后，会出现在这里</p>'}
+    </section>`;
+  }
   function friendsSeg() {
     const list = Store.s.friends.map((u) => D.people[u]);
     const on = list.filter((p) => p.online);
@@ -63,6 +100,7 @@
     </div>`;
     return `<div class="fr-search field" data-go="addfriend">${UI.ic('search', 18)}<span>搜索昵称或ID</span></div>
       <button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${Store.s.requests.length ? `${Store.s.requests.length}条待处理` : '暂无新申请'}</span></span>${Store.s.requests.length ? `<i class="count is-inline">${Store.s.requests.length}</i>` : ''}${UI.ic('right', 18)}</button>
+      ${recentSec()}
       <div class="fr-hd">在线 · ${on.length}</div>${on.map(row).join('')}
       <div class="fr-hd">离线 · ${off.length}</div>${off.map(row).join('')}`;
   }
@@ -70,6 +108,9 @@
   App.page('chat', {
     render(el, p) {
       if (p.seg) { seg = p.seg === 'friends' ? 'friends' : 'msgs'; p.seg = ''; }
+      // { seg: 'friends', focus: 'recent' }：滚到「最近一起玩」并闪一下
+      const focus = seg === 'friends' && p.focus === 'recent';
+      if (p.focus) p.focus = '';
       el.innerHTML = `
         <header class="tab-hd safe-top"><h1>消息</h1><div class="nav-right">
           <button class="icon-btn" data-go="newgroup" aria-label="发起群聊">${UI.ic('users', 22)}</button>
@@ -80,32 +121,58 @@
         </div>
         <div class="body ch-body" data-scroll="main">${seg === 'msgs' ? msgsSeg() : friendsSeg()}<div class="bottom-space"></div></div>
         ${UI.tabbar('chat')}`;
+      if (focus) {
+        requestAnimationFrame(() => {
+          const sec = el.querySelector('.fr-recent');
+          const body = el.querySelector('[data-scroll="main"]');
+          if (!sec || !body) return;
+          const top = sec.offsetParent === body ? sec.offsetTop : sec.offsetTop - body.offsetTop;
+          body.scrollTo({ top: Math.max(0, top - 8), behavior: 'smooth' });
+          sec.classList.add('is-flash');
+        });
+      }
     },
     back() { App.tab('play'); return false; },
     act: {
       seg: (el) => { seg = el.dataset.s; App.refresh('chat'); },
       add: (el) => { Store.request(el.dataset.uid); UI.toast('好友申请已发送'); App.refresh('chat'); scheduleAccept(el.dataset.uid); },
-      invite: async (el) => {
+      invite: (el) => Rooms.withFriend(el.dataset.uid),
+      addRecent: (el) => {
         const uid = el.dataset.uid;
-        const g = await Rooms.pickGame(`和${nameOf(uid)}一起玩`, D.people[uid].fav);
-        if (g) Rooms.withFriend(uid, g);
+        if (Store.isFriend(uid)) return;
+        if (Store.s.requests.includes(uid)) {
+          // 对方已经申请过加你：直接成为好友
+          Store.addFriend(uid);
+          UI.toast(`你和${nameOf(uid)}已经是好友了`);
+          App.refresh('chat');
+          return;
+        }
+        Store.request(uid);
+        UI.toast('好友申请已发送');
+        App.refresh('chat');
+        scheduleAccept(uid, 4000);
+      },
+      playRecent: (el) => {
+        const uid = el.dataset.uid;
+        if (!D.people[uid].online) { UI.toast(`${nameOf(uid)}现在不在线`); return; }
+        Rooms.withFriend(uid);
       },
     },
   });
 
   /** 模拟对方几秒后通过好友申请 */
-  function scheduleAccept(uid) {
+  function scheduleAccept(uid, ms = 5000) {
     setTimeout(() => {
       if (!Store.s.sent.includes(uid)) return;
       Store.addFriend(uid);
       UI.notify({ img: D.people[uid].avatar, title: `${nameOf(uid)}通过了你的好友申请`, text: '你们已经是好友了，打个招呼吧！', btn: '去聊天', onTap: () => App.go('dm', { id: uid }) });
-      if (['chat', 'addfriend'].includes(App.top())) App.refresh();
-    }, 5000);
+      if (['chat', 'addfriend', 'profile'].includes(App.top())) App.refresh();
+    }, ms);
   }
 
   /* ================= K2 聊天 / K3 邀请卡片 ================= */
   function inviteCard(m) {
-    const g = D.game[m.game];
+    const g = D.game[m.game] || D.game[D.GAME];
     const r = m.room ? Store.room(m.room) : null;
     const mine = m.from === 'me';
     const inRoom = r && r.seats.includes('me');
@@ -224,15 +291,13 @@
         input.value += el.dataset.e;
         input.focus();
       },
-      game: async () => {
+      game: () => {
+        // 只有四子棋：直接建私密房间并发邀请卡片，不用选游戏
         const id = App.params('dm').id;
         const c = Store.s.chats[id];
-        const prefer = c.type === 'dm' ? D.people[c.with].fav : [];
-        const g = await Rooms.pickGame('发送游戏邀请', prefer);
-        if (!g) return;
-        const gm = D.game[g];
-        const r = Store.createRoom({ name: `${Store.s.user.name}的${gm.name}房间`, game: g, max: Math.min(gm.max, 4), private: true, premium: false, lang: '中文' });
-        Store.post(id, { from: 'me', type: 'invite', game: g, room: r.id, text: '快来我的房间！' });
+        const gm = D.game[D.GAME];
+        const r = Store.createRoom({ name: `${Store.s.user.name}的${gm.name}房间`, game: D.GAME, max: 2, private: true, premium: false, lang: '中文' });
+        Store.post(id, { from: 'me', type: 'invite', game: D.GAME, room: r.id, text: '来我房间下一局四子棋！' });
         Store.count('invites');
         paintMsgs(id);
         const who = c.type === 'dm' ? c.with : UI.pick(c.members);
@@ -274,7 +339,7 @@
         <div class="body" data-scroll="main">${list.length ? `<div class="req-list">${list.map((u) => {
           const P = D.people[u];
           return `<div class="req-row">${UI.av(u, 52, { on: true })}
-            <span class="row-main" data-go="profile" data-uid="${u}"><b>${P.name} <i class="fr-lv">Lv${P.lv}</i></b><span>和你玩过${D.game[P.fav[0]].name} · 共${P.games}局</span></span>
+            <span class="row-main" data-go="profile" data-uid="${u}"><b>${P.name} <i class="fr-lv">Lv${P.lv}</i></b><span>${playedWith(u) ? `和你玩过${playedWith(u)}局` : `四子棋${P.games}局`} · 胜率${P.win}%</span></span>
             <button class="btn btn-ghost btn-sm" data-act="decline" data-uid="${u}">拒绝</button>
             <button class="btn btn-primary btn-sm" data-act="accept" data-uid="${u}">同意</button>
           </div>`;
@@ -345,7 +410,7 @@
       },
       accept: (el) => { Store.addFriend(el.dataset.uid); UI.toast(`你和${nameOf(el.dataset.uid)}已经是好友了`); App.refresh('addfriend'); },
       copy: () => UI.toast(`已复制ID ${Store.s.user.uid}`),
-      shareId: () => UI.share({ title: '分享我的ID', text: `来畅玩空间加我好友吧！我的ID是${Store.s.user.uid}` }),
+      shareId: () => UI.share({ title: '分享我的ID', text: `来 Soulgame 加我好友吧！我的ID是${Store.s.user.uid}` }),
     },
   });
 
@@ -389,6 +454,8 @@
       const sent = Store.s.sent.includes(P.id);
       const req = Store.s.requests.includes(P.id);
       const rank = Math.min(4, Math.floor((D.boardFriends.find((x) => x.id === P.id)?.score || P.lv * 18) / 100));
+      const g = D.game[D.GAME];
+      const played = playedWith(P.id);
       el.innerHTML = `
         <div class="pf-bg" style="background:${UI.bg(P.bg)}"></div>
         ${UI.nav({ cls: 'is-light', right: `<button class="icon-btn" data-act="more" aria-label="更多">${UI.ic('more', 22)}</button>` })}
@@ -400,8 +467,12 @@
             <p class="pf-bio">${UI.esc(P.bio || '—')}</p>
             <div class="pf-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span>${UI.tier(rank, 26)}<b>${D.tiers[rank]}</b></span></div>
           </div>
-          <div class="sec-hd"><h2>常玩游戏</h2></div>
-          <div class="pf-games">${P.fav.map((g) => `<button class="pf-game" data-go="detail" data-game="${g}"><img src="${D.game[g].icon}" alt=""><b>${D.game[g].name}</b></button>`).join('')}</div>
+          <div class="sec-hd"><h2>${g.name}战绩</h2></div>
+          <div class="pf-c4 card">
+            <img class="pf-c4-ic" src="${g.icon}" alt="">
+            <span class="row-main"><b>${g.name} · ${D.tiers[rank]}</b><span>共${P.games}局 · 胜率${P.win}%</span></span>
+            <span class="pf-c4-vs">${played ? `<b>${played}<small>局</small></b><i>和你玩过</i>` : '<i>还没和你<br>一起玩过</i>'}</span>
+          </div>
           <div class="sec-hd"><h2>徽章</h2></div>
           <div class="pf-badges">${D.badges.slice(0, 3 + (P.lv % 4)).map((b) => `<span title="${b.name}"><img src="${b.img}" alt=""><i>${b.name}</i></span>`).join('')}</div>
           <div class="bottom-space" style="height:100px"></div>
@@ -414,11 +485,10 @@
         </div>`;
     },
     act: {
-      invite: async () => {
+      invite: () => {
         const uid = App.params('profile').uid;
         if (!D.people[uid].online) { UI.toast(`${nameOf(uid)}现在不在线`); return; }
-        const g = await Rooms.pickGame(`和${nameOf(uid)}一起玩`, D.people[uid].fav);
-        if (g) Rooms.withFriend(uid, g);
+        Rooms.withFriend(uid);
       },
       add: () => {
         const uid = App.params('profile').uid;

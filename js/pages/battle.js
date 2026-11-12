@@ -1,5 +1,5 @@
 /**
- * 对局链路：四子棋引擎、开局入口、B4 玩法引导、D 游戏详情、E 匹配与对局、F 结算
+ * 对局链路：四子棋引擎、开局入口（金币分场）、B4 玩法引导、E 匹配与对局（含局内语音）、F 结算（含加好友 / 再战TA）
  */
 
 /* ================= 四子棋引擎（棋盘 6 行 × 7 列，0 空 1 我 2 对方） ================= */
@@ -170,123 +170,61 @@ window.C4 = (() => {
     });
   }
 
-  /** 普通匹配：检查 Gems → 第一次玩先看引导 → 扣 Gems → 匹配页 */
-  function quick(gameId, opt = {}) {
-    const g = D.game[gameId];
-    if (Store.s.gems < D.COST) { Shop.lack(D.COST, gameId); return; }
+  /* ---------- 金币分场（参考 Yalla Ludo）：入场扣底注，赢家拿走奖池，平局退还 ---------- */
+  const stakeOf = (id) => D.stake[id] || D.stake[Store.s.stake] || D.stakes[0];
+  const pot = (st, double) => st.bet * 2 * (double ? 2 : 1);
+  /** 场次是否可进：返回 'lock' | 'poor' | 'ok' */
+  function canEnter(st) {
+    if (Store.s.user.lv < st.lv) return 'lock';
+    if (Store.s.coins < st.bet) return 'poor';
+    return 'ok';
+  }
+  function checkEnter(st) {
+    const k = canEnter(st);
+    if (k === 'lock') { UI.toast(`${st.name}需要Lv${st.lv}解锁`); return false; }
+    if (k === 'poor') { Shop.lack({ need: st.bet, stake: st.id }); return false; }
+    return true;
+  }
+
+  /** 快速匹配：检查等级和金币 → 第一次玩先看引导 → 扣底注 → 匹配页。stakeId 不传就用上次的场次 */
+  function quick(stakeId, opt = {}) {
+    const st = stakeOf(stakeId);
+    if (!checkEnter(st)) return;
+    Store.s.stake = st.id;
+    Store.save();
     const start = () => {
-      if (Store.s.gems < D.COST) { Shop.lack(D.COST, gameId); return; }
-      Store.add('gems', -D.COST, `${g.name} · 对局入场`);
-      const p = { game: gameId, mode: 'quick', double: Store.s.doubleNext ? 1 : 0 };
+      if (!checkEnter(st)) return;
+      Store.add('coins', -st.bet, `${st.name} · 底注`);
+      const p = { game: D.GAME, mode: 'quick', stake: st.id, double: Store.s.doubleNext ? 1 : 0 };
       if (opt.replace) App.replace('match', p, { anim: 'fade' }); else App.go('match', p, { anim: 'up' });
     };
-    if (!Store.s.howto[gameId]) howto(gameId).then(start); else start();
+    if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
   }
-  /** vs AI 免费练习：不扣 Gems、不计段位 */
-  function practice(gameId, opt = {}) {
-    const p = { game: gameId, mode: 'ai', opp: 'bot', first: Math.random() < 0.6 ? 1 : 2 };
+  /** A 再战TA：和同一个对手按同一场次再来一局，对方同意后直接开局 */
+  function rematch(opp, stakeId) {
+    const st = stakeOf(stakeId);
+    if (!checkEnter(st)) return false;
+    Store.add('coins', -st.bet, `${st.name} · 底注（再战）`);
+    App.replace('game', { game: D.GAME, mode: 'quick', stake: st.id, opp, rematch: 1, first: Math.random() < 0.5 ? 1 : 2 });
+    return true;
+  }
+  /** vs AI 免费练习：不扣金币、不计段位 */
+  function practice(_, opt = {}) {
+    const p = { game: D.GAME, mode: 'ai', opp: 'bot', first: Math.random() < 0.6 ? 1 : 2 };
     const start = () => (opt.replace ? App.replace('game', p) : App.go('game', p, { anim: 'up' }));
-    if (!Store.s.howto[gameId]) howto(gameId).then(start); else start();
+    if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
   }
   /** 房间开局：由房间页扣费后调用 */
   function fromRoom(room, opp) {
     App.go('game', { game: room.game, mode: 'room', room: room.id, opp, first: Math.random() < 0.5 ? 1 : 2 }, { anim: 'fade' });
   }
 
-  window.Battle = { quick, practice, fromRoom, howto };
-})();
-
-/* ================= D 游戏详情 ================= */
-(() => {
-  'use strict';
-
-  const IMG = D.IMG;
-  const winRate = (id) => {
+  const winRate = (id = D.GAME) => {
     const gs = Store.s.gstats[id];
     return gs && gs.g ? `${Math.round((gs.w / gs.g) * 100)}%` : '—';
   };
-  window.Battle.winRate = winRate;
 
-  App.page('detail', {
-    render(el, p) {
-      const g = D.game[p.game] || D.game.c4;
-      if (!D.game[p.game]) {
-        p.game = g.id;
-        try {
-          const all = JSON.parse(sessionStorage.getItem('pz.params') || '{}');
-          all.detail = p;
-          sessionStorage.setItem('pz.params', JSON.stringify(all));
-        } catch (_) { /* sessionStorage 不可用时仅保留内存参数 */ }
-      }
-      const r = Store.rank(g.id);
-      const toNext = Math.ceil((100 - r.pts) / 25);
-      const gs = Store.s.gstats[g.id] || { g: 0, w: 0 };
-      el.innerHTML = `
-        <div class="dt-hero">${g.cover ? `<img class="dt-hero-img" src="${g.cover}" alt="">` : `<img class="dt-hero-img is-blur" src="${g.icon}" alt=""><img class="dt-hero-icon" src="${g.icon}" alt="">`}<i class="dt-shade"></i></div>
-        ${UI.nav({ cls: 'is-light dt-nav', right: `<button class="icon-btn" data-act="share" aria-label="分享">${UI.ic('share', 21)}</button>` })}
-        <div class="body dt-body" data-scroll="main">
-          <div class="dt-head card">
-            <div class="dt-head-row">
-              <img class="dt-icon" src="${g.icon}" alt="">
-              <div class="dt-info">
-                <h1>${g.name}</h1>
-                <div class="dt-meta"><span class="dt-star">★ ${g.rating}</span><span class="live">${UI.fmt(g.online)}人在玩</span></div>
-                <div class="dt-tags">${Lobby.tagHtml(g.tag)}<span class="tag tag-gray">${g.cat}</span><span class="tag tag-gray">${g.players}</span><span class="tag tag-gray">${UI.ic('clock', 11)} ${g.dur}</span></div>
-              </div>
-            </div>
-            <p class="dt-desc">${g.desc}</p>
-          </div>
-
-          <div class="dt-modes">
-            <button class="mode mode-quick" data-act="quick">
-              <b>快速匹配</b><span>每局${UI.cur('gems', 15)}${D.COST} · 段位相近</span>
-              <img src="${IMG}brand/blobs-vs.png" alt="">
-            </button>
-            <button class="mode" data-act="friends"><i class="mode-ic is-blue">${UI.ic('users', 22)}</i><b>和好友玩</b><span>邀请在线好友</span></button>
-            <button class="mode" data-act="create"><i class="mode-ic is-purple">${UI.ic('door', 22)}</i><b>创建房间</b><span>公开或私密</span></button>
-            <button class="mode" data-act="ai"><i class="mode-ic is-green">${UI.ic('bot', 22)}</i><b>人机练习</b><span>免费练习</span></button>
-          </div>
-
-          <button class="dt-rank card" data-go="rank" data-game="${g.id}">
-            ${UI.tier(r.tier, 58)}
-            <span class="dt-rank-m">
-              <b>${D.tiers[r.tier]} <small>${r.pts}/100分</small></b>
-              ${UI.bar(r.pts, 100, 'is-gold')}
-              <span>${r.tier < 4 ? `再赢<em>${toNext}</em>局升至${D.tiers[r.tier + 1]}` : '已达最高段位！'}</span>
-            </span>
-            <span class="dt-rank-s"><b>${winRate(g.id)}</b><span>胜率</span><small>${gs.g}局</small></span>
-          </button>
-
-          <div class="sec-hd"><h2>排行榜</h2><button class="more" data-go="rank" data-game="${g.id}">查看全部 ${UI.ic('right', 16)}</button></div>
-          <div class="dt-board card">${Rank.preview(g.id)}</div>
-
-          <div class="cells dt-cells">
-            <button class="cell" data-act="howto"><span class="cell-ic">${UI.ic('book', 20)}</span><span class="cell-main">玩法说明<small>15秒图解教程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-go="rooms"><span class="cell-ic">${UI.ic('door', 20)}</span><span class="cell-main">公开房间<small>${Store.s.rooms.filter((x) => x.game === g.id && !x.private).length}个房间正在玩${g.name}</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
-          </div>
-          <div class="bottom-space" style="height:110px"></div>
-        </div>
-        <div class="dt-cta">
-          <div class="dt-bal"><span>余额</span><b>${UI.cur('gems', 16)}${UI.bind('gems')}</b></div>
-          <button class="btn btn-primary btn-lg" data-act="quick">快速匹配 <span class="btn-price">${UI.cur('gems', 16)}${D.COST}</span></button>
-        </div>`;
-    },
-    act: {
-      quick: () => Battle.quick(App.params('detail').game),
-      friends: async () => {
-        const id = App.params('detail').game;
-        const uid = await UI.pickFriend({ title: `邀请好友玩${D.game[id].name}`, sub: '目前只有在线好友可以加入', onlineOnly: true });
-        if (uid) Rooms.withFriend(uid, id);
-      },
-      create: () => App.go('create', { game: App.params('detail').game }),
-      ai: () => Battle.practice(App.params('detail').game),
-      howto: () => Battle.howto(App.params('detail').game, { manual: true }),
-      share: () => {
-        const g = D.game[App.params('detail').game];
-        UI.share({ title: `分享${g.name}`, text: `来畅玩空间和我一起玩${g.name}吧！`, game: g.id });
-      },
-    },
-  });
+  window.Battle = { quick, rematch, practice, fromRoom, howto, stakeOf, pot, canEnter, winRate };
 })();
 
 /* ================= E1–E4 匹配 ================= */
@@ -328,7 +266,7 @@ window.C4 = (() => {
     M.timers.push(setTimeout(() => el.classList.add('is-loading'), 1200));
     M.timers.push(setTimeout(() => {
       stop();
-      App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', opp, double: p.double, first: Math.random() < 0.55 ? 1 : 2 });
+      App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', stake: p.stake, opp, double: p.double, first: Math.random() < 0.55 ? 1 : 2 });
     }, 3000));
   }
 
@@ -337,7 +275,8 @@ window.C4 = (() => {
     if (M.found) { UI.toast('匹配成功！游戏加载中…'); return; }
     const current = M;
     current.paused = true;
-    const ok = await UI.confirm({ title: '取消匹配？', text: `入场的<b>${D.COST}钻石</b>将全额退还。`, ok: '取消匹配', cancel: '继续等待' });
+    const bet = Battle.stakeOf(current.p.stake).bet;
+    const ok = await UI.confirm({ title: '取消匹配？', text: `底注<b>${UI.fmt(bet)}金币</b>将全额退还。`, ok: '取消匹配', cancel: '继续等待' });
     if (!M || M !== current) return;
     M.paused = false;
     if (!ok) {
@@ -347,9 +286,9 @@ window.C4 = (() => {
       return;
     }
     stop();
-    Store.add('gems', D.COST, '取消匹配 · 退还');
+    Store.add('coins', bet, '取消匹配 · 退还底注');
     App.pop();
-    UI.toast(`已取消匹配 · 退还${D.COST}钻石`);
+    UI.toast(`已取消匹配 · 退还${UI.fmt(bet)}金币`);
   }
 
   async function boost() {
@@ -373,16 +312,17 @@ window.C4 = (() => {
 
   App.page('match', {
     render(el, p) {
-      const g = D.game[p.game];
+      const g = D.game[p.game] || D.game[D.GAME];
       const r = Store.rank(g.id);
+      const st = Battle.stakeOf(p.stake);
       el.innerHTML = `
         <div class="mt-sky"><img src="${IMG}fx/galaxy.jpg" alt=""><i class="mt-glow g1"></i><i class="mt-glow g2"></i></div>
         <header class="mt-top safe-top"><button class="icon-btn mt-x" data-act="cancel" aria-label="取消匹配">${UI.ic('x', 26)}</button></header>
         <div class="mt-game">
           <span class="mt-icon"><img src="${g.icon}" alt=""></span>
           <b>${g.name}</b>
-          <p>本局消耗<em>${D.COST}</em>${UI.cur('gems', 18)}</p>
-          ${p.double ? `<span class="mt-double">${UI.ic('zap', 13)} 获胜得2×钻石</span>` : ''}
+          <p class="mt-stake">${st.name} · 底注${UI.cur('coins', 18)}<em>${UI.fmt(st.bet)}</em> · 奖池<em>${UI.fmt(Battle.pot(st, p.double))}</em></p>
+          ${p.double ? `<span class="mt-double">${UI.ic('zap', 13)} 本局奖池翻倍</span>` : ''}
         </div>
         <h2 class="mt-title">匹配中<i class="mt-dots"><b>.</b><b>.</b><b>.</b></i></h2>
         <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">优先匹配好友和段位相近的玩家</span></div>
@@ -449,7 +389,7 @@ window.C4 = (() => {
   const player = (uid, who) => {
     const p = UI.person(uid);
     return `<div class="gm-pl p${who}">
-      <span class="gm-av"><svg class="gm-ring" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32"/></svg>${UI.av(uid, 54)}<span class="gm-pop"></span></span>
+      <span class="gm-av"><svg class="gm-ring" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32"/></svg>${UI.av(uid, 54)}<span class="gm-pop"></span><i class="gm-voice" aria-hidden="true"><b></b><b></b><b></b></i></span>
       <b>${uid === 'me' ? '你' : UI.esc(p.name)}${p.ai ? ' <i class="ai-tag">AI</i>' : ''}</b>
       <span class="gm-chip"><i class="disc p${who}"></i>${who === 1 ? '蓝方' : '红方'}</span>
     </div>`;
@@ -617,31 +557,79 @@ window.C4 = (() => {
     }
   }
 
-  /* ---------- 占位游戏 ---------- */
-  function startPlaceholder() {
-    let score = 0;
-    let t = 180;
-    G.el.querySelector('.gm-turn').innerHTML = '<b>对局进行中</b>';
-    setClock('3:00');
-    G.tick = setInterval(() => {
-      if (!G || G.paused) return;
-      t -= 1;
-      score += UI.rand(15, 90);
-      const mm = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
-      G.el.querySelector('.ph-score').textContent = UI.fmt(score);
-      setClock(mm);
-      if (t <= 0) { G.over = true; end(Math.random() < 0.5 ? 'win' : 'lose'); }
-    }, 1000);
+  /* ---------- C 局内语音（演示：只做开关和说话动效，不接真实语音） ---------- */
+  const oppIsAI = () => !!(G && D.people[G.opp] && D.people[G.opp].ai);
+  function voiceUI() {
+    if (!G) return;
+    const v = Store.s.voice;
+    const el = G.el;
+    const mic = el.querySelector('.gm-mic');
+    const spk = el.querySelector('.gm-spk');
+    mic.classList.toggle('is-on', v.mic);
+    mic.setAttribute('aria-pressed', v.mic);
+    mic.innerHTML = UI.ic(v.mic ? 'mic' : 'micOff', 22);
+    spk.classList.toggle('is-on', v.spk);
+    spk.setAttribute('aria-pressed', v.spk);
+    spk.innerHTML = UI.ic(v.spk ? 'volume' : 'mute', 22);
+    el.querySelector('.gm-pl.p1').classList.toggle('is-mic', v.mic);
+    el.querySelector('.gm-pl.p2').classList.toggle('is-muted', !v.spk && !oppIsAI());
+  }
+  /** 头像上的声波：who 1 我、2 对手 */
+  function talk(who, ms = 1500) {
+    const pl = G && G.el.querySelector(`.gm-pl.p${who}`);
+    if (!pl) return;
+    pl.classList.add('is-talking');
+    later(() => pl.classList.remove('is-talking'), ms);
+  }
+  /** 真人对手隔一会儿说几句；扬声器关了就听不到 */
+  function scheduleTalk() {
+    if (!G || oppIsAI()) return;
+    later(() => {
+      if (!G || G.over) return;
+      if (Store.s.voice.spk && !G.paused) talk(2, 1200 + Math.random() * 1400);
+      scheduleTalk();
+    }, 4500 + Math.random() * 5000);
+  }
+  async function toggleMic() {
+    if (!G) return;
+    const v = Store.s.voice;
+    if (!v.mic && !v.asked) {
+      G.paused = true;
+      const ok = await UI.confirm({ title: '允许 Soulgame 使用麦克风？', text: '开麦后，对局中可以和对手实时语音聊天。', ok: '允许', cancel: '不允许' });
+      v.asked = true;
+      Store.save();
+      if (!G) return;
+      G.paused = false;
+      if (G.turn) ring(G.turn, G.left);
+      if (!ok) { UI.toast('没有开麦，随时可以再打开'); return; }
+    }
+    v.mic = !v.mic;
+    Store.save();
+    voiceUI();
+    if (v.mic) {
+      talk(1, 1200);
+      UI.toast(oppIsAI() ? '麦克风已开启（人机对手听不到）' : '麦克风已开启，对手能听到你');
+    } else UI.toast('麦克风已关闭');
+  }
+  function toggleSpk() {
+    if (!G) return;
+    const v = Store.s.voice;
+    v.spk = !v.spk;
+    Store.save();
+    voiceUI();
+    if (!v.spk) G.el.querySelector('.gm-pl.p2').classList.remove('is-talking');
+    UI.toast(v.spk ? '已打开对手声音' : '已静音对手');
   }
 
   /* ---------- E7 中途退出 ---------- */
   async function quit() {
     if (!G || G.over) return;
     const practice = G.p.mode === 'ai';
+    const room = G.p.mode === 'room';
     G.paused = true;
     const ok = await UI.confirm({
       title: practice ? '退出练习？' : '退出对局？',
-      text: practice ? '练习局退出没有惩罚。' : `现在退出算作失败，入场的<b>${D.COST}钻石</b>不予退还。`,
+      text: practice ? '练习局退出没有惩罚。' : room ? '好友房退出不扣金币，但这局算你输。' : `现在退出算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
       ok: '退出', cancel: '继续玩', danger: !practice,
     });
     if (!G) return;
@@ -660,32 +648,36 @@ window.C4 = (() => {
     const sec = Math.max(1, Math.round((Date.now() - G.t0) / 1000));
     G = null;
     const practice = p.mode === 'ai';
+    const room = p.mode === 'room'; // 好友房：不扣金币、不计段位、不加经验（同 Yalla 私人房）
+    const staked = !practice && !room;
+    const st = Battle.stakeOf(p.stake);
     const before = { ...Store.rank(g.id) };
-    let gems = 0;
+    let coins = 0; // 本局到账金币（赢：奖池；平：退还底注）
     let exp = 0;
     let delta = 0;
     let protect = false;
     Store.count('seconds', sec);
     if (!practice) {
-      if (outcome === 'win') { gems = 30 * (p.double ? 2 : 1); exp = 50; delta = 25; }
-      else if (outcome === 'draw') { gems = D.COST; exp = 30; }
-      else { exp = opt.forfeit ? 10 : 20; protect = !opt.forfeit && blocks >= 3; delta = protect ? 0 : -15; }
-      if (p.double) Store.s.doubleNext = false;
+      if (staked) {
+        if (outcome === 'win') { coins = Battle.pot(st, p.double); exp = 50; delta = 25; }
+        else if (outcome === 'draw') { coins = st.bet; exp = 30; }
+        else { exp = opt.forfeit ? 10 : 20; protect = !opt.forfeit && blocks >= 3; delta = protect ? 0 : -15; }
+        if (p.double) Store.s.doubleNext = false;
+      }
       Store.count('games');
       if (outcome === 'win') Store.count('wins');
-      Store.count('distinct', 1, g.id);
-      if (g.cat === '动作') Store.count('action', 1, g.id);
     }
-    const rk = practice || !delta ? null : Store.addRank(g.id, delta);
-    Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', gems, practice, mode: p.mode });
+    const rk = !staked || !delta ? null : Store.addRank(g.id, delta);
+    const net = staked ? coins - st.bet : 0;
+    Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', coins: net, stake: staked ? st.id : '', practice, mode: p.mode });
     if (!D.people[opp].ai) Store.addRecent(opp);
-    if (gems) {
-      UI.hold('gems');
-      Store.add('gems', gems, outcome === 'win' ? `${g.name} · 胜利${p.double ? '（2×）' : ''}` : `${g.name} · 平局退还`);
+    if (coins) {
+      UI.hold('coins');
+      Store.add('coins', coins, outcome === 'win' ? `${st.name} · 赢得奖池${p.double ? '（翻倍）' : ''}` : `${st.name} · 平局退还底注`);
     }
     App.replace('result', {
-      game: g.id, mode: p.mode, room: p.room || '', opp, outcome,
-      forfeit: opt.forfeit ? 1 : 0, gems, exp, delta, protect: protect ? 1 : 0,
+      game: g.id, mode: p.mode, room: p.room || '', opp, outcome, stake: st.id,
+      forfeit: opt.forfeit ? 1 : 0, coins, net, exp, delta, protect: protect ? 1 : 0,
       before, after: rk ? rk.after : before, up: rk && rk.up ? 1 : 0, down: rk && rk.down ? 1 : 0,
       blocks, moves, sec, double: p.double || 0,
     });
@@ -693,15 +685,17 @@ window.C4 = (() => {
 
   App.page('game', {
     render(el, p) {
-      const g = D.game[p.game];
+      const g = D.game[p.game] || D.game[D.GAME];
       const opp = p.opp || 'bot';
-      const mode = { quick: '排位赛', fast: '极速匹配 · 人机', ai: '人机练习', room: '房间对局' }[p.mode] || '对局';
+      const st = Battle.stakeOf(p.stake);
+      const mode = { quick: `${st.name} · 奖池${UI.fmt(Battle.pot(st, p.double))}`, fast: `${st.name} · 人机`, ai: '人机练习', room: '好友房' }[p.mode] || '对局';
+      const v = Store.s.voice;
       el.classList.remove('is-myturn', 'is-oppturn');
       el.innerHTML = `
         <div class="gm-bg"><img class="gm-tone" src="${IMG}fx/halftone.png" alt=""></div>
         <header class="gm-top safe-top">
           <button class="icon-btn" data-act="quit" aria-label="退出">${UI.ic('back', 24)}</button>
-          <div class="gm-title"><b>${g.name}</b><span>${mode}${p.double ? ' · 2×钻石' : ''}</span></div>
+          <div class="gm-title"><b>${g.name}</b><span>${mode}</span></div>
           <button class="icon-btn" data-act="sound" aria-label="音效">${UI.ic(Store.s.settings.sound ? 'volume' : 'mute', 21)}</button>
           <button class="icon-btn" data-act="help" aria-label="玩法说明">${UI.ic('help', 21)}</button>
         </header>
@@ -710,18 +704,16 @@ window.C4 = (() => {
           <div class="gm-mid"><span class="gm-clock">15</span><span class="gm-clock-l">秒</span></div>
           ${player(opp, 2)}
         </div>
-        <div class="gm-stage ${g.playable ? '' : 'is-ph'}">
+        <div class="gm-stage">
           <div class="gm-turn">准备开始…</div>
-          ${g.playable ? `${C4.html(C4.empty(), { cls: 'is-game', cols: true })}
-            <div class="gm-stats"><span>${UI.ic('shield', 14)} 拦截 <b class="gm-blocks">0</b></span><span>${UI.ic('gamepad', 14)} 步数 <b class="gm-moves">0</b></span>${p.mode !== 'ai' ? `<span>${UI.ic('info', 14)} 拦截3次＝段位保护</span>` : ''}</div>`
-            : `<div class="ph-screen"><img class="ph-bg" src="${g.cover || g.icon}" alt="">
-                <div class="ph-hud"><span>第<b>1</b>/3回合</span><span>得分 <b class="ph-score">0</b></span></div>
-                <div class="ph-center"><img class="ph-icon" src="${g.icon}" alt=""><b>${g.name}</b><span>对局进行中…</span></div></div>
-              <div class="ph-demo"><p>${UI.ic('info', 14)} 占位画面，本演示仅四子棋可试玩。请选择结果：</p>
-                <div class="ph-btns"><button class="btn btn-green btn-lg" data-act="phWin">${UI.ic('trophy', 18)} 胜利</button><button class="btn btn-danger btn-lg" data-act="phLose">失败</button></div></div>`}
+          ${C4.html(C4.empty(), { cls: 'is-game', cols: true })}
+          <div class="gm-stats"><span>${UI.ic('shield', 14)} 拦截 <b class="gm-blocks">0</b></span><span>${UI.ic('gamepad', 14)} 步数 <b class="gm-moves">0</b></span>${p.mode === 'quick' || p.mode === 'fast' ? `<span>${UI.ic('info', 14)} 拦截3次＝段位保护</span>` : ''}</div>
         </div>
         <div class="gm-dm"></div>
         <div class="gm-bar">
+          <button class="gm-btn gm-mic ${v.mic ? 'is-on' : ''}" data-act="mic" aria-label="麦克风" aria-pressed="${v.mic}">${UI.ic(v.mic ? 'mic' : 'micOff', 22)}</button>
+          <button class="gm-btn gm-spk ${v.spk ? 'is-on' : ''}" data-act="spk" aria-label="听对方说话" aria-pressed="${v.spk}">${UI.ic(v.spk ? 'volume' : 'mute', 22)}</button>
+          <i class="gm-bar-gap"></i>
           <button class="gm-btn" data-act="panel" data-p="phrases" aria-label="快捷语">${UI.ic('msgText', 22)}</button>
           <button class="gm-btn gm-emo" data-act="panel" data-p="emoji" aria-label="表情">${UI.ic('smile', 24)}</button>
         </div>
@@ -737,17 +729,15 @@ window.C4 = (() => {
     },
     shown(el, p) {
       clearAll();
-      G = { p, el, g: D.game[p.game], opp: p.opp || 'bot', board: C4.empty(), turn: 0, left: 15, blocks: 0, moves: 0, t0: Date.now(), timers: [], over: false, paused: false };
-      if (G.g.playable) {
-        const first = p.first || 1;
-        const intro = document.createElement('div');
-        intro.className = 'gm-intro';
-        intro.innerHTML = `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>连成4子即可获胜</span>`;
-        el.querySelector('.gm-stage').appendChild(intro);
-        later(() => { intro.remove(); startTurn(first); }, 1500);
-      } else {
-        startPlaceholder();
-      }
+      G = { p, el, g: D.game[p.game] || D.game[D.GAME], opp: p.opp || 'bot', board: C4.empty(), turn: 0, left: 15, blocks: 0, moves: 0, t0: Date.now(), timers: [], over: false, paused: false };
+      const first = p.first || 1;
+      const intro = document.createElement('div');
+      intro.className = 'gm-intro';
+      intro.innerHTML = `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>${p.rematch ? `${name(G.opp)}接受了再战` : '连成4子即可获胜'}</span>`;
+      el.querySelector('.gm-stage').appendChild(intro);
+      later(() => { intro.remove(); startTurn(first); }, 1500);
+      voiceUI();
+      scheduleTalk();
       later(() => { if (G && G.turn !== 1) emote('opp', UI.pick(['happy', 'wink', 'cool'])); }, 2600);
     },
     leave() { clearAll(); G = null; },
@@ -780,8 +770,8 @@ window.C4 = (() => {
           if (G.turn) ring(G.turn, G.left);
         });
       },
-      phWin: () => { if (G && !G.over) { G.over = true; end('win'); } },
-      phLose: () => { if (G && !G.over) { G.over = true; end('lose'); } },
+      mic: () => toggleMic(),
+      spk: () => toggleSpk(),
     },
   });
 })();
@@ -806,25 +796,43 @@ window.C4 = (() => {
     return `<img class="rs-tomb" src="${IMG}ui/tomb.png" alt=""><img class="rs-mascot is-sad" src="${IMG}brand/mascot-sad.png" alt="">${p.protect ? `<span class="rs-shield">${UI.ic('shield', 34)}</span>` : ''}`;
   };
 
-  function friendTag(uid) {
-    const P = D.people[uid];
-    if (P.ai) return '';
-    if (Store.isFriend(uid)) return `<span class="rs-friend is-done">${UI.ic('userCheck', 14)} 已是好友</span>`;
-    if (Store.s.sent.includes(uid)) return `<span class="rs-friend is-done">${UI.ic('check', 14)} 已申请</span>`;
-    return `<button class="rs-friend" data-act="addFriend">${UI.ic('userPlus', 14)} 加好友</button>`;
+  const staked = (p) => p.mode === 'quick' || p.mode === 'fast';
+  function friendBtn(uid) {
+    if (Store.isFriend(uid)) return `<span class="rs-friend is-done">${UI.ic('userCheck', 15)} 已是好友</span>`;
+    if (Store.s.sent.includes(uid)) return `<span class="rs-friend is-done">${UI.ic('check', 15)} 已申请</span>`;
+    return `<button class="rs-friend" data-act="addFriend">${UI.ic('userPlus', 15)} 加好友</button>`;
+  }
+  /** A 结算后的社交位：和真人对手打完，引导加好友、再战一局 */
+  function mateHtml(p) {
+    const P = D.people[p.opp];
+    if (!P || P.ai || p.mode === 'ai') return '';
+    const friend = Store.isFriend(p.opp);
+    const n = Store.s.mateGames[p.opp] || 0;
+    const line = friend ? (n ? `你们已经一起玩了${n}局` : '好友对局不扣金币也能约') : p.outcome === 'win' ? `${P.name}说：再来一局，我不服！` : p.outcome === 'lose' ? `${P.name}说：打得不错，加个好友？` : `${P.name}说：难分高下，交个朋友吧`;
+    return `<div class="rs-mate">
+      ${UI.av(p.opp, 46, { on: true })}
+      <div class="rs-mate-m"><b>${UI.esc(P.name)} <i>Lv${P.lv}</i></b><span>${line}</span></div>
+      <div class="rs-mate-btns">
+        ${friendBtn(p.opp)}
+        ${p.mode === 'room' ? '' : `<button class="rs-rematch" data-act="rematch">${UI.ic('swords', 15)} 再战TA</button>`}
+      </div>
+    </div>`;
   }
   function card(uid, p, me) {
     const win = p.outcome === 'win';
     const draw = p.outcome === 'draw';
     const winner = draw ? false : me ? win : !win;
     const P = UI.person(uid);
-    const gems = me ? p.gems : p.mode === 'ai' ? 0 : winner ? 30 : draw ? D.COST : 0;
+    const st = Battle.stakeOf(p.stake);
+    // 金币变化：赢家 +奖池净赚，输家 -底注，平局 ±0；好友房、练习不显示
+    const net = !staked(p) ? null : me ? p.net : winner ? Battle.pot(st, false) - st.bet : draw ? 0 : -st.bet;
+    const gain = net === null ? `<span class="rs-gain is-free">${p.mode === 'room' ? '好友局' : '练习'}</span>`
+      : `<span class="rs-gain ${net < 0 ? 'is-neg' : ''}">${UI.cur('coins', 24)}<em>${net > 0 ? '+' : ''}${UI.fmt(net)}</em></span>`;
     return `<div class="rs-card ${me ? 'is-me' : 'is-opp'} ${winner ? 'is-winner' : ''}">
       ${winner ? `<img class="rs-crown" src="${IMG}ui/crown.png" alt="">` : ''}
       ${UI.av(uid, 70)}
       <b>${me ? UI.esc(Store.s.user.name) : UI.esc(P.name)}${P.ai ? ' <i class="ai-tag">AI</i>' : ''}</b>
-      <span class="rs-gain">${UI.cur('gems', 24)}<em>×${gems}</em></span>
-      ${me ? '' : friendTag(uid)}
+      ${gain}
     </div>`;
   }
 
@@ -838,7 +846,11 @@ window.C4 = (() => {
     const need = Store.need(s.user.lv);
     const b = p.before;
     const dl = p.protect ? '±0 · 已保护' : p.delta > 0 ? `段位分+${p.delta}` : p.delta < 0 ? `段位分${p.delta}` : '段位分±0';
-    const playable = D.game[p.game].playable;
+    const playable = true;
+    if (p.mode === 'room') {
+      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} 好友房不扣金币、不计段位，只管和朋友玩。</p>
+        <div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div></div>`;
+    }
     return `<div class="rs-panel">
       <div class="rs-row">
         <span class="rs-row-ic">${UI.cur('exp', 34)}</span>
@@ -855,7 +867,7 @@ window.C4 = (() => {
   }
 
   function taskList() {
-    const ids = ['n_first', 'd_win', 'd_play', 'd_emoji', 'n_time', 'w_variety', 'l_action'];
+    const ids = ['n_first', 'd_win', 'd_play', 'l_mate', 'w_friend', 'd_emoji', 'n_time'];
     const list = ids.map((id) => Store.task(D.tasks.find((t) => t.id === id))).filter((t) => t.state !== 'done');
     list.sort((a, b) => (b.state === 'claim') - (a.state === 'claim'));
     return list.slice(0, 3);
@@ -940,22 +952,24 @@ window.C4 = (() => {
 
   App.page('result', {
     render(el, p) {
-      const g = D.game[p.game];
+      const g = D.game[p.game] || D.game[D.GAME];
       const practice = p.mode === 'ai';
+      const st = Battle.stakeOf(p.stake);
       const cls = p.outcome === 'win' ? 'is-win' : p.outcome === 'draw' ? 'is-draw' : 'is-lose';
       el.innerHTML = `
         <div class="rs-bg ${cls}"><img src="${IMG}fx/galaxy.jpg" alt=""><i class="rs-blue"></i><i class="rs-red"></i></div>
         <header class="rs-top safe-top">
-          ${UI.chips(['gems'], { plus: false, cls: 'is-dark' })}
+          ${UI.chips(['coins'], { plus: false, cls: 'is-dark' })}
           <span class="rs-game"><img src="${g.icon}" alt="">${g.name}</span>
           <button class="icon-btn rs-x" data-act="lobby" aria-label="关闭">${UI.ic('x', 24)}</button>
         </header>
         <div class="body rs-body ${cls}" data-scroll="main">
           <div class="rs-head"><b class="rs-ghost">${title(p)}</b><h1 class="rs-title">${title(p)}</h1>
-            ${p.forfeit ? '<p class="rs-sub">你已退出对局</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 双倍钻石已生效</p>` : p.outcome === 'draw' && !practice ? `<p class="rs-sub">已退还${D.COST}钻石</p>` : ''}</div>
+            ${p.forfeit ? '<p class="rs-sub">你已退出对局</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 奖池翻倍已生效</p>` : p.outcome === 'draw' && staked(p) ? `<p class="rs-sub">已退还底注${UI.fmt(st.bet)}金币</p>` : ''}</div>
           <div class="rs-hero ${cls}">${hero(p)}</div>
           <div class="rs-cards">${card('me', p, true)}${card(p.opp, p, false)}</div>
-          ${practice ? `<div class="rs-panel rs-practice"><p>${UI.ic('bot', 18)} 练习局不影响段位和钻石。</p><button class="btn btn-orange btn-md" data-act="ranked">来局排位 · ${UI.cur('gems', 16)}${D.COST}</button></div>` : progress(p)}
+          ${mateHtml(p)}
+          ${practice ? `<div class="rs-panel rs-practice"><p>${UI.ic('bot', 18)} 练习局不影响段位和金币。</p><button class="btn btn-orange btn-md" data-act="ranked">去${st.name} · ${UI.cur('coins', 16)}${UI.fmt(st.bet)}</button></div>` : progress(p)}
           <div class="rs-tasks-box">${practice ? '' : tasksHtml()}</div>
           <div class="bottom-space" style="height:96px"></div>
         </div>
@@ -963,7 +977,7 @@ window.C4 = (() => {
           <button class="btn btn-glass btn-lg rs-share" data-act="share" aria-label="分享">${UI.ic('share', 20)}</button>
           ${p.mode === 'room' ? '<button class="btn btn-primary btn-lg rs-again" data-act="toRoom">返回房间</button>'
             : practice ? '<button class="btn btn-primary btn-lg rs-again" data-act="again">再练一局</button>'
-              : `<button class="btn btn-primary btn-lg rs-again" data-act="again">再来一局 <span class="btn-price">${UI.cur('gems', 16)}${D.COST}</span></button>`}
+              : `<button class="btn btn-primary btn-lg rs-again" data-act="again">再来一局 <span class="btn-price">${UI.cur('coins', 16)}${UI.fmt(st.bet)}</span></button>`}
           <button class="btn btn-glass btn-lg" data-act="lobby">大厅</button>
         </div>`;
     },
@@ -972,9 +986,9 @@ window.C4 = (() => {
       p.granted = true;
       await UI.sleep(450);
       animRank(el, p);
-      if (p.gems) {
-        await UI.fly('gems', el.querySelector('.rs-card.is-me .rs-gain'), p.gems);
-        UI.release('gems');
+      if (p.coins) {
+        await UI.fly('coins', el.querySelector('.rs-card.is-me .rs-gain'), p.coins);
+        UI.release('coins');
       }
       if (p.exp) await grantExp(el, p);
       if (p.up) await promoted(el, p);
@@ -984,21 +998,43 @@ window.C4 = (() => {
       toRoom: () => App.pop(),
       again: () => {
         const p = App.params('result');
-        if (p.mode === 'ai') Battle.practice(p.game, { replace: true });
-        else Battle.quick(p.game, { replace: true });
+        if (p.mode === 'ai') Battle.practice(null, { replace: true });
+        else Battle.quick(p.stake, { replace: true });
       },
-      ranked: () => Battle.quick(App.params('result').game, { replace: true }),
+      ranked: () => Battle.quick(undefined, { replace: true }),
+      rematch: async (el) => {
+        const p = App.params('result');
+        const P = D.people[p.opp];
+        const st = Battle.stakeOf(p.stake);
+        if (Battle.canEnter(st) === 'poor') { Shop.lack({ need: st.bet, stake: st.id }); return; }
+        el.disabled = true;
+        el.classList.add('is-wait');
+        el.innerHTML = `<i class="rs-spin"></i> 等待${UI.esc(P.name)}…`;
+        await UI.sleep(1600);
+        if (App.top() !== 'result' || App.params('result') !== p) return;
+        // 演示：好友和赢了的对手一定接受；输给你的对手 75% 接受
+        const accept = Store.isFriend(p.opp) || p.outcome !== 'win' || Math.random() < 0.75;
+        if (!accept) {
+          el.disabled = false;
+          el.classList.remove('is-wait');
+          el.innerHTML = `${UI.ic('swords', 15)} 再战TA`;
+          UI.toast(`${P.name}先休息一下，下次再约`);
+          return;
+        }
+        UI.toast(`${P.name}接受了再战！`);
+        Battle.rematch(p.opp, p.stake);
+      },
       addFriend: (el) => {
         const uid = App.params('result').opp;
         Store.request(uid);
-        el.outerHTML = `<span class="rs-friend is-done">${UI.ic('check', 14)} 已申请</span>`;
+        el.outerHTML = `<span class="rs-friend is-done">${UI.ic('check', 15)} 已申请</span>`;
         UI.toast('好友申请已发送');
         clearTimeout(acceptTimer);
         acceptTimer = setTimeout(() => {
           if (!Store.s.sent.includes(uid)) return;
           Store.addFriend(uid);
           UI.notify({ img: D.people[uid].avatar, title: `${D.people[uid].name}通过了你的好友申请`, text: '你们已经是好友了，打个招呼吧！', btn: '聊天', onTap: () => App.go('dm', { id: uid }) });
-          const tag = document.querySelector('.page[data-page="result"].is-active .rs-card.is-opp .rs-friend');
+          const tag = document.querySelector('.page[data-page="result"].is-active .rs-mate .rs-friend');
           if (tag) tag.outerHTML = `<span class="rs-friend is-done">${UI.ic('userCheck', 14)} 已是好友</span>`;
         }, 6000);
       },

@@ -23,59 +23,21 @@
   });
 
   D.games = [
-    G('c4', '四子棋', '棋盘', 52300, { tag: '第1名', rating: 4.8, players: '2人', dur: '3分钟', max: 2, playable: true,
-      desc: '往棋盘里投子，抢在对手之前连成四子（横、竖、斜都算）。' }),
-    G('clash', '英雄对决', '动作', 38100, { tag: '第2名', rating: 4.7, players: '2–6人', max: 6,
-      desc: '选一位英雄，冲进快节奏竞技场。和好友打出技能连招，一起登顶。' }),
-    G('strike', '突击小队', '动作', 31600, { tag: '第3名', rating: 4.6,
-      desc: '战术小队射击。组队安放信标，守住据点。' }),
-    G('royal', '皇家乱斗', '动作', 27900, { tag: '热门', rating: 4.6, players: '2–6人', max: 6,
-      desc: '挥舞法术和战锤在城堡里乱斗，活到最后就是赢家。' }),
-    G('bingo', '宾果派对', '卡牌', 24700, { tag: '热门', rating: 4.7, players: '2–6人', max: 6, cover: false,
-      desc: '经典宾果加道具玩法。手快划号，抢先喊出“宾果”！' }),
-    G('jet', '喷气冲刺', '竞速', 21500, { tag: '热门', rating: 4.5, cover: false,
-      desc: '背上喷气背包穿越满是激光的实验室。捡金币、躲陷阱，飞得最远就赢。' }),
-    G('squad', '花园大乱斗', '动作', 18200, { tag: '新游', rating: 4.5,
-      desc: '和队友在花园里混战。布下陷阱，把对手轰出院子。' }),
-    G('dust', '尘埃落定', '竞速', 15000, { rating: 4.4, cover: false,
-      desc: '驾驶飞船穿越流星雨，飞得最远的人获胜。' }),
-    G('cards', '疯狂卡牌', '卡牌', 14800, { rating: 4.6, players: '2–6人', max: 6,
-      desc: '同色或同数字就能出牌，甩出万能牌，先出完手牌就赢。' }),
-    G('boxing', '拳击对决', '体育', 12400, { tag: '新游', rating: 4.5, players: '2人', dur: '2分钟', max: 2,
-      desc: '一键拳击对决。闪避、出拳，一拳击倒对手。' }),
-    G('pirate', '海盗泡泡', '益智', 11900, { rating: 4.5, cover: false,
-      desc: '戳泡泡、找宝藏，抢在伙伴前面打开宝箱。' }),
-    G('beat', '节奏派对', '益智', 10300, { tag: '活动', rating: 4.6,
-      desc: '跟着乐队踩准节拍。本周活动：今日热门金曲。' }),
-    G('wave', '冲浪达人', '体育', 9800, { rating: 4.4,
-      desc: '征服最大的浪头，和好友比谁先冲上岸。' }),
-    G('fruit', '疯狂水果', '益智', 9100, { rating: 4.5, players: '2人', max: 2, cover: false,
-      desc: '交换消除多汁水果，90秒一决胜负。' }),
-    G('raccoon', '浣熊快跑', '竞速', 8600, { rating: 4.3, cover: false,
-      desc: '奔跑、跳跃，沿着巨型魔豆藤一路往上冲。' }),
-    G('slime', '史莱姆传说', '动作', 7700, { rating: 4.4,
-      desc: '和好友一起带领史莱姆大军，击退一波波哥布林。' }),
-    G('sweet', '甜蜜消消', '益智', 7200, { rating: 4.5, players: '2人', max: 2, cover: false,
-      desc: '甜蜜三消对战，打出连击就能赢。' }),
-    G('star', '星星爆破', '益智', 6900, { rating: 4.4, players: '2人', max: 2, cover: false,
-      desc: '炸开星星方块，打出超长连击。' }),
-    G('gemgrab', '宝石争夺', '棋盘', 6100, { rating: 4.3, cover: false,
-      desc: '抢宝石、偷对手，先攒够10颗就赢。' }),
-    G('maze', '烧脑迷宫', '棋盘', 5400, { rating: 4.3, cover: false,
-      desc: '在不断变化的迷宫里狂奔，抢先拿到钥匙。' }),
-    G('dragon', '龙龙泡泡', '益智', 4800, { rating: 4.4, players: '2人', max: 2, cover: false,
-      desc: '瞄准、反弹、戳泡泡，比对手更快清场。' }),
+    G('c4', '四子棋', '棋盘', 52300, { rating: 4.8, players: '2人', dur: '3分钟', max: 2, playable: true,
+      desc: '往棋盘里投子，抢在对手之前连成四子，横、竖、斜都算。' }),
   ];
-  // 几张图标不是 jpg
-  D.games.find((g) => g.id === 'star').icon = `${IMG}gc/star.png`;
-  D.games.find((g) => g.id === 'dragon').icon = `${IMG}gc/dragon.png`;
-  D.games.find((g) => g.id === 'maze').icon = `${IMG}games/maze.png`;
-  D.games.find((g) => g.id === 'gemgrab').icon = `${IMG}gc/gem-grab.jpg`;
   D.game = Object.fromEntries(D.games.map((g) => [g.id, g]));
+  D.GAME = 'c4'; // Soulgame 只有这一款游戏
 
-  D.cats = ['推荐', '动作', '体育', '竞速', '卡牌', '棋盘', '益智'];
-  D.forYou = ['c4', 'clash', 'boxing', 'jet', 'bingo', 'strike', 'royal', 'wave', 'cards', 'dust', 'beat', 'squad', 'pirate', 'fruit', 'raccoon', 'slime', 'sweet', 'star', 'gemgrab', 'maze', 'dragon'];
-  D.COST = 16; // 每局消耗 Gems
+  /* ---------- 金币分场（参考 Yalla Ludo：入场扣底注，赢家拿走奖池，平局退还） ---------- */
+  // lv：解锁等级；online：该场在线人数
+  D.stakes = [
+    { id: 's1', name: '新手场', bet: 100, lv: 1, online: 18600 },
+    { id: 's2', name: '进阶场', bet: 500, lv: 3, online: 21400 },
+    { id: 's3', name: '高手场', bet: 2000, lv: 8, online: 9300 },
+    { id: 's4', name: '大师场', bet: 10000, lv: 15, online: 3000 },
+  ];
+  D.stake = Object.fromEntries(D.stakes.map((x) => [x.id, x]));
 
   /* ---------- 段位与赛季 ---------- */
   D.tiers = ['青铜', '白银', '黄金', '铂金', '星耀'];
@@ -95,37 +57,37 @@
   const P = (id, name, lv, o = {}) => ({
     id, name, lv,
     avatar: `${IMG}avatars/${id}.jpg`,
-    online: false, status: '', seen: '', frame: null, bg: 'aurora', bio: '', games: 60, win: 50, fav: ['c4'],
+    online: false, status: '', seen: '', frame: null, bg: 'aurora', bio: '', games: 60, win: 50,
     uid: String(10000000 + ((id.charCodeAt(0) * 7919 + id.length * 104729) % 89999999)),
     ...o,
   });
 
   D.people = {
     stella: P('stella', '星星', 3),
-    lily: P('lily', '莉莉', 14, { online: true, status: '正在玩四子棋', frame: 'wings', bg: 'galaxy', bio: '不连成四子不罢休 ✨', games: 318, win: 62, fav: ['c4', 'bingo', 'pirate'] }),
-    kai: P('kai', '阿凯', 9, { online: true, status: '在大厅', bg: 'arena', bio: '回合制>实时，不服来战。', games: 142, win: 51, fav: ['c4', 'gemgrab', 'maze'] }),
-    mia: P('mia', '米娅', 11, { online: true, status: '正在玩宾果派对', frame: 'balloon', bg: 'sunset', bio: '宾果女王 👑', games: 204, win: 55, fav: ['bingo', 'cards', 'fruit'] }),
-    alex: P('alex', '阿乐', 8, { online: true, status: '在大厅', bio: '这赛季冲黄金', games: 97, win: 57, fav: ['c4', 'strike', 'jet'] }),
-    daniel: P('daniel', '大牛', 16, { online: true, status: '正在玩突击小队', frame: 'crown', bg: 'arena', bio: '小队队长，常开麦。', games: 401, win: 64, fav: ['strike', 'clash', 'royal'] }),
-    lucas: P('lucas', '卢卡', 6, { online: true, status: '在房间中', bio: '益智游戏控 🧩', games: 66, win: 48, fav: ['pirate', 'fruit', 'sweet'] }),
-    sofia: P('sofia', '索菲', 7, { seen: '2小时前', bio: '你好呀 👋', games: 88, win: 50, fav: ['clash', 'cards'] }),
-    emma: P('emma', '艾玛', 5, { seen: '昨天', bio: '休闲玩家', games: 41, win: 44, fav: ['fruit', 'sweet'] }),
-    aisha: P('aisha', '爱莎', 12, { seen: '5小时前', frame: 'saturn', bio: '竞速狂热粉 🏁', games: 230, win: 59, fav: ['jet', 'dust', 'raccoon'] }),
-    ryan: P('ryan', '瑞安', 4, { seen: '3天前', bio: '新人报到', games: 25, win: 40, fav: ['boxing'] }),
-    noah: P('noah', '诺亚', 10, { online: true, status: '在大厅', bio: '友谊第一，比赛第二', games: 150, win: 53, fav: ['c4', 'boxing'] }),
-    grace: P('grace', '格蕾丝', 7, { seen: '1小时前', bio: '一起交个朋友吧！', games: 70, win: 49, fav: ['bingo'] }),
-    victor: P('victor', '维克多', 13, { online: true, status: '正在玩皇家乱斗', frame: 'rocket', bio: '策略大师', games: 260, win: 58, fav: ['royal', 'c4'] }),
-    marco: P('marco', '马可', 9, { seen: '30分钟前', bio: '哈喽！', games: 120, win: 52, fav: ['wave', 'boxing'] }),
-    hana: P('hana', '花花', 8, { online: true, status: '正在开房', bio: '只玩轻松局 🌙', games: 110, win: 54, fav: ['c4', 'sweet'] }),
-    zoe: P('zoe', '佐伊', 10, { online: true, status: '正在玩宾果派对', bio: '夜猫子', games: 133, win: 51 }),
+    lily: P('lily', '莉莉', 14, { online: true, status: '对局中', frame: 'wings', bg: 'galaxy', bio: '不连成四子不罢休 ✨', games: 318, win: 62 }),
+    kai: P('kai', '阿凯', 9, { online: true, status: '在大厅', bg: 'arena', bio: '回合制>实时，不服来战。', games: 142, win: 51 }),
+    mia: P('mia', '米娅', 11, { online: true, status: '对局中', frame: 'balloon', bg: 'sunset', bio: '连珠女王 👑', games: 204, win: 55 }),
+    alex: P('alex', '阿乐', 8, { online: true, status: '在大厅', bio: '这赛季冲黄金', games: 97, win: 57 }),
+    daniel: P('daniel', '大牛', 16, { online: true, status: '对局中', frame: 'crown', bg: 'arena', bio: '小队队长，常开麦。', games: 401, win: 64 }),
+    lucas: P('lucas', '卢卡', 6, { online: true, status: '在房间中', bio: '慢慢下，稳稳赢 🧩', games: 66, win: 48 }),
+    sofia: P('sofia', '索菲', 7, { seen: '2小时前', bio: '你好呀 👋', games: 88, win: 50 }),
+    emma: P('emma', '艾玛', 5, { seen: '昨天', bio: '休闲玩家', games: 41, win: 44 }),
+    aisha: P('aisha', '爱莎', 12, { seen: '5小时前', frame: 'saturn', bio: '速攻流选手 🏁', games: 230, win: 59 }),
+    ryan: P('ryan', '瑞安', 4, { seen: '3天前', bio: '新人报到', games: 25, win: 40 }),
+    noah: P('noah', '诺亚', 10, { online: true, status: '在大厅', bio: '友谊第一，比赛第二', games: 150, win: 53 }),
+    grace: P('grace', '格蕾丝', 7, { seen: '1小时前', bio: '一起交个朋友吧！', games: 70, win: 49 }),
+    victor: P('victor', '维克多', 13, { online: true, status: '对局中', frame: 'rocket', bio: '策略大师', games: 260, win: 58 }),
+    marco: P('marco', '马可', 9, { seen: '30分钟前', bio: '哈喽！', games: 120, win: 52 }),
+    hana: P('hana', '花花', 8, { online: true, status: '正在开房', bio: '只玩轻松局 🌙', games: 110, win: 54 }),
+    zoe: P('zoe', '佐伊', 10, { online: true, status: '对局中', bio: '夜猫子', games: 133, win: 51 }),
     olivia: P('olivia', '奥莉', 21, { online: true, status: '在大厅', frame: 'crown', bio: '第2赛季冠军', games: 820, win: 71 }),
     isabella: P('isabella', '贝拉', 15, { online: true, status: '正在开房', bio: '冲鸭！', games: 300, win: 60 }),
-    ruby: P('ruby', '露比', 12, { online: true, status: '正在玩宾果派对', bio: '幸运数字7', games: 190, win: 55 }),
+    ruby: P('ruby', '露比', 12, { online: true, status: '对局中', bio: '幸运数字7', games: 190, win: 55 }),
     george: P('george', '老乔', 18, { online: true, status: '在大厅', bio: '姜还是老的辣', games: 610, win: 66 }),
-    priya: P('priya', '普丽', 17, { online: true, status: '正在玩皇家乱斗', frame: 'dj', bio: '音乐+游戏', games: 540, win: 63 }),
-    ethan: P('ethan', '伊森', 14, { online: true, status: '正在玩皇家乱斗', bio: '认真党', games: 350, win: 61 }),
-    leo: P('leo', '小狮', 16, { online: true, status: '正在玩皇家乱斗', bio: '小狮子在此，嗷呜～', games: 420, win: 62 }),
-    jade: P('jade', '小玉', 11, { online: true, status: '在房间中', bio: '益智速通玩家', games: 205, win: 57 }),
+    priya: P('priya', '普丽', 17, { online: true, status: '对局中', frame: 'dj', bio: '边听歌边下棋', games: 540, win: 63 }),
+    ethan: P('ethan', '伊森', 14, { online: true, status: '对局中', bio: '认真党', games: 350, win: 61 }),
+    leo: P('leo', '小狮', 16, { online: true, status: '对局中', bio: '小狮子在此，嗷呜～', games: 420, win: 62 }),
+    jade: P('jade', '小玉', 11, { online: true, status: '在房间中', bio: '三步之内必有杀招', games: 205, win: 57 }),
     chloe: P('chloe', '克洛伊', 9, { online: true, status: '在房间中', bio: '嗨，你好呀', games: 98, win: 50 }),
   };
   D.matchPool = ['victor', 'hana', 'zoe', 'noah', 'ruby', 'jade', 'chloe', 'marco', 'ethan', 'priya'];
@@ -191,15 +153,15 @@
     T('n_time', 'newbie', '游玩3分钟', 3, 'minutes', { coins: 50 }, 'c4', { unit: '分钟' }),
     T('n_friend', 'newbie', '添加1位好友', 1, 'friendsAdded', { gems: 30 }, 'addfriend'),
     T('n_frame', 'newbie', '装备一个头像框', 1, 'framesEquipped', { coins: 100 }, 'shop'),
-    T('d_play', 'daily', '玩3局游戏', 3, 'games', { gems: 20 }, 'c4'),
-    T('d_win', 'daily', '赢1局游戏', 1, 'wins', { gems: 30 }, 'c4'),
+    T('d_play', 'daily', '玩3局', 3, 'games', { gems: 20 }, 'c4'),
+    T('d_win', 'daily', '赢1局', 1, 'wins', { gems: 30 }, 'c4'),
     T('d_emoji', 'daily', '对局中发3个表情', 3, 'emojis', { coins: 50 }, 'c4'),
     T('d_share', 'daily', '分享1次', 1, 'shares', { gems: 10 }, 'share'),
     T('d_ad', 'daily', '看1次广告', 1, 'ads', { coins: 30 }, 'ad'),
-    T('w_variety', 'weekly', '玩5款不同的游戏', 5, 'distinct', { gems: 100 }, 'lobby'),
+    T('w_friend', 'weekly', '和好友玩3局', 3, 'friendGames', { gems: 100 }, 'friends'),
     T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { gems: 80 }, 'create'),
-    T('w_win', 'weekly', '赢10局游戏', 10, 'wins', { coins: 200 }, 'c4'),
-    T('l_action', 'limited', '试玩3款动作游戏', 3, 'action', { gems: 100 }, 'action', { period: '2026.11.01 - 11.30' }),
+    T('w_win', 'weekly', '赢10局', 10, 'wins', { coins: 200 }, 'c4'),
+    T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { gems: 100 }, 'recent', { period: '2026.11.01 - 11.30' }),
     T('l_notify', 'limited', '开启回合提醒', 1, 'notify', { gems: 100 }, 'notify', { period: '3个月' }),
     T('l_share', 'limited', '分享3次', 3, 'shares', { gems: 100 }, 'share', { period: '2026.11.01 - 12.31' }),
   ];
@@ -211,39 +173,39 @@
   ];
   // 盲盒任务的候选，翻开时优先抽已完成的
   D.mystery = [
-    { title: '赢1局游戏', metric: 'wins', goal: 1, go: 'c4' },
+    { title: '赢1局', metric: 'wins', goal: 1, go: 'c4' },
     { title: '对局中发3个表情', metric: 'emojis', goal: 3, go: 'c4' },
-    { title: '玩2局游戏', metric: 'games', goal: 2, go: 'c4' },
+    { title: '玩2局', metric: 'games', goal: 2, go: 'c4' },
   ];
 
   /* ---------- 徽章 ---------- */
   D.badges = [
-    { id: 'first_win', name: '首胜', desc: '在畅玩空间赢得第一局', img: `${IMG}ui/trophy.png` },
+    { id: 'first_win', name: '首胜', desc: '在 Soulgame 赢得第一局', img: `${IMG}ui/trophy.png` },
     { id: 'social', name: '社交达人', desc: '拥有10位好友', img: `${IMG}ui/headphones.png` },
     { id: 'host', name: '人气房主', desc: '创建一个房间', img: `${IMG}ui/store.png` },
     { id: 'wall', name: '铜墙铁壁', desc: '一局内拦截对手3次', img: `${IMG}ui/glove-blue.png` },
     { id: 'speed', name: '极速玩家', desc: '使用一次加速卡', img: `${IMG}ui/rocket.png` },
     { id: 'collector', name: '收藏家', desc: '拥有3件装扮', img: `${IMG}ui/crown.png` },
-    { id: 'explorer', name: '探险家', desc: '玩过5款不同的游戏', img: `${IMG}ui/saturn.png` },
-    { id: 'gold', name: '点石成金', desc: '任意游戏达到黄金段位', img: `${IMG}ui/podium.png` },
+    { id: 'explorer', name: '默契搭档', desc: '和同一位好友玩10局', img: `${IMG}ui/saturn.png` },
+    { id: 'gold', name: '点石成金', desc: '四子棋达到黄金段位', img: `${IMG}ui/podium.png` },
     { id: 'streak', name: '每日之星', desc: '连续7天完成全部每日任务', img: `${IMG}ui/calendar.png` },
   ];
 
   /* ---------- 房间 ---------- */
   D.rooms = [
     { id: 'r1', name: '四子棋休闲局 🌙', game: 'c4', max: 2, seats: ['hana'], host: 'hana', lang: '中文', premium: false },
-    { id: 'r2', name: '宾果之夜 🎉', game: 'bingo', max: 4, seats: ['mia', 'zoe', 'ruby'], host: 'mia', lang: '中文', premium: false },
-    { id: 'r3', name: '突击高手专场', game: 'strike', max: 4, seats: ['daniel', 'george'], host: 'daniel', lang: '中文', premium: true },
-    { id: 'r4', name: '好友派对房', game: 'clash', max: 6, seats: ['isabella', 'marco'], host: 'isabella', lang: '西班牙语', premium: false },
-    { id: 'r5', name: '益智搭子 🧩', game: 'pirate', max: 4, seats: ['lucas', 'chloe', 'jade'], host: 'lucas', lang: '中文', premium: false },
-    { id: 'r6', name: '周末乱斗', game: 'royal', max: 6, seats: ['victor', 'leo', 'ethan', 'priya'], host: 'victor', lang: '中文', premium: true },
-    { id: 'r7', name: '喷气冲刺竞速赛', game: 'jet', max: 4, seats: ['olivia'], host: 'olivia', lang: '中文', premium: false },
+    { id: 'r2', name: '今晚不睡 🎉', game: 'c4', max: 2, seats: ['mia', 'zoe'], host: 'mia', lang: '中文', premium: false },
+    { id: 'r3', name: '高手过招', game: 'c4', max: 2, seats: ['daniel'], host: 'daniel', lang: '中文', premium: true },
+    { id: 'r4', name: '好友派对房', game: 'c4', max: 2, seats: ['isabella'], host: 'isabella', lang: '西班牙语', premium: false },
+    { id: 'r5', name: '慢棋搭子 🧩', game: 'c4', max: 2, seats: ['lucas', 'jade'], host: 'lucas', lang: '中文', premium: false },
+    { id: 'r6', name: '周末擂台', game: 'c4', max: 2, seats: ['victor'], host: 'victor', lang: '中文', premium: true },
+    { id: 'r7', name: '连珠练习室', game: 'c4', max: 2, seats: ['olivia'], host: 'olivia', lang: '中文', premium: false },
     { id: 'r8', name: '四子棋 · 新手房', game: 'c4', max: 2, seats: ['george'], host: 'george', lang: '中文', premium: false },
   ];
   // 聊天邀请卡片对应的私密房间
   D.inviteRooms = {
     lily: { id: 'lily', name: '莉莉的房间', game: 'c4', max: 2, seats: ['lily'], host: 'lily', lang: '中文', premium: false, private: true },
-    squad: { id: 'squad', name: '周末小队房间', game: 'strike', max: 4, seats: ['lucas', 'daniel'], host: 'lucas', lang: '中文', premium: false, private: true },
+    squad: { id: 'squad', name: '周末小队房间', game: 'c4', max: 2, seats: ['lucas'], host: 'lucas', lang: '中文', premium: false, private: true },
   };
 
   /* ---------- 聊天 ---------- */
@@ -256,15 +218,15 @@
       { from: 'lily', text: '给你留了个座 💺', t: '10:24' },
     ] },
     squad: { type: 'group', name: '周末小队', members: ['daniel', 'mia', 'lucas'], unread: 3, msgs: [
-      { from: 'daniel', text: '今晚打突击小队？', t: '09:12' },
+      { from: 'daniel', text: '今晚四子棋车轮战？', t: '09:12' },
       { from: 'mia', text: '算我一个！', t: '09:15' },
-      { from: 'lucas', type: 'invite', game: 'strike', room: 'squad', text: '小队房间开好了', t: '09:20' },
+      { from: 'lucas', type: 'invite', game: 'c4', room: 'squad', text: '房间开好了，谁先来', t: '09:20' },
     ] },
     kai: { type: 'dm', with: 'kai', unread: 1, msgs: [
       { from: 'kai', text: '轮到你了！别让我等太久 ⏳', t: '08:47' },
     ] },
-    system: { type: 'system', name: '畅玩空间', unread: 1, msgs: [
-      { from: 'system', text: '第3赛季 · 夏日激战开始啦！任意游戏达到黄金段位，即可解锁“夏日激战”头像框。', t: '周一' },
+    system: { type: 'system', name: 'Soulgame', unread: 1, msgs: [
+      { from: 'system', text: '第3赛季 · 夏日激战开始啦！四子棋达到黄金段位，即可解锁“夏日激战”头像框。', t: '周一' },
     ] },
     mia: { type: 'dm', with: 'mia', unread: 0, msgs: [{ from: 'mia', text: '打得好！🎉', t: '周日' }] },
     alex: { type: 'dm', with: 'alex', unread: 0, msgs: [{ from: 'alex', text: '赌你这赛季超不过我 😏', t: '周六' }] },
