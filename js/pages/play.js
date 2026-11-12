@@ -120,7 +120,7 @@
       <button class="hm-tile is-friends" data-act="friends">
         <img class="hm-art" src="${IMG}brand/blobs-vs.png" alt="">
         <b class="hm-name">和好友玩</b>
-        <span class="hm-desc">不扣金币 · 不计段位</span>
+        <span class="hm-desc">选入场金币 · 含免费档</span>
         <span class="hm-avs">${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em></span>
       </button>
       <button class="hm-tile is-s is-ai" data-act="ai"><img class="hm-art" src="${IMG}brand/mascot.png" alt=""><b class="hm-name">人机练习</b><span class="hm-desc">免费练手</span></button>
@@ -350,7 +350,7 @@
       ai: () => Battle.practice(),
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {
-        const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '好友房不扣金币、不计段位', onlineOnly: true });
+        const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '选好友后再选入场金币，有免费档', onlineOnly: true });
         if (uid) Rooms.withFriend(uid);
       },
     },

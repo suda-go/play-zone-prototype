@@ -279,3 +279,17 @@
 .im-pet b { display: block; font-size: 13px; font-weight: 900; color: #6b3fa0; }
 .im-pet small { display: block; font-size: 10.5px; color: #8a7aa8; white-space: nowrap; }
 .im-tag { position: absolute; top: -6px; right: -6px; padding: 0 5px; border-radius: 6px; background: rgba(107, 63, 160, .12); color: #6b3fa0; font-size: 9.5px; font-weight: 800; font-style: normal; line-height: 15px; }
+
+/* ---------- V6 房间入场金币：房主选，含免费档（创建房间页、选择弹层） ---------- */
+.bet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.bet-op { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px 10px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); text-align: center; transition: transform .15s; }
+.bet-op:active { transform: scale(.96); }
+.bet-op b { display: flex; align-items: center; gap: 3px; font: 800 17px var(--num); }
+.bet-op.is-free b { font-family: inherit; font-size: 16px; color: #10a76a; }
+.bet-op span { font-size: 11.5px; color: var(--text-2); }
+.bet-op.is-on { background: #fff8e8; box-shadow: inset 0 0 0 2px #ffb400; }
+.bet-op.is-poor { opacity: .5; }
+.bet-op i { position: absolute; top: -7px; right: -4px; padding: 0 6px; border-radius: 8px; background: #8a90a8; color: #fff; font-size: 10px; font-style: normal; font-weight: 700; line-height: 16px; }
+.sheet-bet .bet-grid { padding: 6px 0 6px; }
+.rcard-r .tag .cur { margin: 0 1px 0 0; }
+.rm-game .row-main .cur { width: 13px; height: 13px; margin: 0 1px; border-radius: 0; box-shadow: none; vertical-align: -2px; }

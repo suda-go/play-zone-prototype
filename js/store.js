@@ -1,12 +1,12 @@
 /**
- * 状态层：全部运行数据存在 localStorage（键 soulgame.v5，和同域名下其他版本的预览分开存），刷新后保留
+ * 状态层：全部运行数据存在 localStorage（键 soulgame.v6，和同域名下其他版本的预览分开存），刷新后保留
  * 每次修改后 emit(type, meta)，ui.js 订阅后同步余额、红点
  * Store.reset() 清空数据回到新用户状态（需要重新登录）；Store.reset(seed) 换账号登录时用，新状态里预先写入登录信息
  */
 (() => {
   'use strict';
 
-  const KEY = 'soulgame.v5';
+  const KEY = 'soulgame.v6';
   const subs = [];
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });

@@ -18,7 +18,7 @@
   /** 对局记录右侧：排位局显示金币净变化，好友房 / 练习单独标注 */
   function matchVal(m) {
     if (m.practice || m.mode === 'ai') return '<i class="st-tag">练习</i>';
-    if (m.mode === 'room') return '<i class="st-tag">好友局</i>';
+    if (m.mode === 'room' && !m.bet) return '<i class="st-tag">好友局</i>';
     const n = m.coins || 0;
     if (!n) return m.draw ? `<i>${UI.cur('coins', 14)}退还底注</i>` : '';
     return `<i class="${n > 0 ? 'is-up' : 'is-down'}">${UI.cur('coins', 14)}${n > 0 ? '+' : '-'}${UI.fmt(Math.abs(n))}金币</i>`;

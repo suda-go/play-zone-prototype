@@ -234,20 +234,22 @@
   ];
 
   /* ---------- 房间 ---------- */
+  // V6 入场金币（参考 Yalla Ludo 私人房）：房主创建时选，0 是免费档；开局扣除，赢家拿走奖池（底注×2），平局退还
+  D.roomBets = [0, 100, 500, 2000, 10000];
   D.rooms = [
-    { id: 'r1', name: '四子棋休闲局 🌙', game: 'c4', max: 2, seats: ['hana'], host: 'hana', lang: '中文', premium: false },
-    { id: 'r2', name: '今晚不睡 🎉', game: 'c4', max: 2, seats: ['mia', 'zoe'], host: 'mia', lang: '中文', premium: false },
-    { id: 'r3', name: '高手过招', game: 'c4', max: 2, seats: ['daniel'], host: 'daniel', lang: '中文', premium: true },
-    { id: 'r4', name: '好友派对房', game: 'c4', max: 2, seats: ['isabella'], host: 'isabella', lang: '西班牙语', premium: false },
-    { id: 'r5', name: '慢棋搭子 🧩', game: 'c4', max: 2, seats: ['lucas', 'jade'], host: 'lucas', lang: '中文', premium: false },
-    { id: 'r6', name: '周末擂台', game: 'c4', max: 2, seats: ['victor'], host: 'victor', lang: '中文', premium: true },
-    { id: 'r7', name: '连珠练习室', game: 'c4', max: 2, seats: ['olivia'], host: 'olivia', lang: '中文', premium: false },
-    { id: 'r8', name: '四子棋 · 新手房', game: 'c4', max: 2, seats: ['george'], host: 'george', lang: '中文', premium: false },
+    { id: 'r1', name: '四子棋休闲局 🌙', game: 'c4', max: 2, seats: ['hana'], host: 'hana', lang: '中文', premium: false, bet: 0 },
+    { id: 'r2', name: '今晚不睡 🎉', game: 'c4', max: 2, seats: ['mia', 'zoe'], host: 'mia', lang: '中文', premium: false, bet: 100 },
+    { id: 'r3', name: '高手过招', game: 'c4', max: 2, seats: ['daniel'], host: 'daniel', lang: '中文', premium: true, bet: 2000 },
+    { id: 'r4', name: '好友派对房', game: 'c4', max: 2, seats: ['isabella'], host: 'isabella', lang: '西班牙语', premium: false, bet: 0 },
+    { id: 'r5', name: '慢棋搭子 🧩', game: 'c4', max: 2, seats: ['lucas', 'jade'], host: 'lucas', lang: '中文', premium: false, bet: 100 },
+    { id: 'r6', name: '周末擂台', game: 'c4', max: 2, seats: ['victor'], host: 'victor', lang: '中文', premium: true, bet: 500 },
+    { id: 'r7', name: '连珠练习室', game: 'c4', max: 2, seats: ['olivia'], host: 'olivia', lang: '中文', premium: false, bet: 500 },
+    { id: 'r8', name: '四子棋 · 新手房', game: 'c4', max: 2, seats: ['george'], host: 'george', lang: '中文', premium: false, bet: 0 },
   ];
   // 聊天邀请卡片对应的私密房间
   D.inviteRooms = {
-    lily: { id: 'lily', name: '莉莉的房间', game: 'c4', max: 2, seats: ['lily'], host: 'lily', lang: '中文', premium: false, private: true },
-    squad: { id: 'squad', name: '周末小队房间', game: 'c4', max: 2, seats: ['lucas'], host: 'lucas', lang: '中文', premium: false, private: true },
+    lily: { id: 'lily', name: '莉莉的房间', game: 'c4', max: 2, seats: ['lily'], host: 'lily', lang: '中文', premium: false, private: true, bet: 100 },
+    squad: { id: 'squad', name: '周末小队房间', game: 'c4', max: 2, seats: ['lucas'], host: 'lucas', lang: '中文', premium: false, private: true, bet: 0 },
   };
 
   /* ---------- 聊天 ---------- */

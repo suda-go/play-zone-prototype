@@ -226,10 +226,12 @@ window.C4 = (() => {
     const start = () => (opt.replace ? App.replace('game', p) : App.go('game', p, { anim: 'up' }));
     if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
   }
-  /** 房间开局：由房间页扣费后调用 */
+  /** 房间开局（V6）：房主设了入场金币就在这里扣底注；赢家拿走奖池（底注×2），平局退还，不计段位 */
   function fromRoom(room, opp) {
     if (busy()) return;
-    App.go('game', { game: room.game, mode: 'room', room: room.id, opp, first: Math.random() < 0.5 ? 1 : 2 }, { anim: 'fade' });
+    const bet = room.bet || 0;
+    if (bet && !Store.spend('coins', bet, '好友房 · 底注')) { Shop.lack({ need: bet }); return; }
+    App.go('game', { game: room.game, mode: 'room', room: room.id, opp, bet, first: Math.random() < 0.5 ? 1 : 2 }, { anim: 'fade' });
   }
 
   const winRate = (id = D.GAME) => {
@@ -710,7 +712,7 @@ window.C4 = (() => {
     G.paused = true;
     const ok = await UI.confirm({
       title: practice ? '结束练习？' : '确定认输？',
-      text: practice ? '练习局结束没有惩罚。' : room ? '好友房认输不扣金币，但这局算你输。' : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。想先离开可以点左上角缩小。`,
+      text: practice ? '练习局结束没有惩罚。' : room ? (G.p.bet ? `认输算作失败，底注<b>${UI.fmt(G.p.bet)}金币</b>不予退还。` : '免费好友房认输不扣金币，但这局算你输。') : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。想先离开可以点左上角缩小。`,
       ok: practice ? '结束' : '认输', cancel: '继续玩', danger: !practice,
     });
     if (!G) return;
@@ -723,7 +725,7 @@ window.C4 = (() => {
 
   /* ---------- 缩小到悬浮窗：对局在后台继续（计时照走、对手照常落子），点悬浮窗回来 ---------- */
   let DONE = null; // 缩小期间结束的对局：{ params, board }，点悬浮窗看结算
-  const modeLabel = (p) => { const st = Battle.stakeOf(p.stake); return { quick: st.name, fast: `${st.name} · 人机`, ai: '人机练习', room: '好友房' }[p.mode] || '对局'; };
+  const modeLabel = (p) => { const st = Battle.stakeOf(p.stake); return { quick: st.name, fast: `${st.name} · 人机`, ai: '人机练习', room: p.bet ? `好友房 · 奖池${UI.fmt(p.bet * 2)}` : '好友房' }[p.mode] || '对局'; };
   function minimize() {
     if (!G || G.over) return;
     closePanel();
@@ -770,7 +772,8 @@ window.C4 = (() => {
     const board = C4.copy(G.board);
     G = null;
     const practice = p.mode === 'ai';
-    const room = p.mode === 'room'; // 好友房：不扣金币、不计段位、不加经验（同 Yalla 私人房）
+    const room = p.mode === 'room'; // 好友房：不计段位、不加经验；V6 起房主可以设入场金币（0 为免费房）
+    const roomBet = room ? (p.bet || 0) : 0;
     const staked = !practice && !room;
     const st = Battle.stakeOf(p.stake);
     const before = { ...Store.rank(g.id) };
@@ -789,23 +792,28 @@ window.C4 = (() => {
         // 会员经验加成
         if (exp && Store.perk('expBonus')) { opt.expBonus = Math.round(exp * Store.perk('expBonus')); exp += opt.expBonus; }
         if (p.double) Store.s.doubleNext = false;
+      } else if (roomBet) {
+        // 有入场金币的好友房：赢家拿走奖池，平局退还底注
+        if (outcome === 'win') coins = roomBet * 2;
+        else if (outcome === 'draw') coins = roomBet;
       }
       Store.count('games');
       if (outcome === 'win') Store.count('wins');
     }
     const rk = !staked || !delta ? null : Store.addRank(g.id, delta);
-    const net = staked ? coins - st.bet : 0;
-    Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', coins: net, stake: staked ? st.id : '', practice, mode: p.mode });
+    const net = staked ? coins - st.bet : roomBet ? coins - roomBet : 0;
+    Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', coins: net, stake: staked ? st.id : '', bet: roomBet, practice, mode: p.mode });
     if (!D.people[opp].ai) Store.addRecent(opp);
     if (coins) {
       if (!min) UI.hold('coins');
-      Store.add('coins', coins, outcome === 'win' ? `${st.name} · 赢得奖池${p.double ? '（翻倍）' : ''}` : `${st.name} · 平局退还底注`);
+      const where = staked ? st.name : '好友房';
+      Store.add('coins', coins, outcome === 'win' ? `${where} · 赢得奖池${p.double ? '（翻倍）' : ''}` : `${where} · 平局退还底注`);
     }
     const params = {
       game: g.id, mode: p.mode, room: p.room || '', opp, outcome, stake: st.id,
       forfeit: opt.forfeit ? 1 : 0, timeout: opt.timeout ? 1 : 0, coins, net, exp, expBonus: opt.expBonus || 0, delta, protect: protect ? 1 : 0, card: opt.card ? 1 : 0,
       before, after: rk ? rk.after : before, up: rk && rk.up ? 1 : 0, down: rk && rk.down ? 1 : 0,
-      blocks, moves, sec, double: p.double || 0,
+      blocks, moves, sec, double: p.double || 0, bet: roomBet,
     };
     if (min) {
       // 不在对局页：结果先放进悬浮窗，回来再看结算（金币已经到账）
@@ -824,7 +832,7 @@ window.C4 = (() => {
       const g = D.game[p.game] || D.game[D.GAME];
       const opp = p.opp || 'bot';
       const st = Battle.stakeOf(p.stake);
-      const mode = { quick: `${st.name} · 奖池${UI.fmt(Battle.pot(st, p.double))}`, fast: `${st.name} · 人机`, ai: '人机练习', room: '好友房' }[p.mode] || '对局';
+      const mode = { quick: `${st.name} · 奖池${UI.fmt(Battle.pot(st, p.double))}`, fast: `${st.name} · 人机`, ai: '人机练习', room: p.bet ? `好友房 · 奖池${UI.fmt(p.bet * 2)}` : '好友房' }[p.mode] || '对局';
       const v = Store.s.voice;
       el.classList.remove('is-myturn', 'is-oppturn');
       el.innerHTML = `
@@ -943,6 +951,7 @@ window.C4 = (() => {
   };
 
   const staked = (p) => p.mode === 'quick' || p.mode === 'fast';
+  const paidRoom = (p) => p.mode === 'room' && p.bet > 0; // V6 有入场金币的好友房
   function friendBtn(uid) {
     if (Store.isFriend(uid)) return `<span class="rs-friend is-done">${UI.ic('userCheck', 15)} 已是好友</span>`;
     if (Store.s.sent.includes(uid)) return `<span class="rs-friend is-done">${UI.ic('check', 15)} 已申请</span>`;
@@ -970,8 +979,10 @@ window.C4 = (() => {
     const winner = draw ? false : me ? win : !win;
     const P = UI.person(uid);
     const st = Battle.stakeOf(p.stake);
-    // 金币变化：赢家 +奖池净赚，输家 -底注，平局 ±0；好友房、练习不显示
-    const net = !staked(p) ? null : me ? p.net : winner ? Battle.pot(st, false) - st.bet : draw ? 0 : -st.bet;
+    const bet = paidRoom(p) ? p.bet : st.bet;
+    const pot = paidRoom(p) ? p.bet * 2 : Battle.pot(st, false);
+    // 金币变化：赢家 +奖池净赚，输家 -底注，平局 ±0；免费好友房、练习不显示
+    const net = !staked(p) && !paidRoom(p) ? null : me ? p.net : winner ? pot - bet : draw ? 0 : -bet;
     const gain = net === null ? `<span class="rs-gain is-free">${p.mode === 'room' ? '好友局' : '练习'}</span>`
       : `<span class="rs-gain ${net < 0 ? 'is-neg' : ''}">${UI.cur('coins', 24)}<em>${net > 0 ? '+' : ''}${UI.fmt(net)}</em></span>`;
     return `<div class="rs-card ${me ? 'is-me' : 'is-opp'} ${winner ? 'is-winner' : ''}">
@@ -994,7 +1005,7 @@ window.C4 = (() => {
     const dl = p.protect ? '±0 · 已保护' : p.delta > 0 ? `段位分+${p.delta}` : p.delta < 0 ? `段位分${p.delta}` : '段位分±0';
     const playable = true;
     if (p.mode === 'room') {
-      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} 好友房不扣金币、不计段位，只管和朋友玩。</p>
+      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} ${p.bet ? `好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}；不计段位。` : '免费好友房：不扣金币、不计段位，只管和朋友玩。'}</p>
         <div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div></div>`;
     }
     return `<div class="rs-panel">
@@ -1111,7 +1122,7 @@ window.C4 = (() => {
         </header>
         <div class="body rs-body ${cls}" data-scroll="main">
           <div class="rs-head"><b class="rs-ghost">${title(p)}</b><h1 class="rs-title">${title(p)}</h1>
-            ${p.timeout ? '<p class="rs-sub">连续2次超时，本局判负</p>' : p.forfeit ? '<p class="rs-sub">你已认输</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 奖池翻倍已生效</p>` : p.outcome === 'draw' && staked(p) ? `<p class="rs-sub">已退还底注${UI.fmt(st.bet)}金币</p>` : ''}</div>
+            ${p.timeout ? '<p class="rs-sub">连续2次超时，本局判负</p>' : p.forfeit ? '<p class="rs-sub">你已认输</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 奖池翻倍已生效</p>` : p.outcome === 'draw' && (staked(p) || paidRoom(p)) ? `<p class="rs-sub">已退还底注${UI.fmt(paidRoom(p) ? p.bet : st.bet)}金币</p>` : ''}</div>
           <div class="rs-hero ${cls}">${hero(p)}</div>
           <div class="rs-cards">${card('me', p, true)}${card(p.opp, p, false)}</div>
           ${mateHtml(p)}

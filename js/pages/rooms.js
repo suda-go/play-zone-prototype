@@ -1,7 +1,8 @@
 /**
  * J 房间：J1 房间列表、J2 快速加入、J3 创建房间、J4 房间内（座位、聊天、准备、人满倒计时开局）、
  * J5 邀请好友、J6 高级房需要房卡
- * 只有四子棋（D.GAME），房间固定2人；房间对局不扣金币、不计段位
+ * 只有四子棋（D.GAME），房间固定2人；房间对局不计段位
+ * V6 入场金币（参考 Yalla Ludo）：房主创建房间时选（D.roomBets，含免费档），开局扣除，赢家拿走奖池（底注×2），平局退还
  */
 (() => {
   'use strict';
@@ -12,6 +13,30 @@
   const curRoom = () => (App.top() === 'room' ? App.params('room').id : null);
   const nameOf = (uid) => (uid === 'me' ? '你' : D.people[uid].name);
   const pageEl = () => document.querySelector('.page[data-page="room"]');
+  const betOf = (r) => (r && r.bet) || 0;
+  const betText = (b) => (b ? `底注${UI.cur('coins', 13)}${UI.fmt(b)} · 奖池${UI.fmt(b * 2)}` : '免费房 · 不扣金币');
+  // 默认选100（金币不够就选免费）
+  const defBet = () => (Store.s.coins >= 100 ? 100 : 0);
+
+  /* ================= V6 入场金币：选项卡片、选择弹层 ================= */
+  function betOpt(b, sel) {
+    const poor = b > Store.s.coins;
+    return `<button class="bet-op ${b ? '' : 'is-free'} ${sel === b ? 'is-on' : ''} ${poor ? 'is-poor' : ''}" data-act="bet" data-b="${b}">
+      <b>${b ? `${UI.cur('coins', 18)}${UI.fmt(b)}` : '免费'}</b><span>${b ? `奖池 ${UI.fmt(b * 2)}` : '不扣金币'}</span>${poor ? '<i>金币不足</i>' : ''}</button>`;
+  }
+  const poorToast = () => { UI.toast('金币不够这一档，选低一点或先去赚金币'); Sfx.play('error'); };
+  /** 选入场金币，返回 Promise：金币数（0 为免费），关掉弹层为 null */
+  function pickBet({ title = '选择入场金币', sub = '赢家拿走奖池（底注×2），平局退还；选免费就不扣金币' } = {}) {
+    return new Promise((resolve) => {
+      let val = null;
+      const c = UI.sheet({
+        title, sub, cls: 'sheet-bet',
+        html: `<div class="bet-grid">${D.roomBets.map((b) => betOpt(b, defBet())).join('')}</div>`,
+        acts: { bet: (el) => { const b = +el.dataset.b; if (b > Store.s.coins) { poorToast(); return; } val = b; c.close(); } },
+        onClose: () => resolve(val),
+      });
+    });
+  }
 
   function state(id) {
     if (!rt[id]) rt[id] = { ready: {}, msgs: [], timers: [], cd: 0, n: 0 };
@@ -32,6 +57,7 @@
     if (!r) { UI.toast('房间已不存在'); return; }
     if (r.seats.includes('me')) { App.go('room', { id }); return; }
     if (r.seats.length >= r.max) { UI.toast('房间已满，试试快速加入吧'); return; }
+    if (betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r) }); return; }
     if (r.premium && Store.perk('freePass')) {
       UI.toast('会员免房卡进入');
     } else if (r.premium) {
@@ -53,7 +79,7 @@
     }
     Store.sit(id, 'me');
     const st = state(id);
-    st.msgs.push({ type: 'sys', text: '你加入了房间' });
+    st.msgs.push({ type: 'sys', text: betOf(r) ? `你加入了房间。入场金币${UI.fmt(betOf(r))}，开局时扣除` : '你加入了房间（免费房）' });
     App.go('room', { id });
   }
 
@@ -68,12 +94,14 @@
   /** 默认房间名：只有四子棋一款游戏 */
   const defName = () => `${Store.s.user.name}的${D.game[D.GAME].name}房间`;
 
-  /** 和好友一起玩：建私密房间并邀请（gameId 可省略，默认四子棋） */
-  function withFriend(uid, game = D.GAME) {
+  /** 和好友一起玩：先选入场金币（含免费档），再建私密房间并邀请（gameId 可省略，默认四子棋） */
+  async function withFriend(uid, game = D.GAME) {
     const g = D.game[game] || D.game[D.GAME];
-    const r = Store.createRoom({ name: defName(), game: g.id, max: 2, private: true, premium: false, lang: '中文' });
+    const bet = await pickBet({ title: `和${nameOf(uid)}玩 · 选入场金币` });
+    if (bet === null) return;
+    const r = Store.createRoom({ name: defName(), game: g.id, max: 2, private: true, premium: false, lang: '中文', bet });
     const st = state(r.id);
-    st.msgs.push({ type: 'sys', text: '房间已创建，快邀请好友入座吧。好友房不扣金币、不计段位。' });
+    st.msgs.push({ type: 'sys', text: bet ? `房间已创建，入场金币${UI.fmt(bet)}，赢家拿走奖池${UI.fmt(bet * 2)}。` : '免费房已创建，快邀请好友入座吧。' });
     App.go('room', { id: r.id, invite: uid });
   }
 
@@ -90,7 +118,7 @@
         <span class="rcard-seats">${seats}<i class="rcard-left">${full ? '人已满' : `还差${left}人`}</i></span>
       </span>
       <span class="rcard-r">
-        ${r.premium ? `<span class="tag tag-event">${UI.ic('ticket', 11)} 高级房</span>` : '<span class="tag tag-new">免费</span>'}
+        ${betOf(r) ? `<span class="tag tag-top">${r.premium ? UI.ic('ticket', 11) : ''}${UI.cur('coins', 12)}${UI.fmt(betOf(r))}</span>` : `<span class="tag tag-new">${r.premium ? `${UI.ic('ticket', 11)} ` : ''}免费</span>`}
         <b class="rcard-n ${full ? 'is-full' : r.seats.length === r.max - 1 ? 'is-almost' : ''}">${r.seats.length}/${r.max}</b>
         <span class="rcard-join ${full ? 'is-full' : ''}">${r.seats.includes('me') ? '进入' : full ? '已满' : '加入'}</span>
       </span>
@@ -101,7 +129,7 @@
     render(el) {
       const list = Store.s.rooms.filter((r) => !r.private || r.mine || r.seats.includes('me'));
       const mine = list.filter((r) => r.mine || r.seats.includes('me'));
-      const others = list.filter((r) => !mine.includes(r)).filter((r) => filter === '全部' || (filter === '免费' ? !r.premium : r.premium));
+      const others = list.filter((r) => !mine.includes(r)).filter((r) => filter === '全部' || (filter === '免费' ? !betOf(r) : filter === '有奖池' ? betOf(r) > 0 : r.premium));
       const inRooms = Store.s.rooms.reduce((a, r) => a + r.seats.length, 0) * 37 + 1204;
       el.innerHTML = `
         <header class="tab-hd safe-top"><h1>房间</h1><div class="nav-right">
@@ -115,7 +143,7 @@
           </button>
           ${mine.length ? `<div class="sec-hd"><h2>我的房间</h2></div><div class="rm-list">${mine.map(roomCard).join('')}</div>` : ''}
           <div class="sec-hd"><h2>公开房间</h2><span class="live">${UI.fmt(inRooms)}人在房间中</span></div>
-          <div class="pills rm-filter">${['全部', '免费', '高级'].map((f) => `<button class="pill ${f === filter ? 'is-active' : ''}" data-act="filter" data-f="${f}">${f === '高级' ? `${UI.ic('ticket', 13)} ` : ''}${f}</button>`).join('')}
+          <div class="pills rm-filter">${['全部', '免费', '有奖池', '高级'].map((f) => `<button class="pill ${f === filter ? 'is-active' : ''}" data-act="filter" data-f="${f}">${f === '高级' ? `${UI.ic('ticket', 13)} ` : ''}${f}</button>`).join('')}
             <span class="rm-pass">${UI.cur('pass', 18)}×${UI.bind('pass')}</span></div>
           <div class="rm-list anim-in">${others.map(roomCard).join('') || UI.empty('这里还没有房间')}</div>
           <div class="bottom-space"></div>
@@ -138,7 +166,7 @@
     render(el, p) {
       if (formFor !== p) {
         formFor = p;
-        form = { priv: false, premium: false, name: '' };
+        form = { priv: false, premium: false, name: '', bet: defBet() };
       }
       const g = D.game[D.GAME];
       el.innerHTML = `${UI.nav({ title: '创建房间', cls: 'is-white' })}
@@ -148,14 +176,16 @@
           <div class="cr-sec"><h3>谁能加入</h3><div class="cr-privacy">
             <button class="${!form.priv ? 'is-active' : ''}" data-act="priv" data-v="0">${UI.ic('globe', 22)}<b>公开</b><span>所有人都能找到并加入</span></button>
             <button class="${form.priv ? 'is-active' : ''}" data-act="priv" data-v="1">${UI.ic('lock', 22)}<b>私密</b><span>仅限邀请</span></button></div></div>
+          <div class="cr-sec"><h3>入场金币</h3><div class="bet-grid">${D.roomBets.map((b) => betOpt(b, form.bet)).join('')}</div></div>
           <div class="cr-sec cr-row"><div><b>${UI.ic('ticket', 16)} 高级房</b><span>消耗1张房卡 · 在列表中高亮显示</span></div>${UI.toggle(form.premium, 'premium')}</div>
-          <p class="cr-note">${UI.ic('info', 14)}<span>好友房不扣金币、不计段位，只管和朋友玩。你有${UI.cur('pass', 14)}${Store.s.pass}张房卡。</span></p>
+          <p class="cr-note">${UI.ic('info', 14)}<span>入场金币在开局时扣除，赢家拿走奖池（底注×2），平局退还；选「免费」就不扣金币。房间对局不计段位。你有${UI.cur('coins', 14)}${UI.fmt(Store.s.coins)}金币、${UI.cur('pass', 14)}${Store.s.pass}张房卡。</span></p>
           <div class="bottom-space" style="height:90px"></div>
         </div>
         <div class="cr-foot"><button class="btn btn-primary btn-lg btn-block" data-act="create">创建房间</button></div>`;
     },
     act: {
       priv: (el) => { form.name = pageVal(); form.priv = el.dataset.v === '1'; App.refresh('create'); },
+      bet: (el) => { const b = +el.dataset.b; if (b > Store.s.coins) { poorToast(); return; } form.name = pageVal(); form.bet = b; App.refresh('create'); },
       premium: () => { form.name = pageVal(); form.premium = !form.premium; App.refresh('create'); },
       create: async () => {
         const name = pageVal().trim() || defName();
@@ -168,8 +198,9 @@
           }
           if (form.premium) Store.add('pass', -1, `房卡 · ${name}`);
         }
-        const r = Store.createRoom({ name, game: D.GAME, max: 2, private: form.priv, premium: form.premium, lang: '中文' });
-        state(r.id).msgs.push({ type: 'sys', text: form.priv ? '私密房间已创建，快邀请好友加入吧。' : '房间已创建，其他玩家可以在列表中找到。' });
+        const r = Store.createRoom({ name, game: D.GAME, max: 2, private: form.priv, premium: form.premium, lang: '中文', bet: form.bet });
+        const fee = form.bet ? `入场金币${UI.fmt(form.bet)}，赢家拿走奖池${UI.fmt(form.bet * 2)}。` : '免费房，不扣金币。';
+        state(r.id).msgs.push({ type: 'sys', text: (form.priv ? '私密房间已创建，快邀请好友加入吧。' : '房间已创建，其他玩家可以在列表中找到。') + fee });
         App.replace('room', { id: r.id }, { anim: 'push' });
         UI.toast('房间已创建');
       },
@@ -280,7 +311,7 @@
       if (st.n > 0) { Sfx.play('tick'); paint(r); return; }
       clearInterval(st.cd);
       st.cd = 0;
-      // 好友房不扣金币、不计段位，直接开局
+      // 开局：有入场金币时由 Battle.fromRoom 扣除
       st.ready.me = false;
       paint(r);
       const opp = UI.pick(r.seats.filter((u) => u !== 'me'));
@@ -322,7 +353,7 @@
         ${UI.nav({ title: UI.esc(r.name), sub: `房间号 ${String(parseInt(r.id.replace(/\D/g, '') || '4829', 10) % 900000 + 100000)} · ${r.private ? '私密' : '公开'} · ${r.lang}`, cls: 'is-light', right: `<button class="icon-btn" data-act="invite" aria-label="邀请">${UI.ic('userPlus', 21)}</button><button class="icon-btn" data-act="shareRoom" aria-label="分享">${UI.ic('share', 20)}</button>` })}
         <div class="rm-game">
           <img src="${g.icon}" alt="">
-          <div class="row-main"><b>${g.name}</b><span>${g.players} · 不扣金币 · 不计段位${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
+          <div class="row-main"><b>${g.name}</b><span>${betText(betOf(r))} · 不计段位${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
           <span class="rm-count">${r.seats.length}/${r.max}</span>
         </div>
         <div class="rm-seats-box">${seatsHtml(r, st)}</div>
@@ -364,6 +395,7 @@
         const r = Store.room(App.params('room').id);
         const st = state(r.id);
         if (st.cd) { clearInterval(st.cd); st.cd = 0; st.ready.me = false; sys(r, '已取消倒计时'); return; }
+        if (!st.ready.me && betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r) }); return; }
         st.ready.me = !st.ready.me;
         Sfx.play('tap');
         paint(r);
@@ -397,5 +429,5 @@
     state(r.id).timers.push(setTimeout(() => say(r, UI.pick(others), UI.pick(['😂', '好嘞！', '+1', '冲冲冲', '准备好了！', 'GG'])), 1400 + Math.random() * 1200));
   }
 
-  window.Rooms = { join, withFriend, quickJoin };
+  window.Rooms = { join, withFriend, quickJoin, pickBet, betText };
 })();
