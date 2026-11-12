@@ -16,6 +16,7 @@
     .t1 { background: linear-gradient(135deg, #4cc3ff, #2c7bff); }
     .t2 { background: linear-gradient(135deg, #a77bff, #6c4dff); }
     .t3 { background: linear-gradient(135deg, #ff6f91, #ff9a3d); }
+    .t4 { background: linear-gradient(135deg, #22c39a, #1a8fd8); }
     .m { flex: 1; min-width: 0; }
     .m h2 { font-size: 18px; font-weight: 800; }
     .m h2 small { margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a90a8; }
@@ -63,7 +64,7 @@
       <div class="card">
         <span class="tag t3">V3</span>
         <div class="m">
-          <h2>悬浮窗 · 两档会员 · 通话<small>当前最新</small></h2>
+          <h2>悬浮窗 · 两档会员 · 通话<small>主站当前版本</small></h2>
           <ul>
             <li>回合制提醒改为右下角悬浮窗；对局可缩小到悬浮窗、后台继续，点击回到对局</li>
             <li>首页突出赛季模块：段位进度、段位奖励轨道、好友排名</li>
@@ -73,9 +74,22 @@
           <div class="btns"><a class="btn" href="v3/index.html" target="_blank">打开 V3</a><a class="btn ghost" href="https://github.com/suda-go/play-zone-prototype/releases/tag/v3.0" target="_blank">版本说明</a></div>
         </div>
       </div>
+      <div class="card">
+        <span class="tag t4">V4</span>
+        <div class="m">
+          <h2>登录 · 首页一屏<small>当前最新</small></h2>
+          <ul>
+            <li>新增登录：Google / Facebook / 邮箱注册与登录 / 游客模式，游客之后可绑定账号</li>
+            <li>首页精简成一屏："快速开始"一点就匹配，场次收进"换场次"弹层</li>
+            <li>修复：悬浮窗不再盖住弹层；第二次匹配起匹配页一进来就显示"加载中"</li>
+            <li>演示邮箱账号：demo@soulgame.com，密码 soul2026（也可直接游客进入）</li>
+          </ul>
+          <div class="btns"><a class="btn" href="v4/index.html" target="_blank">打开 V4</a><a class="btn ghost" href="https://github.com/suda-go/play-zone-prototype/tree/v4" target="_blank">代码分支</a></div>
+        </div>
+      </div>
     </div>
 
-    <p class="note">说明：各版本的演示数据分别保存在浏览器本地，互不影响；想从头体验某个版本，可在该版本"我的 → 设置 → 重置演示"。主站 https://suda-go.github.io/play-zone-prototype/ 始终是最新版本。</p>
+    <p class="note">说明：各版本的演示数据分别保存在浏览器本地，互不影响；想从头体验某个版本，可在该版本"我的 → 设置 → 重置演示"。主站 https://suda-go.github.io/play-zone-prototype/ 目前是 V3，V4 暂在独立分支，仅能从这里打开。</p>
   </div>
 </body>
 </html>
