@@ -387,3 +387,16 @@
 .rs-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
 .rs-gain.is-free { height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(255, 255, 255, .22); font-size: 13px; font-weight: 800; }
 .rs-gain.is-neg em { opacity: .75; }
+
+/* ---------- V3 对局头部：缩小 / 认输 ---------- */
+.gm-quit { opacity: .8; }
+
+/* ---------- V3 超级会员入场特效 ---------- */
+.page.is-vipfx .mt-me .av { box-shadow: 0 0 0 4px #ffd84d, 0 0 26px 6px rgba(255, 77, 141, .8); }
+.mt-vipfx { position: absolute; left: 0; right: 0; top: 52%; z-index: 8; display: flex; justify-content: center; pointer-events: none; }
+.mt-vipfx i { position: absolute; left: -10%; right: -10%; top: -40px; height: 120px; background: linear-gradient(90deg, rgba(255, 77, 141, 0), rgba(255, 77, 141, .55), rgba(255, 216, 77, .6), rgba(138, 92, 255, .55), rgba(138, 92, 255, 0)); filter: blur(10px); animation: vipfx-sweep 2.4s ease-out forwards; }
+.mt-vipfx b { position: relative; padding: 8px 18px; border-radius: 20px; background: rgba(20, 10, 50, .78); color: #fff; font-size: 16px; font-weight: 900; box-shadow: 0 0 0 2px #ffd84d; animation: vipfx-pop 2.4s ease-out forwards; }
+@keyframes vipfx-sweep { 0% { transform: translateX(-60%); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateX(60%); opacity: 0; } }
+@keyframes vipfx-pop { 0% { transform: scale(.4); opacity: 0; } 15% { transform: scale(1.1); opacity: 1; } 25% { transform: none; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-14px); } }
+.rs-bonus { margin-left: 6px; font: 800 12px var(--num); font-style: normal; color: #c98a00; }
+.rs-bonus .vtag { margin: 0 2px 0 0; }

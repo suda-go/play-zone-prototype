@@ -68,11 +68,18 @@
       <div class="tk-sign-hd"><h2>7日签到</h2><span>已签到${s.sign.count}/7天</span></div>
       <div class="sign-grid">${[0, 1, 2, 3, 4, 5, 6].map(cell).join('')}</div>
       <button class="btn ${can ? 'btn-orange' : 'is-disabled'} btn-lg btn-block tk-sign-btn" data-act="sign">${can ? `签到 · 第${s.sign.count + 1}天` : s.sign.count >= 7 ? '7天奖励已全部领取🎉' : '今日已签到 · 明天再来'}</button>
-      <p class="sign-note">${s.vip ? '会员特权：签到奖励已翻倍' : '开通会员，签到奖励翻倍'}</p>
+      ${signNote()}
       <button class="demo-link" data-act="nextDay">跳到明天（演示）</button>
     </div>`;
   }
 
+  /** 签到倍数提示：会员 ×2、超级会员 ×3；非会员点了去开通 */
+  function signNote() {
+    const k = Store.perk('sign');
+    const tier = Store.vipTier();
+    if (k > 1) return `<p class="sign-note is-vip is-t${tier}">${D.vip.tiers[tier].name}特权：签到奖励×${k} 已生效</p>`;
+    return `<button class="sign-note is-link" data-act="vip">${UI.ic('crown', 14)}开通会员，签到奖励最高×${D.vip.tiers[2].sign}</button>`;
+  }
   /* ---------- G1 连续 7 天 ---------- */
   function streak() {
     const s = Store.s.streak;
@@ -174,6 +181,7 @@
         await UI.grant(r, `签到第${i + 1}天`, tile.querySelector('.sign-ic, .sign-gift'));
         App.refresh('tasks');
       },
+      vip: () => Vip.open(1),
       nextDay: () => {
         Store.nextDay();
         App.refresh('tasks');

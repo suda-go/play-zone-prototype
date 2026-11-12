@@ -49,28 +49,29 @@
     </header>`;
   }
 
-  function entries() {
-    const fr = Rank.friendPos('c4');
-    const ahead = fr.ahead ? ` · 再赢${fr.ahead.wins}局超过${D.people[fr.ahead.id].name}` : ' · 好友中第一！';
-    return `<button class="season" data-go="rank">
-        <img class="season-trophy" src="${IMG}ui/trophy.png" alt="">
-        <span class="season-txt"><b>${D.season.name}</b><span>好友排名第${fr.pos}${ahead}</span></span>
-        <span class="season-left">${UI.ic('clock', 12)}${D.season.left}</span>
-      </button>`;
-  }
-
-  function turnCard() {
-    const t = Store.s.turn;
-    const p = D.people[t.with];
-    return `<div class="turn card ${t.my ? 'is-mine' : ''}">
-      ${C4.html(t.board, { cls: 'is-mini' })}
-      <div class="turn-m">
-        <div class="turn-tt">${UI.av(t.with, 22)}<b>${t.my ? '轮到你了！' : `等待${p.name}落子`}</b></div>
-        <span class="turn-sub">四子棋 · 回合制</span>
-        <span class="turn-time">${UI.ic('clock', 12)} ${t.my ? '还剩23小时12分可落子' : `${p.name}有24小时回应`}</span>
+  /** 赛季模块：赛季名、倒计时、我的段位进度、段位奖励轨道、好友排名（段位卡合并进来） */
+  function season() {
+    const r = Store.rank(D.GAME);
+    const gs = Store.s.gstats[D.GAME] || { g: 0 };
+    const fr = Rank.friendPos(D.GAME);
+    const toNext = Math.ceil((100 - r.pts) / 25);
+    const next = D.season.rewards.find((x) => x.tier > r.tier);
+    const ahead = fr.ahead ? `再赢${fr.ahead.wins}局超过${D.people[fr.ahead.id].name}` : '好友中第一！';
+    return `<section class="ss" data-go="rank">
+      <div class="ss-hd">
+        <img class="ss-trophy" src="${IMG}ui/trophy.png" alt="">
+        <span class="ss-tt"><small>赛季进行中</small><b>${D.season.name}</b></span>
+        <span class="ss-left">${UI.ic('clock', 13)}${D.season.left}</span>
       </div>
-      ${t.my ? '<button class="btn btn-orange btn-sm" data-act="turn">去落子</button>' : '<button class="btn btn-ghost btn-sm" data-act="nudge">催一下</button>'}
-    </div>`;
+      <div class="ss-me">
+        ${UI.tier(r.tier, 52)}
+        <span class="ss-me-m"><b>${D.tiers[r.tier]} <small>${r.pts}/100分</small></b>${UI.bar(r.pts, 100, 'is-gold')}
+          <span>${r.tier < 4 ? `再赢<em>${toNext}</em>局升${D.tiers[r.tier + 1]}${next ? `，得${next.text}` : ''}` : '已达最高段位！'}</span></span>
+        <span class="ss-me-s"><b>${Battle.winRate()}</b><span>胜率 · ${gs.g}局</span></span>
+      </div>
+      <div class="ss-track">${D.season.rewards.map((x) => `<span class="ss-step ${x.tier < r.tier ? 'is-done' : x.tier === r.tier ? 'is-now' : ''}">${UI.tier(x.tier, 26)}<b>${D.tiers[x.tier]}</b><i>${x.text}</i></span>`).join('')}</div>
+      <div class="ss-ft"><span>${UI.ic('users', 14)} 好友排名第<b>${fr.pos}</b> · ${ahead}</span><span class="ss-more">排行榜 ${UI.ic('right', 14)}</span></div>
+    </section>`;
   }
 
   /** 在线好友：头像下面直接“一起玩”，不用再选游戏 */
@@ -97,29 +98,19 @@
       <div class="lb-hero-foot"><b>${g.name}</b><span>${g.players}实时对战 · 连成四子就赢</span></div>
     </section>`;
   }
-  function rankCard() {
-    const r = Store.rank(D.GAME);
-    const gs = Store.s.gstats[D.GAME] || { g: 0 };
-    const toNext = Math.ceil((100 - r.pts) / 25);
-    return `<button class="lb-rank card" data-go="rank">
-      ${UI.tier(r.tier, 46)}
-      <span class="lb-rank-m"><b>${D.tiers[r.tier]} <small>${r.pts}/100分</small></b>${UI.bar(r.pts, 100, 'is-gold')}
-        <span>${r.tier < 4 ? `再赢<em>${toNext}</em>局升至${D.tiers[r.tier + 1]}` : '已达最高段位！'}</span></span>
-      <span class="lb-rank-s"><b>${Battle.winRate()}</b><span>胜率 · ${gs.g}局</span></span>
-    </button>`;
-  }
   /** 金币分场（参考 Yalla Ludo）：点场次直接开始匹配 */
   function stakes() {
     const s = Store.s;
     return `<div class="sec-hd"><h2>选择场次</h2><span class="lb-rule">赢家拿走奖池</span></div>
       <div class="lb-stakes">${D.stakes.map((st, i) => {
         const k = Battle.canEnter(st);
-        return `<button class="stake st-${i + 1} ${k === 'lock' ? 'is-locked' : ''} ${s.stake === st.id ? 'is-last' : ''}" data-act="stake" data-id="${st.id}">
-          <b class="stake-name">${st.name}</b>
+        return `<button class="stake st-${i + 1} ${st.vip ? 'is-vip' : ''} ${k === 'lock' || k === 'vip' ? 'is-locked' : ''} ${s.stake === st.id ? 'is-last' : ''}" data-act="stake" data-id="${st.id}">
+          <b class="stake-name">${st.vip ? `${UI.vipTag(2)} ` : ''}${st.name}</b>
           <span class="stake-bet">${UI.cur('coins', 22)}${UI.fmt(st.bet)}</span>
           <span class="stake-pot">奖池 ${UI.fmt(Battle.pot(st))}</span>
-          ${k === 'lock' ? `<span class="stake-lock">${UI.ic('lock', 12)} Lv${st.lv}解锁</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}</span>`}
-          ${s.stake === st.id && k !== 'lock' ? '<i class="stake-tag">上次</i>' : ''}
+          ${k === 'vip' ? `<span class="stake-lock">${UI.ic('crown', 12)} 超级会员专属 · 奖池×${st.potX}</span>` : k === 'lock' ? `<span class="stake-lock">${UI.ic('lock', 12)} Lv${st.lv}解锁</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}${st.vip ? ` · 奖池×${st.potX}` : ''}</span>`}
+          ${s.stake === st.id && k !== 'lock' && k !== 'vip' ? '<i class="stake-tag">上次</i>' : ''}
+          ${st.vip ? `<img class="stake-crown" src="${IMG}ui/crown.png" alt="">` : ''}
         </button>`;
       }).join('')}</div>
       <div class="lb-modes">
@@ -182,6 +173,24 @@
     }
   }
 
+  /* ================= 回合制提醒：右下角悬浮窗（原首页卡片） ================= */
+  function goTurn() {
+    if (App.top() !== 'play') App.tab('play');
+    App.whenIdle(() => setTimeout(openTurn, 200));
+  }
+  UI.floater.add(() => {
+    if (!Store.s.welcome) return null;
+    const t = Store.s.turn;
+    const p = D.people[t.with];
+    return {
+      id: 'turn', key: t.my ? 'my' : 'wait', close: true, uid: t.with, urgent: t.my,
+      board: C4.html(t.board, { cls: 'is-mini' }),
+      title: t.my ? '轮到你了 · 去落子' : `等${p.name}落子`,
+      sub: t.my ? `回合制 · 还剩23小时` : '回合制 · 点击催一下',
+      onTap: () => { if (t.my) goTurn(); else { UI.toast(`已催${p.name}落子👋`); scheduleKai(3500); } },
+    };
+  }, 1);
+
   /* ================= C3 回合制对局 ================= */
   function openTurn() {
     const t = Store.s.turn;
@@ -239,7 +248,7 @@
       Store.save();
       Store.post(t.with, { from: t.with, text: '轮到你了！😎' });
       UI.notify({ img: D.people[t.with].avatar, title: `${D.people[t.with].name}已落子`, text, btn: '去落子',
-        onTap: () => { if (App.top() !== 'play') App.tab('play'); setTimeout(openTurn, 450); } });
+        onTap: goTurn });
       if (App.top() === 'play') App.refresh('play');
     }, ms);
   }
@@ -292,11 +301,9 @@
       el.innerHTML = `<div class="lobby-bg"></div>${header()}
         <div class="body lobby-body" data-scroll="main">
           ${hero()}
-          ${rankCard()}
+          ${season()}
           ${stakes()}
-          ${turnCard()}
           ${friendsRow()}
-          ${entries()}
           <div class="bottom-space"></div>
         </div>
         ${UI.tabbar('play')}`;

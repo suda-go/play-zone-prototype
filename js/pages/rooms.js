@@ -32,7 +32,9 @@
     if (!r) { UI.toast('房间已不存在'); return; }
     if (r.seats.includes('me')) { App.go('room', { id }); return; }
     if (r.seats.length >= r.max) { UI.toast('房间已满，试试快速加入吧'); return; }
-    if (r.premium) {
+    if (r.premium && Store.perk('freePass')) {
+      UI.toast('会员免房卡进入');
+    } else if (r.premium) {
       if (Store.s.pass <= 0) {
         const k = await UI.dialog({
           img: `${IMG}ui/pass.svg`, imgCls: 'is-small',

@@ -146,6 +146,18 @@
     const on = opt.on && (uid === 'me' || p.online);
     return `<span class="av ${frame ? 'has-frame' : ''} ${opt.cls || ''}" style="--s:${size}px"><img class="av-img" src="${p.avatar}" alt="${UI.esc(p.name)}">${frame ? UI.frame(frame) : ''}${on ? '<i class="av-on"></i>' : ''}${opt.lv ? `<b class="av-lv">Lv${p.lv}</b>` : ''}</span>`;
   };
+  /** 会员档位：自己读 Store，其他人读 D.people[uid].vip */
+  UI.vipOf = (uid) => (uid === 'me' ? Store.vipTier() : (D.people[uid] && D.people[uid].vip) || 0);
+  /** 会员标签：1 金色“会员”，2 彩色“超级” */
+  UI.vipTag = (tier) => (tier ? `<i class="vtag v${tier}">${D.vip.tiers[tier].short}</i>` : '');
+  /** 带会员颜色的名字（已转义），opt.tag 为 false 时不带标签 */
+  UI.name = (uid, opt = {}) => {
+    const p = UI.person(uid);
+    if (!p) return '';
+    const t = UI.vipOf(uid);
+    const n = opt.text || (uid === 'me' && opt.me ? opt.me : p.name);
+    return `<span class="vname v${t}">${UI.esc(n)}</span>${opt.tag === false ? '' : UI.vipTag(t)}`;
+  };
   UI.bubble = (id) => `bub-${id || 'default'}`;
   UI.bg = (id) => (D.bgs[id] || D.bgs.aurora).css;
 
@@ -575,7 +587,7 @@
     keys.forEach((k) => Store.add(k, r[k], note));
     if (r.frame) Store.own('frame', r.frame);
     await Promise.all(keys.map((k, i) => UI.sleep(i * 160).then(() => UI.fly(k, rects[k], r[k])).then(() => UI.release(k))));
-    if (r.frame) UI.toast(`${D.frames[r.frame].name}头像框已放入背包`);
+    if (r.frame) { const n = D.frames[r.frame].name; UI.toast(`${/框$/.test(n) ? n : `${n}头像框`}已放入背包`); }
     if (r.exp) await UI.exp(r.exp, note);
   };
 
@@ -735,3 +747,105 @@ Store.on((type, meta) => {
     });
   }
 });
+
+/* ================= 悬浮窗：进行中的对局、回合制“轮到你了”（右下角，可拖动吸边） =================
+ * UI.floater.add(fn, prio)  注册数据源（prio 大的优先），fn() 返回 null 或
+ *   { id, uid, title, sub, urgent, board, close, onTap }
+ *   id + key 用于记住“收起”（key 变了会重新出现），close 为 true 时显示 ×
+ * UI.floater.refresh() 立即刷新；对局页、匹配页、结算页、通话页不显示
+ */
+(() => {
+  'use strict';
+
+  const UI = window.UI;
+  const HIDE_ON = ['game', 'match', 'result', 'call'];
+  const providers = [];
+  const dismissed = {};
+  const pos = { side: 'right', y: null };
+  let el = null;
+  let cur = null;
+  let last = '';
+  let drag = null;
+
+  function mount() {
+    el = document.createElement('div');
+    el.className = 'floater';
+    el.setAttribute('role', 'button');
+    el.hidden = true;
+    document.querySelector('.screen').appendChild(el);
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('click', (e) => {
+      if (el._moved) { el._moved = false; return; }
+      if (!cur) return;
+      if (e.target.closest('.fl-x')) { dismissed[cur.id] = cur.key || 1; render(); return; }
+      cur.onTap && cur.onTap();
+    });
+  }
+  function down(e) {
+    if (e.target.closest('.fl-x')) return;
+    const r = el.getBoundingClientRect();
+    drag = { x: e.clientX, y: e.clientY, top: r.top, moved: false };
+    el.setPointerCapture(e.pointerId);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up, { once: true });
+  }
+  function move(e) {
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+    drag.moved = true;
+    const k = UI.local(el).w / el.getBoundingClientRect().width || 1;
+    el.classList.add('is-drag');
+    el.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+  }
+  function up(e) {
+    el.removeEventListener('pointermove', move);
+    if (!drag) return;
+    if (drag.moved) {
+      el._moved = true;
+      const s = document.querySelector('.screen');
+      const sr = UI.local(s);
+      const r = UI.local(el);
+      pos.side = r.x + r.w / 2 < sr.w / 2 ? 'left' : 'right';
+      pos.y = Math.max(90, Math.min(sr.h - r.h - 90, r.y));
+      el.classList.remove('is-drag');
+      el.style.transform = '';
+      place();
+    }
+    drag = null;
+  }
+  function place() {
+    el.classList.toggle('is-left', pos.side === 'left');
+    el.style.top = pos.y == null ? '' : `${pos.y}px`;
+    el.style.bottom = pos.y == null ? '' : 'auto';
+  }
+
+  function pick() {
+    for (const { fn } of providers) {
+      const st = fn();
+      if (st && !(st.close && dismissed[st.id] === (st.key || 1))) return st;
+    }
+    return null;
+  }
+  function render() {
+    if (!el) { if (!document.querySelector('.screen') || !window.App) return; mount(); }
+    const top = App.top();
+    const st = HIDE_ON.includes(top) || document.querySelector('.ov-full.is-open') ? null : pick();
+    cur = st;
+    if (!st) { el.hidden = true; last = ''; return; }
+    const tabs = !!document.querySelector('.page.is-active .tabbar');
+    el.classList.toggle('is-low', !tabs);
+    const html = `${st.board ? `<span class="fl-board">${st.board}</span>` : `<span class="fl-av">${UI.av(st.uid, 40)}</span>`}
+      <span class="fl-m"><b>${st.title}</b><span>${st.sub || ''}</span></span>
+      ${st.board ? `<span class="fl-who">${UI.av(st.uid, 22)}</span>` : ''}
+      ${st.close ? '<button class="fl-x" aria-label="收起">×</button>' : ''}`;
+    el.classList.toggle('is-urgent', !!st.urgent);
+    el.dataset.floater = st.id;
+    if (html !== last) { el.innerHTML = html; last = html; }
+    if (el.hidden) { el.hidden = false; place(); el.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.34,1.56,.64,1)' }); }
+  }
+
+  UI.floater = { add: (fn, prio = 0) => { providers.push({ fn, prio }); providers.sort((x, y) => y.prio - x.prio); }, refresh: render, current: () => cur };
+  setInterval(render, 300);
+})();

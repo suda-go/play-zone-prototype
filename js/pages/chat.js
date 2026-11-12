@@ -11,6 +11,20 @@
   const typing = {};
   const EMOJI = ['😀', '😂', '😍', '😎', '🥳', '👍', '🔥', '🎉', '😭', '😡', '🤝', '❤️', '👋', '🙏', '💯', '🎮'];
   const nameOf = (uid) => (uid === 'me' ? '你' : D.people[uid].name);
+  /* 通话（V3）：UI.ic 没有视频图标，内联一个 */
+  const VIDEO_IC = (size = 22) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>`;
+  const callIc = (kind, size = 22) => (kind === 'video' ? VIDEO_IC(size) : UI.ic('phone', size));
+  const CALL_NAME = { voice: '语音通话', video: '视频通话' };
+  const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  /** 通话记录文案：语音通话 · 02:13 / 已取消 / 对方已取消 / 已拒绝 / 对方未接 */
+  function callLabel(m) {
+    const st = m.st || (m.dur ? 'done' : '');
+    if (st === 'done') return `${CALL_NAME[m.kind] || '语音通话'} · ${mmss(m.dur || 0)}`;
+    return { cancel: '已取消', missed: '对方已取消', declined: '已拒绝', noanswer: '对方未接' }[st] || m.text || CALL_NAME[m.kind];
+  }
+  const call = (uid, kind) => (window.Call ? Call.start(uid, kind) : UI.toast('通话功能加载中'));
+  /** 打开会员中心（vip.js 提供 Vip.open；还没加载时直接进页面） */
+  const openVip = (t) => (window.Vip && typeof Vip.open === 'function' ? Vip.open(t) : App.go('vip', { tier: t }));
 
   function chatTitle(c) {
     if (c.type === 'dm') return D.people[c.with].name;
@@ -27,6 +41,7 @@
     const who = m.from === 'me' ? '你：' : '';
     if (m.type === 'invite') return `${who}[游戏邀请] ${(D.game[m.game] || D.game[D.GAME]).name}`;
     if (m.type === 'share') return `${who}[分享] ${m.text}`;
+    if (m.type === 'call') return `${who}[${CALL_NAME[m.kind] || '语音通话'}]`;
     return who + m.text;
   }
 
@@ -40,7 +55,7 @@
       return `<button class="ch-row" data-go="dm" data-id="${id}">
         ${chatAvatar(c)}
         <span class="row-main"><b>${UI.esc(chatTitle(c))}${c.type === 'group' ? ` <i class="ch-n">${c.members.length + 1}</i>` : ''}${c.type === 'system' ? ' <i class="tag">官方</i>' : ''}</b>
-          <span class="${last && last.type === 'invite' && last.from !== 'me' ? 'is-invite' : ''}">${UI.esc(preview(last))}</span></span>
+          <span class="${last && last.type === 'invite' && last.from !== 'me' ? 'is-invite' : ''}${last && last.type === 'call' && last.st === 'missed' && c.unread ? 'is-miss' : ''}">${UI.esc(preview(last))}</span></span>
         <span class="ch-meta"><em>${last ? last.t : ''}</em>${c.unread ? `<i class="count is-inline">${c.unread}</i>` : ''}</span>
       </button>`;
     }).join('');
@@ -96,9 +111,13 @@
     const off = list.filter((p) => !p.online);
     const row = (p) => `<div class="fr-row" data-go="profile" data-uid="${p.id}">${UI.av(p.id, 46, { on: true })}
       <span class="row-main"><b>${p.name} <i class="fr-lv">Lv${p.lv}</i></b><span class="${p.online ? 'is-on' : ''}">${p.online ? UI.esc(p.status) : `${p.seen}在线`}</span></span>
-      ${p.online ? `<button class="btn btn-line btn-sm" data-act="invite" data-uid="${p.id}">邀请</button>` : `<button class="btn btn-ghost btn-sm" data-go="dm" data-id="${p.id}">发消息</button>`}
+      ${p.online ? `<button class="fr-call" data-act="callVoice" data-uid="${p.id}" aria-label="和${UI.esc(p.name)}语音通话">${UI.ic('phone', 16)}</button><button class="btn btn-line btn-sm" data-act="invite" data-uid="${p.id}">邀请</button>` : `<button class="btn btn-ghost btn-sm" data-go="dm" data-id="${p.id}">发消息</button>`}
     </div>`;
+    const tier = Store.vipTier();
+    const cap = Store.perk('friendCap');
     return `<div class="fr-search field" data-go="addfriend">${UI.ic('search', 18)}<span>搜索昵称或ID</span></div>
+      <div class="fr-cap"><span>好友 <b>${list.length}</b>/${cap}</span>${UI.bar(list.length, cap, 'fr-cap-bar')}
+        ${tier < 2 ? `<button class="fr-cap-up" data-act="capVip" data-tier="${tier + 1}">${UI.ic('crown', 13)}${tier ? `超级会员上限${D.vip.tiers[2].friendCap}` : '会员提升上限'}${UI.ic('right', 12)}</button>` : `<i class="fr-cap-max">${UI.vipTag(2)}已是最高上限</i>`}</div>
       <button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${Store.s.requests.length ? `${Store.s.requests.length}条待处理` : '暂无新申请'}</span></span>${Store.s.requests.length ? `<i class="count is-inline">${Store.s.requests.length}</i>` : ''}${UI.ic('right', 18)}</button>
       ${recentSec()}
       <div class="fr-hd">在线 · ${on.length}</div>${on.map(row).join('')}
@@ -117,7 +136,7 @@
           <button class="icon-btn" data-go="addfriend" aria-label="添加好友">${UI.ic('userPlus', 22)}</button></div></header>
         <div class="seg ch-seg">
           <button class="seg-it ${seg === 'msgs' ? 'is-active' : ''}" data-act="seg" data-s="msgs">聊天${Store.unread() ? `<i class="count">${Store.unread()}</i>` : ''}</button>
-          <button class="seg-it ${seg === 'friends' ? 'is-active' : ''}" data-act="seg" data-s="friends">好友 <em class="seg-n">${Store.s.friends.length}</em></button>
+          <button class="seg-it ${seg === 'friends' ? 'is-active' : ''}" data-act="seg" data-s="friends">好友 <em class="seg-n">${Store.s.friends.length}/${Store.perk('friendCap')}</em></button>
         </div>
         <div class="body ch-body" data-scroll="main">${seg === 'msgs' ? msgsSeg() : friendsSeg()}<div class="bottom-space"></div></div>
         ${UI.tabbar('chat')}`;
@@ -137,6 +156,8 @@
       seg: (el) => { seg = el.dataset.s; App.refresh('chat'); },
       add: (el) => { Store.request(el.dataset.uid); UI.toast('好友申请已发送'); App.refresh('chat'); scheduleAccept(el.dataset.uid); },
       invite: (el) => Rooms.withFriend(el.dataset.uid),
+      callVoice: (el) => call(el.dataset.uid, 'voice'),
+      capVip: (el) => openVip(+el.dataset.tier || 1),
       addRecent: (el) => {
         const uid = el.dataset.uid;
         if (Store.isFriend(uid)) return;
@@ -191,7 +212,12 @@
     const showName = c.type === 'group' && !me && (!prev || prev.from !== m.from);
     let body;
     if (m.type === 'invite') body = inviteCard(m);
-    else if (m.type === 'share') {
+    else if (m.type === 'call') {
+      // 通话记录：点一下再打一次
+      const st = m.st || (m.dur ? 'done' : 'cancel');
+      body = `<div role="button" tabindex="0" class="dm-bub dm-call is-${st} ${me ? UI.bubble(Store.s.equip.bubble) : ''}" data-act="callAgain" data-kind="${m.kind === 'video' ? 'video' : 'voice'}" aria-label="再打一次">
+        <span class="dm-call-ic">${callIc(m.kind, 16)}</span><span>${UI.esc(callLabel(m))}</span></div>`;
+    } else if (m.type === 'share') {
       body = `<div class="dm-bub ${me ? UI.bubble(Store.s.equip.bubble) : ''} is-share">${m.game ? `<img src="${D.game[m.game].icon}" alt="">` : ''}<span>${UI.esc(m.text)}</span></div>`;
     } else body = `<div class="dm-bub ${me ? UI.bubble(Store.s.equip.bubble) : ''}">${UI.esc(m.text)}</div>`;
     return `<div class="dm-row ${me ? 'is-me' : ''}">
@@ -252,9 +278,11 @@
       if (c.type === 'dm') { const P = D.people[c.with]; sub = P.online ? `在线 · ${P.status}` : `${P.seen}在线`; }
       else if (c.type === 'group') sub = `${c.members.length + 1}位成员`;
       else sub = '官方账号';
-      const right = c.type === 'dm' ? `<button class="icon-btn" data-go="profile" data-uid="${c.with}" aria-label="个人主页">${UI.ic('users', 21)}</button>`
+      const right = c.type === 'dm' ? `<button class="icon-btn dm-callbtn" data-act="callVoice" aria-label="语音通话">${UI.ic('phone', 20)}</button>
+          <button class="icon-btn dm-callbtn" data-act="callVideo" aria-label="视频通话">${VIDEO_IC(23)}</button>
+          <button class="icon-btn" data-go="profile" data-uid="${c.with}" aria-label="个人主页">${UI.ic('users', 21)}</button>`
         : c.type === 'group' ? `<button class="icon-btn" data-act="groupInfo" aria-label="群信息">${UI.ic('more', 22)}</button>` : '';
-      el.innerHTML = `${UI.nav({ title: UI.esc(title), sub: UI.esc(sub), cls: 'is-white dm-nav', right })}
+      el.innerHTML = `${UI.nav({ title: c.type === 'dm' ? UI.name(c.with) : UI.esc(title), sub: UI.esc(sub), cls: 'is-white dm-nav', right })}
         <div class="body dm-msgs" data-scroll="chat">${msgsHtml(id)}</div>
         ${c.type === 'system' ? '<div class="dm-ro">官方账号暂不支持回复</div>' : `
         <div class="dm-emoji" hidden>${EMOJI.map((e) => `<button data-act="emoji" data-e="${e}">${e}</button>`).join('')}</div>
@@ -269,6 +297,9 @@
       el.querySelector('.dm-in')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); el.querySelector('.dm-send').click(); } });
     },
     act: {
+      callVoice: () => { const c = Store.s.chats[App.params('dm').id]; if (c && c.type === 'dm') call(c.with, 'voice'); },
+      callVideo: () => { const c = Store.s.chats[App.params('dm').id]; if (c && c.type === 'dm') call(c.with, 'video'); },
+      callAgain: (el) => { const c = Store.s.chats[App.params('dm').id]; if (c && c.type === 'dm') call(c.with, el.dataset.kind); },
       send: () => {
         const el = document.querySelector('.page[data-page="dm"]');
         const input = el.querySelector('.dm-in');
@@ -462,10 +493,15 @@
         <div class="body pf-body" data-scroll="main">
           <div class="pf-card">
             <div class="pf-av">${UI.av(P.id, 92, { on: true })}</div>
-            <h1>${P.name} <span class="tag tag-event">Lv${P.lv}</span></h1>
+            <h1>${UI.name(P.id)} <span class="tag tag-event">Lv${P.lv}</span></h1>
             <p class="pf-id">ID ${P.uid} · ${P.online ? `<span class="is-on">${UI.esc(P.status)}</span>` : `${P.seen}在线`}</p>
             <p class="pf-bio">${UI.esc(P.bio || '—')}</p>
             <div class="pf-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span>${UI.tier(rank, 26)}<b>${D.tiers[rank]}</b></span></div>
+            ${f ? `<div class="pf-calls">${['voice', 'video'].map((k) => {
+              const free = Store.perk(k === 'video' ? 'videoFree' : 'voiceFree');
+              return `<button class="pf-call ${P.online ? '' : 'is-off'}" data-act="${k === 'video' ? 'callVideo' : 'callVoice'}">
+                <span class="pf-call-ic is-${k}">${callIc(k, 18)}</span><span class="row-main"><b>${CALL_NAME[k]}</b><span>${free ? '会员免费' : `${D.vip.call[k]}钻石/次 · ${k === 'video' ? '超级会员' : '会员'}免费`}</span></span></button>`;
+            }).join('')}</div>` : ''}
           </div>
           <div class="sec-hd"><h2>${g.name}战绩</h2></div>
           <div class="pf-c4 card">
@@ -485,6 +521,8 @@
         </div>`;
     },
     act: {
+      callVoice: () => call(App.params('profile').uid, 'voice'),
+      callVideo: () => call(App.params('profile').uid, 'video'),
       invite: () => {
         const uid = App.params('profile').uid;
         if (!D.people[uid].online) { UI.toast(`${nameOf(uid)}现在不在线`); return; }

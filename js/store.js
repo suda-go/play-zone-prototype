@@ -69,6 +69,15 @@
       stake: 's1',                      // 上次选的金币场
       voice: { mic: false, spk: true }, // 局内语音：麦克风、扬声器
       mateGames: {},                    // 和每位好友玩过的局数（默契搭档徽章）
+      vipDaily: 0,                      // 会员每日福利上次领取的 day
+      aid: { day: 0, used: 0 },         // 破产补助：当天已领次数
+      protectUsed: { week: 0, n: 0 },   // 段位保护卡：本周已用张数
+      callPerm: { mic: false, cam: false }, // 通话授权
+      rang: false,                      // 是否已模拟过好友来电
+      visitors: [
+        { id: 'hana', t: '10分钟前' }, { id: 'victor', t: '1小时前' }, { id: 'zoe', t: '3小时前' },
+        { id: 'marco', t: '昨天' }, { id: 'ruby', t: '昨天' }, { id: 'noah', t: '2天前' },
+      ],
     };
   }
 
@@ -238,7 +247,8 @@
   function signReward(i) {
     const r = { ...D.signin[i] };
     if (r.frame && s.owned.frame.includes(r.frame)) { delete r.frame; r.coins = (r.coins || 0) + 300; }
-    if (s.vip) { if (r.gems) r.gems *= 2; if (r.coins) r.coins *= 2; }
+    const k = perk('sign');
+    if (k > 1) { if (r.gems) r.gems *= k; if (r.coins) r.coins *= k; }
     return r;
   }
   function sign() {
@@ -433,9 +443,47 @@
     emit('day');
   }
 
+  /* ---------- 会员：s.vip 为档位 0 / 1 / 2（兼容旧数据的 true = 1） ---------- */
+  const vipTier = () => (s.vip === true ? 1 : Math.max(0, Math.min(2, +s.vip || 0)));
+  const perk = (key) => D.vip.tiers[vipTier()][key];
+  function setVip(tier) {
+    s.vip = tier;
+    const f = D.vip.tiers[tier].frame;
+    if (f && !s.owned.frame.includes(f)) s.owned.frame.push(f);
+    if (tier === 2 && !s.owned.frame.includes('vip')) s.owned.frame.push('vip');
+    emit('vip', { tier });
+  }
+  /** 会员每日福利：返回奖励对象，已领或非会员返回 null */
+  const canVipDaily = () => vipTier() > 0 && s.vipDaily !== s.day;
+  function vipDaily() {
+    if (!canVipDaily()) return null;
+    s.vipDaily = s.day;
+    save();
+    return { coins: perk('dailyCoins'), gems: perk('dailyGems') };
+  }
+  /** 破产补助：每次补 AID 金币 */
+  const AID = 500;
+  const aidLeft = () => Math.max(0, perk('aid') - (s.aid.day === s.day ? s.aid.used : 0));
+  function useAid() {
+    if (!aidLeft()) return 0;
+    if (s.aid.day !== s.day) s.aid = { day: s.day, used: 0 };
+    s.aid.used += 1;
+    save();
+    return AID;
+  }
+  /** 段位保护卡：每周按档位发放 */
+  const protectLeft = () => Math.max(0, perk('protect') - (s.protectUsed.week === week() ? s.protectUsed.n : 0));
+  function useProtect() {
+    if (!protectLeft()) return false;
+    if (s.protectUsed.week !== week()) s.protectUsed = { week: week(), n: 0 };
+    s.protectUsed.n += 1;
+    save();
+    return true;
+  }
+
   function dots() {
     // welfare：顶栏签到按钮的角标 = 今天可签到（1）+ 可领取的任务数
-    return { sign: canSign(), tasks: claimable(), welfare: (canSign() ? 1 : 0) + claimable(), chat: unread(), requests: s.requests.length };
+    return { vip: canVipDaily(), sign: canSign(), tasks: claimable(), welfare: (canSign() ? 1 : 0) + claimable(), chat: unread(), requests: s.requests.length };
   }
 
   function reset() {
@@ -463,5 +511,6 @@
     room, createRoom, sit, leaveRoom,
     addMatch, checkBadges, badge,
     nextDay, dots,
+    vipTier, perk, setVip, canVipDaily, vipDaily, AID, aidLeft, useAid, protectLeft, useProtect,
   };
 })();

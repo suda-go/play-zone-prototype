@@ -19,6 +19,21 @@
 .me-lv .bar { flex: 1; }
 .me-lv em { font: 700 12px var(--num); font-style: normal; color: var(--text-2); white-space: nowrap; }
 .me-lv-tag { height: 22px; padding: 0 8px; border-radius: 11px; background: var(--g-purple); color: #fff; font: 800 12px/22px var(--num); }
+/* 会员条（vipBanner） */
+.me-vip { position: relative; display: flex; align-items: center; gap: 10px; width: calc(100% - 32px); margin: 12px 16px 0; padding: 10px 12px 10px 10px; overflow: hidden; border-radius: 18px; text-align: left; transition: transform .15s; }
+.me-vip:active { transform: scale(.98); }
+.me-vip.is-t0, .me-vip.is-t1 { background: radial-gradient(circle at 92% 0%, rgba(255, 207, 77, .3), rgba(255, 207, 77, 0) 50%), linear-gradient(150deg, #2b2240, #1b1530 60%, #3d2a10); color: #ffe7a8; }
+.me-vip.is-t2 { background: linear-gradient(120deg, #ff4d8d, #b04dff 55%, #5b45e0); color: #fff; }
+.me-vip-crown { width: 40px; height: 40px; flex-shrink: 0; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(255, 190, 60, .45)); }
+.me-vip-main { flex: 1; min-width: 0; }
+.me-vip-main b { display: block; font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-vip-main small { display: flex; align-items: center; gap: 4px; font-size: 12px; opacity: .8; white-space: nowrap; }
+.me-vip-main small.is-hot { opacity: 1; font-weight: 700; color: #ffd34d; }
+.me-vip.is-t2 .me-vip-main small.is-hot { color: #fff6a8; }
+.me-vip-main .dot { position: static; flex-shrink: 0; box-shadow: none; }
+.me-vip-btn { flex-shrink: 0; height: 30px; padding: 0 12px; border-radius: 15px; background: var(--g-gold); color: #6b3a00; font-size: 13px; font-weight: 800; line-height: 30px; }
+.me-vip.is-t2 .me-vip-btn { background: #fff; color: #b04dff; }
+.me-card h1 .vtag { vertical-align: 4px; }
 .me-wallet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 16px 0; }
 .me-wallet button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 18px; background: #fff; box-shadow: var(--shadow-s); }
 .me-wallet b, .me-wallet .num { margin-top: 4px; font: 800 18px var(--num); }

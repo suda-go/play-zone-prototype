@@ -1,5 +1,5 @@
 /**
- * L 我的：L1 主页头部、L2 编辑资料、L3 战绩、L4 钱包、L5 背包、L6 徽章、L7 设置（含重置演示）
+ * L 我的：L1 主页头部（含会员条）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包、L6 徽章、L7 设置（含重置演示）
  */
 (() => {
   'use strict';
@@ -23,6 +23,24 @@
     return `<i class="${n > 0 ? 'is-up' : 'is-down'}">${UI.cur('coins', 14)}${n > 0 ? '+' : '-'}${UI.fmt(Math.abs(n))}金币</i>`;
   }
 
+  /** 主页会员条：非会员引导开通；会员提示今日福利或展示权益 */
+  function vipBanner() {
+    const tier = Store.vipTier();
+    const T = D.vip.tiers;
+    if (!tier) {
+      return `<button class="me-vip is-t0" data-act="vip"><img class="me-vip-crown" src="${IMG}ui/crown.png" alt="">
+        <span class="me-vip-main"><b>开通会员 · 每天领${UI.fmt(T[1].dailyCoins)}金币</b><small>签到×${T[1].sign} · 破产补助 · 会员金框</small></span>
+        <span class="me-vip-btn">去开通</span></button>`;
+    }
+    const t = T[tier];
+    const sub = Store.canVipDaily()
+      ? `<small class="is-hot">今日福利待领取 ${UI.dot('vip')}</small>`
+      : `<small>每天${UI.fmt(t.dailyCoins)}金币 · 签到×${t.sign} · 保护卡${Store.protectLeft()}张</small>`;
+    return `<button class="me-vip is-t${tier}" data-act="vip"><img class="me-vip-crown" src="${IMG}ui/crown.png" alt="">
+      <span class="me-vip-main"><b>${t.name}生效中</b>${sub}</span>
+      <span class="me-vip-btn">${Store.canVipDaily() ? '去领取' : '会员中心'}</span></button>`;
+  }
+
   /* ================= L1 Me ================= */
   App.page('me', {
     render(el) {
@@ -41,11 +59,12 @@
         <div class="body me-body" data-scroll="main">
           <div class="me-card">
             <div class="me-av">${UI.av('me', 92)}</div>
-            <h1>${UI.esc(s.user.name)}${s.vip ? ' <span class="tag tag-top">会员</span>' : ''}</h1>
+            <h1>${UI.name('me')}</h1>
             <button class="me-id" data-act="copy">ID ${s.user.uid} ${UI.ic('copy', 13)}</button>
             <p class="me-bio">${UI.esc(s.user.bio)}</p>
             <div class="me-lv"><span class="me-lv-tag">Lv${s.user.lv}</span>${UI.bar(s.user.exp, need, 'is-green')}<em>${s.user.exp}/${need}经验</em></div>
           </div>
+          ${vipBanner()}
           <div class="me-wallet">
             <button data-go="wallet" data-cur="exp">${UI.cur('exp', 30)}<b>Lv${s.user.lv}</b><span>经验${s.user.exp}</span></button>
             <button data-go="wallet" data-cur="gems">${UI.cur('gems', 30)}${UI.bind('gems')}<span>钻石</span></button>
@@ -61,7 +80,8 @@
             <button class="cell" data-go="badges"><span class="cell-ic">${UI.ic('award', 21)}</span><span class="cell-main">徽章</span><span class="cell-val">${badges}/${D.badges.length}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="wallet"><span class="cell-ic">${UI.ic('wallet', 21)}</span><span class="cell-main">钱包与明细</span><span class="cell-val">${s.log.length}条记录</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="friends"><span class="cell-ic">${UI.ic('users', 21)}</span><span class="cell-main">好友</span><span class="cell-val">${s.friends.length}${s.requests.length ? ` <i class="count is-inline">${s.requests.length}</i>` : ''}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-go="shop"><span class="cell-ic">${UI.ic('gift', 21)}</span><span class="cell-main">商城</span><span class="cell-val">${s.vip ? '会员生效中' : '开通会员'}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell me-visitors" data-go="visitors"><span class="cell-ic">${UI.ic('eye', 21)}</span><span class="cell-main">谁看过我</span><span class="cell-val">${Store.perk('visitors') ? `${s.visitors.length}位访客` : `${UI.ic('lock', 13)} ${s.visitors.length}位访客`}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-go="shop"><span class="cell-ic">${UI.ic('gift', 21)}</span><span class="cell-main">商城</span><span class="cell-val">装扮、道具和充值</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="settings"><span class="cell-ic">${UI.ic('gear', 21)}</span><span class="cell-main">设置</span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
           <div class="bottom-space"></div>
@@ -71,7 +91,36 @@
     back() { App.tab('play'); return false; },
     act: {
       copy: () => UI.toast(`已复制ID ${Store.s.user.uid}`),
+      vip: () => (Store.vipTier() ? App.go('vip') : Vip.open(1)),
       friends: () => App.tab('chat', { seg: 'friends' }),
+    },
+  });
+
+  /* ================= 谁看过我（超级会员可见） ================= */
+  App.page('visitors', {
+    render(el) {
+      const list = Store.s.visitors || [];
+      const open = !!Store.perk('visitors');
+      const rows = list.map((v) => {
+        const p = D.people[v.id];
+        if (!p) return '';
+        return `<div class="row vs-row" data-uid="${v.id}">${UI.av(v.id, 44, { on: open })}
+          <span class="row-main"><b>${open ? UI.name(v.id) : '***'}</b><span>${v.t}看过你的主页${open ? ` · Lv${p.lv}` : ''}</span></span>
+          ${open ? `<button class="btn btn-line btn-sm" data-act="see" data-uid="${v.id}">去看看</button>` : ''}</div>`;
+      }).join('');
+      el.innerHTML = `${UI.nav({ title: '谁看过我', sub: '最近7天', cls: 'is-white' })}
+        <div class="body vs-body" data-scroll="main">
+          <div class="vs-sum"><span class="vs-sum-ic">${UI.ic('eye', 24)}</span><span><b>最近有${list.length}人看过你</b><span>${open ? '去打个招呼，说不定能多个好友' : '开通超级会员，看看是谁对你感兴趣'}</span></span></div>
+          ${list.length ? `<div class="vs-list ${open ? '' : 'is-locked'}">${rows}
+            ${open ? '' : `<div class="vs-lock"><span class="vs-lock-ic">${UI.ic('lock', 24)}</span><b>超级会员专属</b><p>开通后能看到所有访客，并直接去TA的主页</p>
+              <button class="btn btn-lg vs-cta" data-act="unlock">开通超级会员查看访客</button></div>`}</div>` : UI.empty('还没有人来看过你，多去对局交朋友吧')}
+          <p class="vs-tip">${UI.ic('info', 13)} 访客记录保留7天</p>
+          <div class="bottom-space"></div>
+        </div>`;
+    },
+    act: {
+      see: (el) => App.go('profile', { uid: el.dataset.uid }),
+      unlock: () => Vip.open(2),
     },
   });
 

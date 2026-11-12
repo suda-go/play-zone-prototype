@@ -361,6 +361,7 @@ ol, ul { list-style: none; }
 .ring-blue { background: conic-gradient(from 90deg, #6ad7ff, #2c7bff, #b9e8ff, #2c7bff, #6ad7ff); }
 .ring-season { background: conic-gradient(from 0deg, #ff8a3d, #ffd84d, #ff4d6d, #ffd84d, #ff8a3d); }
 .ring-vip { background: conic-gradient(from 120deg, #2b1a00, #ffcf4d, #fff5c2, #c98a00, #ffcf4d, #2b1a00); }
+.ring-svip { background: conic-gradient(from 0deg, #ff4d8d, #ffb23f, #ffe96b, #4de1ff, #8a5cff, #ff4d8d); animation: spin 6s linear infinite; }
 .av-deco { position: absolute; pointer-events: none; max-width: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .25)); }
 .deco-top { width: 62%; left: 19%; top: -42%; transform: rotate(-8deg); }
 .deco-br { width: 52%; right: -22%; bottom: -16%; }
@@ -560,3 +561,13 @@ ol, ul { list-style: none; }
 /* ---------- 中文排版：避免最后一行只剩一两个字 ---------- */
 p, .coach-tip, .rw-sub, .dlg-text, .wl-rule, .tk-mys-txt > span, .dt-desc, .notif-txt span { text-wrap: pretty; }
 .nowrap { white-space: nowrap; }
+
+/* ---------- 会员名字颜色与标签（UI.name / UI.vipTag） ---------- */
+.vname.v1 { color: #c98a00; background: linear-gradient(90deg, #b87400, #f0b400); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.vname.v2 { background: linear-gradient(90deg, #ff4d8d, #ff9a3d, #8a5cff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.vtag { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 6px; font: 800 10px/16px var(--num); font-style: normal; vertical-align: 2px; -webkit-text-fill-color: #fff; color: #fff; white-space: nowrap; }
+.vtag.v1 { background: linear-gradient(90deg, #d99a00, #f5c33b); }
+.vtag.v2 { background: linear-gradient(90deg, #ff4d8d, #8a5cff); }
+/* .row-main span 默认是块级，会把 UI.name 的名字和标签拆成两行 */
+.row-main .vname, .row-main .vtag { display: inline; }
+.row-main .vtag { display: inline-block; }

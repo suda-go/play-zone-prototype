@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="css/growth.css">
   <link rel="stylesheet" href="css/social.css">
   <link rel="stylesheet" href="css/me.css">
+  <link rel="stylesheet" href="css/vip.css">
+  <link rel="stylesheet" href="css/call.css">
 </head>
 <body>
   <!-- 共享渐变：表情团子、段位徽章（放在不隐藏的 SVG 里，避免 Chrome 引用失效） -->
@@ -66,6 +68,10 @@
           <section class="page" data-page="stats"></section>
           <section class="page" data-page="badges"></section>
           <section class="page" data-page="settings"></section>
+          <!-- V3：会员中心、访客、通话 -->
+          <section class="page" data-page="vip"></section>
+          <section class="page" data-page="visitors"></section>
+          <section class="page" data-page="call" data-status="light" data-transient></section>
         </main>
 
         <!-- 系统层：安卓状态栏、挖孔摄像头、手势条（手机上直接打开时隐藏） -->
@@ -98,5 +104,7 @@
   <script src="js/pages/rooms.js"></script>
   <script src="js/pages/chat.js"></script>
   <script src="js/pages/me.js"></script>
+  <script src="js/pages/vip.js"></script>
+  <script src="js/pages/call.js"></script>
 </body>
 </html>

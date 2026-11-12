@@ -1,5 +1,5 @@
 /**
- * I 商城：I1 余额栏、I2 装扮、I3 道具、I4 商品详情、I5 金币充值与钻石兑换金币、I6 钻石礼包、I7 会员、
+ * I 商城：I1 余额栏、I2 装扮、I3 道具、I4 商品详情、I5 金币充值与钻石兑换金币、I6 钻石礼包、I7 会员入口（详见 vip.js）、
  * I8 小米钱包支付、I9 看广告领金币、I10 金币不足弹窗
  */
 (() => {
@@ -28,7 +28,7 @@
     const it = Store.catalog(kind)[id];
     const owned = Store.owns(kind, id);
     const equipped = Store.s.equip[kind] === id;
-    const lock = !owned && it.vip ? '会员专属' : !owned && it.season ? '达到黄金' : '';
+    const lock = !owned && it.vip ? (it.vip === 2 ? '超级会员专属' : '会员专属') : !owned && it.season ? '达到黄金' : '';
     return { it, owned, equipped, lock };
   }
   function itemCard(kind, id) {
@@ -59,7 +59,7 @@
     const where = { frame: '会显示在个人主页、聊天、房间和对局中。', bubble: '你发出的聊天消息会使用这个样式。', bg: '显示在个人主页顶部。' }[kind];
     const foot = equipped ? `<button class="btn btn-ghost btn-lg btn-block" data-act="unequip">${kind === 'frame' ? '卸下' : '恢复默认'}</button>`
       : owned ? '<button class="btn btn-primary btn-lg btn-block" data-act="equip">装备</button>'
-        : lock ? `<button class="btn btn-gold btn-lg btn-block" data-act="unlock">${it.vip ? '开通会员解锁' : '四子棋达到黄金解锁'}</button>`
+        : lock ? `<button class="btn btn-gold btn-lg btn-block" data-act="unlock">${it.vip ? (it.vip === 2 ? '开通超级会员解锁' : '开通会员解锁') : '四子棋达到黄金解锁'}</button>`
           : `<button class="btn btn-orange btn-lg btn-block" data-act="buy">购买 <span class="btn-price">${UI.cur('coins', 18)}${it.price}</span></button>`;
     return `<div class="sd">${big}
       <div class="sd-info"><span class="tag">${KIND_NAME[kind]}</span><p>${where}</p>${owned ? '' : `<p class="sd-bal">我的金币：${UI.cur('coins', 15)}${UI.bind('coins')}</p>`}</div>
@@ -95,7 +95,7 @@
         },
         unlock: () => {
           c.close();
-          if (it.vip) setTab('vip'); else App.backTo('play');
+          if (it.vip) Vip.open(it.vip === 2 ? 2 : 1); else App.backTo('play');
         },
       },
     });
@@ -124,12 +124,21 @@
     const canEx = maxExchange(s.gems);
     const pack = D.coinPacks[0];
     const first = !s.firstPay[pack.id];
+    // 会员：破产补助、每日福利；非会员：开通会员入口。都放在最上面
+    const tier = Store.vipTier();
+    const aid = tier ? Store.aidLeft() : 0;
+    const vt = D.vip.tiers[tier || 1];
+    const vipOps = [
+      aid > 0 && `<button class="lack-op is-vip" data-act="__btn" data-key="aid"><span class="lack-vip-ic">${UI.ic('shield', 20)}</span><span><b>领取破产补助 · +${Store.AID}金币</b><small>${vt.name}特权 · 今日还剩${aid}次</small></span>${UI.ic('right', 18)}</button>`,
+      tier && Store.canVipDaily() && `<button class="lack-op is-vip" data-act="__btn" data-key="vipdaily"><span class="lack-vip-ic">${UI.ic('gift', 20)}</span><span><b>领取会员每日福利</b><small>+${UI.fmt(vt.dailyCoins)}金币 · +${vt.dailyGems}钻石</small></span>${UI.ic('right', 18)}</button>`,
+      !tier && `<button class="lack-op is-vip" data-act="__btn" data-key="vip"><span class="lack-vip-ic">${UI.ic('crown', 20)}</span><span><b>开通会员 · 每天领${UI.fmt(vt.dailyCoins)}金币</b><small>还有破产补助、签到×${vt.sign}等特权</small></span>${UI.ic('right', 18)}</button>`,
+    ].filter(Boolean).join('');
     const k = await UI.dialog({
       cls: 'dlg-lack',
       img: `${IMG}ui/coin.svg`, imgCls: 'is-small',
       title: '金币不足',
       text,
-      html: `<div class="lack-ops">
+      html: `<div class="lack-ops">${vipOps}
         <button class="lack-op" data-act="__btn" data-key="tasks"><img src="${IMG}ui/calendar.png" alt=""><span><b>做任务</b><small>${waitText ? `${waitText}待领取` : '完成任务领金币和钻石'}</small></span>${UI.ic('right', 18)}</button>
         <button class="lack-op" data-act="__btn" data-key="ad"><span class="lack-tv">${UI.ic('eye', 22)}</span><span><b>看广告</b><small>${s.ads.watched >= 3 ? '今日次数已用完' : `+${AD_COINS}金币 · 今日还剩${3 - s.ads.watched}次`}</small></span>${UI.ic('right', 18)}</button>
         ${s.gems > 0 ? `<button class="lack-op" data-act="__btn" data-key="exchange"><img src="${IMG}ui/gem.png" alt=""><span><b>钻石换金币</b><small>${canEx ? `你的${UI.fmt(s.gems)}钻石最多可换${UI.fmt(canEx)}金币` : `满${EXCHANGE[0].gems}钻石可换${EXCHANGE[0].coins}金币`}</small></span>${UI.ic('right', 18)}</button>` : ''}
@@ -137,7 +146,19 @@
       </div>
       ${ai ? '<button class="lack-ai" data-act="__btn" data-key="ai">或者免费人机练习</button>' : ''}`,
     });
-    if (k === 'tasks') { UI.closeAll(); App.go('tasks'); } else if (k === 'ad') watchAd();
+    if (k === 'aid') {
+      const n = Store.useAid();
+      if (!n) { UI.toast('今天的破产补助已用完'); return; }
+      await UI.grant({ coins: n }, '会员破产补助');
+      UI.toast('补助已到账，再点一次就能开局');
+      App.refresh();
+    } else if (k === 'vipdaily') {
+      const r = Store.vipDaily();
+      if (!r) { UI.toast('今日福利已领取'); return; }
+      await UI.grant(r, '会员每日福利');
+      App.refresh();
+    } else if (k === 'vip') Vip.open(1);
+    else if (k === 'tasks') { UI.closeAll(); App.go('tasks'); } else if (k === 'ad') watchAd();
     else if (k === 'exchange') goTopup('exchange');
     else if (k === 'topup') goTopup();
     else if (k === 'ai') Battle.practice();
@@ -321,16 +342,28 @@
       <p class="sh-note">${UI.ic('wallet', 14)} 使用小米钱包支付 · 余额${UI.usd(s.mi)}</p>
     </section>`;
   }
+  /** 会员 Tab：两档会员的简要介绍，详细权益去会员中心 */
   function vip() {
-    const s = Store.s;
-    return `<section class="sh-sec"><div class="vip-card ${s.vip ? 'is-on' : ''}">
-        <img class="vip-crown" src="${IMG}ui/crown.png" alt="">
-        <b class="vip-title">Soulgame 会员</b>
-        <span class="vip-sub">${s.vip ? '生效中 · 按月自动续费' : `${UI.usd(D.vip.usd)}/月 · 随时可取消`}</span>
-        <div class="vip-perks">${D.vip.perks.map((x, i) => `<span><i>${UI.ic(['gift', 'zap', 'crown', 'calendar'][i], 18)}</i>${x}</span>`).join('')}</div>
-        <div class="vip-frame">${UI.av('me', 64, { frame: 'vip' })}<span>专属<br><b>会员金框</b></span></div>
-        ${s.vip ? '<button class="btn btn-ghost btn-lg btn-block" data-act="vipManage">管理订阅</button>' : `<button class="btn btn-gold btn-lg btn-block" data-act="vip">立即开通 · ${UI.usd(D.vip.usd)}/月</button>`}
-      </div></section>`;
+    const cur = Store.vipTier();
+    const T = D.vip.tiers;
+    const card = (k) => {
+      const t = T[k];
+      const on = cur === k;
+      const covered = cur === 2 && k === 1;
+      const pts = k === 1
+        ? [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '高级房免房卡', '会员金框']
+        : [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '视频通话免费', '谁看过我'];
+      const btn = on || covered ? '查看权益' : cur === 1 && k === 2 ? `升级 · ${UI.usd(t.usd)}/月` : `开通 · ${UI.usd(t.usd)}/月`;
+      return `<button class="shv-card is-t${k} ${on ? 'is-on' : ''}" data-act="vip" data-t="${k}">
+        <span class="shv-hd">${UI.av('me', 46, { frame: t.frame })}<span class="shv-tt"><b>${t.name}${on ? '<i class="shv-on">生效中</i>' : ''}</b><em>${covered ? '已包含在超级会员中' : `${UI.usd(t.usd)}/月 · 开通送${UI.fmt(t.gems)}钻石`}</em></span></span>
+        <span class="shv-pts">${pts.map((x) => `<i>${UI.ic('check', 12)}${x}</i>`).join('')}</span>
+        <span class="shv-btn">${btn}</span>
+      </button>`;
+    };
+    return `<section class="sh-sec shv"><div class="sh-sec-hd"><h2>Soulgame 会员</h2><span>${cur ? `${T[cur].name}生效中` : '两档可选 · 随时可取消'}</span></div>
+      <div class="shv-list">${card(1)}${card(2)}</div>
+      <button class="shv-more" data-act="vip" data-t="${cur === 1 ? 2 : cur || 1}">查看全部权益和对比 ${UI.ic('right', 14)}</button>
+    </section>`;
   }
 
   let tab = 'decor';
@@ -418,15 +451,7 @@
         await UI.grant({ gems: x.gems }, `钻石礼包${UI.usd(x.usd)}`);
         App.refresh('shop');
       },
-      vip: async () => {
-        if (!(await pay({ title: 'Soulgame 会员', usd: D.vip.usd, sub: '包月' }))) return;
-        Store.s.vip = true;
-        Store.own('frame', 'vip');
-        App.refresh('shop');
-        await UI.reward({ title: '欢迎成为会员！', sub: '本月钻石和会员金框已到账。', img: `${IMG}ui/crown.png`, items: { gems: D.vip.gems, frame: 'vip' }, note: '会员每月钻石' });
-        App.refresh('shop');
-      },
-      vipManage: () => UI.demo('订阅管理'),
+      vip: (el) => Vip.open(+el.dataset.t || 0),
     },
   });
 

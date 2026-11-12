@@ -172,22 +172,33 @@ window.C4 = (() => {
 
   /* ---------- 金币分场（参考 Yalla Ludo）：入场扣底注，赢家拿走奖池，平局退还 ---------- */
   const stakeOf = (id) => D.stake[id] || D.stake[Store.s.stake] || D.stakes[0];
-  const pot = (st, double) => st.bet * 2 * (double ? 2 : 1);
-  /** 场次是否可进：返回 'lock' | 'poor' | 'ok' */
+  const pot = (st, double) => st.bet * (st.potX || 2) * (double ? 2 : 1);
+  /** 场次是否可进：返回 'vip' | 'lock' | 'poor' | 'ok' */
   function canEnter(st) {
+    if (st.vip && Store.vipTier() < st.vip) return 'vip';
     if (Store.s.user.lv < st.lv) return 'lock';
     if (Store.s.coins < st.bet) return 'poor';
     return 'ok';
   }
   function checkEnter(st) {
     const k = canEnter(st);
+    if (k === 'vip') { UI.toast(`${st.name}仅限超级会员`); Vip.open(st.vip); return false; }
     if (k === 'lock') { UI.toast(`${st.name}需要Lv${st.lv}解锁`); return false; }
     if (k === 'poor') { Shop.lack({ need: st.bet, stake: st.id }); return false; }
     return true;
   }
 
+  /** 有一局缩小在悬浮窗里（或已结束待看结算）时，不能再开新局 */
+  function busy() {
+    if (!Battle.active || !Battle.active()) return false;
+    UI.toast('你有一局正在进行，先下完这局');
+    Battle.restore();
+    return true;
+  }
+
   /** 快速匹配：检查等级和金币 → 第一次玩先看引导 → 扣底注 → 匹配页。stakeId 不传就用上次的场次 */
   function quick(stakeId, opt = {}) {
+    if (busy()) return;
     const st = stakeOf(stakeId);
     if (!checkEnter(st)) return;
     Store.s.stake = st.id;
@@ -210,12 +221,14 @@ window.C4 = (() => {
   }
   /** vs AI 免费练习：不扣金币、不计段位 */
   function practice(_, opt = {}) {
+    if (busy()) return;
     const p = { game: D.GAME, mode: 'ai', opp: 'bot', first: Math.random() < 0.6 ? 1 : 2 };
     const start = () => (opt.replace ? App.replace('game', p) : App.go('game', p, { anim: 'up' }));
     if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
   }
   /** 房间开局：由房间页扣费后调用 */
   function fromRoom(room, opp) {
+    if (busy()) return;
     App.go('game', { game: room.game, mode: 'room', room: room.id, opp, first: Math.random() < 0.5 ? 1 : 2 }, { anim: 'fade' });
   }
 
@@ -224,7 +237,7 @@ window.C4 = (() => {
     return gs && gs.g ? `${Math.round((gs.w / gs.g) * 100)}%` : '—';
   };
 
-  window.Battle = { quick, rematch, practice, fromRoom, howto, stakeOf, pot, canEnter, winRate };
+  window.Battle = Object.assign(window.Battle || {}, { quick, rematch, practice, fromRoom, howto, stakeOf, pot, canEnter, winRate });
 })();
 
 /* ================= E1–E4 匹配 ================= */
@@ -261,6 +274,15 @@ window.C4 = (() => {
     el.querySelector('.mt-tip').textContent = P.ai ? '极速匹配：对手是AI' : `${P.name} · 段位相近`;
     el.querySelector('.mt-opp').innerHTML = `${UI.av(opp, 92)}<b>${P.name}${P.ai ? ' <i class="ai-tag">AI</i>' : ''}</b><span>${P.ai ? '极速匹配' : `${D.tiers[Math.min(4, r.tier + (Math.random() < 0.3 ? 1 : 0))]} · Lv ${P.lv}`}</span>`;
     el.classList.add('is-found');
+    // 超级会员入场特效：彩色光环 + 登场横幅
+    if (Store.perk('entryFx')) {
+      el.classList.add('is-vipfx');
+      const fx = document.createElement('div');
+      fx.className = 'mt-vipfx';
+      fx.innerHTML = `<i></i><b>${UI.vipTag(2)} ${UI.esc(Store.s.user.name)} 闪亮登场</b>`;
+      el.appendChild(fx);
+      setTimeout(() => fx.remove(), 2600);
+    }
     Sfx.play('reward');
     const p = M.p;
     M.timers.push(setTimeout(() => el.classList.add('is-loading'), 1200));
@@ -433,9 +455,17 @@ window.C4 = (() => {
     }, 1000);
     if (who === 2) later(botMove, 800 + Math.random() * 1300);
   }
+  /** 超时：系统代落一子；连续 2 次超时判负（防挂机，缩小到悬浮窗时同样计算） */
   function timeout() {
     if (!G || G.over || G.turn !== 1) return;
-    UI.toast('时间到！已帮你随机落子');
+    G.timeouts = (G.timeouts || 0) + 1;
+    if (G.timeouts >= 2) {
+      G.over = true;
+      UI.toast('连续2次超时，本局判负');
+      end('lose', { forfeit: true, timeout: true });
+      return;
+    }
+    UI.toast(G.min ? '时间到！已帮你随机落子，再超时一次就判负' : '时间到！已帮你随机落子');
     myMove(UI.pick(C4.valid(G.board)));
   }
 
@@ -628,9 +658,9 @@ window.C4 = (() => {
     const room = G.p.mode === 'room';
     G.paused = true;
     const ok = await UI.confirm({
-      title: practice ? '退出练习？' : '退出对局？',
-      text: practice ? '练习局退出没有惩罚。' : room ? '好友房退出不扣金币，但这局算你输。' : `现在退出算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
-      ok: '退出', cancel: '继续玩', danger: !practice,
+      title: practice ? '结束练习？' : '确定认输？',
+      text: practice ? '练习局结束没有惩罚。' : room ? '好友房认输不扣金币，但这局算你输。' : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。想先离开可以点左上角缩小。`,
+      ok: practice ? '结束' : '认输', cancel: '继续玩', danger: !practice,
     });
     if (!G) return;
     G.paused = false;
@@ -640,12 +670,53 @@ window.C4 = (() => {
     } else if (G.turn) ring(G.turn, G.left);
   }
 
+  /* ---------- 缩小到悬浮窗：对局在后台继续（计时照走、对手照常落子），点悬浮窗回来 ---------- */
+  let DONE = null; // 缩小期间结束的对局：{ params, board }，点悬浮窗看结算
+  const modeLabel = (p) => { const st = Battle.stakeOf(p.stake); return { quick: st.name, fast: `${st.name} · 人机`, ai: '人机练习', room: '好友房' }[p.mode] || '对局'; };
+  function minimize() {
+    if (!G || G.over) return;
+    closePanel();
+    G.min = true;
+    App.backTo('play', { anim: 'pop' });
+    App.whenIdle(() => UI.floater.refresh());
+    UI.toast('对局已缩小到右下角，点击悬浮窗继续');
+  }
+  function restore() {
+    if (DONE) {
+      const d = DONE;
+      DONE = null;
+      App.go('result', d.params, { anim: 'up', queue: true });
+      return;
+    }
+    if (G && G.min) App.go('game', { ...G.p, restore: 1 }, { anim: 'up', queue: true });
+  }
+  Battle.active = () => !!(DONE || (G && G.min));
+  Battle.restore = restore;
+  Battle.minimize = minimize;
+  UI.floater.add(() => {
+    if (DONE) {
+      const r = DONE.params;
+      return { id: 'done', uid: r.opp, board: C4.html(DONE.board, { cls: 'is-mini' }), urgent: true,
+        title: r.outcome === 'win' ? '你赢了！' : r.outcome === 'draw' ? '平局' : '对局结束', sub: '点击查看结算', onTap: restore };
+    }
+    if (!G || !G.min) return null;
+    const my = G.turn === 1 && !G.over;
+    return {
+      id: 'game', uid: G.opp, board: C4.html(G.board, { cls: 'is-mini' }), urgent: my,
+      title: G.over ? '对局结束' : my ? `轮到你 · ${Math.max(0, G.left)}秒` : G.turn === 2 ? `${name(G.opp)}思考中…` : '对局进行中',
+      sub: `${modeLabel(G.p)} · 点击回到对局`,
+      onTap: restore,
+    };
+  }, 10);
+
   /* ---------- 结束：先更新数据，结算页负责动画和飞入 ---------- */
   function end(outcome, opt = {}) {
     if (!G) return;
     clearAll();
     const { p, g, opp, blocks, moves } = G;
     const sec = Math.max(1, Math.round((Date.now() - G.t0) / 1000));
+    const min = !!G.min;
+    const board = C4.copy(G.board);
     G = null;
     const practice = p.mode === 'ai';
     const room = p.mode === 'room'; // 好友房：不扣金币、不计段位、不加经验（同 Yalla 私人房）
@@ -662,6 +733,10 @@ window.C4 = (() => {
         if (outcome === 'win') { coins = Battle.pot(st, p.double); exp = 50; delta = 25; }
         else if (outcome === 'draw') { coins = st.bet; exp = 30; }
         else { exp = opt.forfeit ? 10 : 20; protect = !opt.forfeit && blocks >= 3; delta = protect ? 0 : -15; }
+        // 会员段位保护卡：输了（非认输/超时）自动使用，本局不扣段位分
+        if (outcome === 'lose' && !opt.forfeit && !protect && Store.protectLeft() > 0 && Store.useProtect()) { protect = true; delta = 0; opt.card = 1; }
+        // 会员经验加成
+        if (exp && Store.perk('expBonus')) { opt.expBonus = Math.round(exp * Store.perk('expBonus')); exp += opt.expBonus; }
         if (p.double) Store.s.doubleNext = false;
       }
       Store.count('games');
@@ -672,19 +747,29 @@ window.C4 = (() => {
     Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', coins: net, stake: staked ? st.id : '', practice, mode: p.mode });
     if (!D.people[opp].ai) Store.addRecent(opp);
     if (coins) {
-      UI.hold('coins');
+      if (!min) UI.hold('coins');
       Store.add('coins', coins, outcome === 'win' ? `${st.name} · 赢得奖池${p.double ? '（翻倍）' : ''}` : `${st.name} · 平局退还底注`);
     }
-    App.replace('result', {
+    const params = {
       game: g.id, mode: p.mode, room: p.room || '', opp, outcome, stake: st.id,
-      forfeit: opt.forfeit ? 1 : 0, coins, net, exp, delta, protect: protect ? 1 : 0,
+      forfeit: opt.forfeit ? 1 : 0, timeout: opt.timeout ? 1 : 0, coins, net, exp, expBonus: opt.expBonus || 0, delta, protect: protect ? 1 : 0, card: opt.card ? 1 : 0,
       before, after: rk ? rk.after : before, up: rk && rk.up ? 1 : 0, down: rk && rk.down ? 1 : 0,
       blocks, moves, sec, double: p.double || 0,
-    });
+    };
+    if (min) {
+      // 不在对局页：结果先放进悬浮窗，回来再看结算（金币已经到账）
+      DONE = { params, board };
+      UI.floater.refresh();
+      UI.notify({ img: D.people[opp].avatar, title: outcome === 'win' ? '你赢下了刚才那局！' : opt.timeout ? '连续超时，刚才那局判负' : outcome === 'draw' ? '刚才那局打平了' : '刚才那局输了', text: '点击查看结算', btn: '查看', onTap: restore });
+      return;
+    }
+    App.replace('result', params);
   }
 
   App.page('game', {
     render(el, p) {
+      // 从悬浮窗回来：棋盘和计时都在，保留现有画面
+      if (p.restore && G && G.el === el) return;
       const g = D.game[p.game] || D.game[D.GAME];
       const opp = p.opp || 'bot';
       const st = Battle.stakeOf(p.stake);
@@ -694,8 +779,9 @@ window.C4 = (() => {
       el.innerHTML = `
         <div class="gm-bg"><img class="gm-tone" src="${IMG}fx/halftone.png" alt=""></div>
         <header class="gm-top safe-top">
-          <button class="icon-btn" data-act="quit" aria-label="退出">${UI.ic('back', 24)}</button>
+          <button class="icon-btn gm-mini" data-act="mini" aria-label="缩小对局">${UI.ic('down', 26)}</button>
           <div class="gm-title"><b>${g.name}</b><span>${mode}</span></div>
+          <button class="icon-btn gm-quit" data-act="quit" aria-label="认输">${UI.ic('flag', 20)}</button>
           <button class="icon-btn" data-act="sound" aria-label="音效">${UI.ic(Store.s.settings.sound ? 'volume' : 'mute', 21)}</button>
           <button class="icon-btn" data-act="help" aria-label="玩法说明">${UI.ic('help', 21)}</button>
         </header>
@@ -728,6 +814,13 @@ window.C4 = (() => {
         </div>`;
     },
     shown(el, p) {
+      if (p.restore && G && G.el === el) {
+        G.min = false;
+        voiceUI();
+        if (G.turn) ring(G.turn, G.left);
+        UI.floater.refresh();
+        return;
+      }
       clearAll();
       G = { p, el, g: D.game[p.game] || D.game[D.GAME], opp: p.opp || 'bot', board: C4.empty(), turn: 0, left: 15, blocks: 0, moves: 0, t0: Date.now(), timers: [], over: false, paused: false };
       const first = p.first || 1;
@@ -740,16 +833,17 @@ window.C4 = (() => {
       scheduleTalk();
       later(() => { if (G && G.turn !== 1) emote('opp', UI.pick(['happy', 'wink', 'cool'])); }, 2600);
     },
-    leave() { clearAll(); G = null; },
+    leave() { if (G && G.min) return; clearAll(); G = null; },
     back() {
       const panel = G && G.el.querySelector('.gm-panel');
       if (panel && !panel.hidden) { closePanel(); return false; }
-      quit();
+      minimize();
       return false;
     },
     act: {
-      col: (el) => myMove(+el.dataset.c),
+      col: (el) => { if (G) G.timeouts = 0; myMove(+el.dataset.c); },
       quit: () => quit(),
+      mini: () => minimize(),
       panel: (el) => openPanel(el.dataset.p),
       ptab: (el) => openPanel(el.dataset.p),
       closePanel: () => closePanel(),
@@ -854,13 +948,13 @@ window.C4 = (() => {
     return `<div class="rs-panel">
       <div class="rs-row">
         <span class="rs-row-ic">${UI.cur('exp', 34)}</span>
-        <div class="rs-row-m"><div class="rs-row-t"><b>经验+${p.exp}</b><span class="rs-exp-txt">Lv ${s.user.lv} · ${s.user.exp}/${need}</span></div>${UI.bar(s.user.exp, need, 'is-green rs-exp-bar')}</div>
+        <div class="rs-row-m"><div class="rs-row-t"><b>经验+${p.exp}${p.expBonus ? `<i class="rs-bonus">${UI.vipTag(Store.vipTier())}+${p.expBonus}</i>` : ''}</b><span class="rs-exp-txt">Lv ${s.user.lv} · ${s.user.exp}/${need}</span></div>${UI.bar(s.user.exp, need, 'is-green rs-exp-bar')}</div>
       </div>
       <div class="rs-row">
         <span class="rs-row-ic rs-tier">${UI.tier(b.tier, 36)}</span>
         <div class="rs-row-m"><div class="rs-row-t"><b class="${p.delta < 0 ? 'is-neg' : ''}">${dl}</b><span class="rs-rank-txt">${D.tiers[b.tier]} · ${b.pts}/100</span></div>${UI.bar(b.pts, 100, 'is-gold rs-rank-bar')}<span class="rs-rank-tip">${rankTip(p.after)}</span></div>
       </div>
-      ${p.protect ? `<div class="rs-protect">${UI.ic('shield', 18)}<span><b>段位保护</b> 你拦截了${p.blocks}次，本局不扣分。</span></div>` : ''}
+      ${p.protect ? `<div class="rs-protect">${UI.ic('shield', 18)}<span>${p.card ? `<b>段位保护卡生效</b> 本局不扣分，本周还剩${Store.protectLeft()}张。` : `<b>段位保护</b> 你拦截了${p.blocks}次，本局不扣分。`}</span></div>` : ''}
       ${!p.protect && p.outcome === 'lose' && !p.forfeit && playable ? `<div class="rs-protect is-hint">${UI.ic('info', 16)}<span>单局拦截3次及以上，输了也不扣分。本局你拦截了${p.blocks}次。</span></div>` : ''}
       <div class="rs-stats">${playable ? `<span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span>` : ''}<span>用时 <b>${mmss(p.sec)}</b></span></div>
     </div>`;
@@ -965,7 +1059,7 @@ window.C4 = (() => {
         </header>
         <div class="body rs-body ${cls}" data-scroll="main">
           <div class="rs-head"><b class="rs-ghost">${title(p)}</b><h1 class="rs-title">${title(p)}</h1>
-            ${p.forfeit ? '<p class="rs-sub">你已退出对局</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 奖池翻倍已生效</p>` : p.outcome === 'draw' && staked(p) ? `<p class="rs-sub">已退还底注${UI.fmt(st.bet)}金币</p>` : ''}</div>
+            ${p.timeout ? '<p class="rs-sub">连续2次超时，本局判负</p>' : p.forfeit ? '<p class="rs-sub">你已认输</p>' : p.double && p.outcome === 'win' ? `<p class="rs-sub">${UI.ic('zap', 14)} 奖池翻倍已生效</p>` : p.outcome === 'draw' && staked(p) ? `<p class="rs-sub">已退还底注${UI.fmt(st.bet)}金币</p>` : ''}</div>
           <div class="rs-hero ${cls}">${hero(p)}</div>
           <div class="rs-cards">${card('me', p, true)}${card(p.opp, p, false)}</div>
           ${mateHtml(p)}

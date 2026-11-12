@@ -36,6 +36,7 @@
     { id: 's2', name: '进阶场', bet: 500, lv: 3, online: 21400 },
     { id: 's3', name: '高手场', bet: 2000, lv: 8, online: 9300 },
     { id: 's4', name: '大师场', bet: 10000, lv: 15, online: 3000 },
+    { id: 's5', name: '超级会员场', bet: 2000, lv: 1, online: 1200, vip: 2, potX: 3 }, // 奖池 = 底注×3
   ];
   D.stake = Object.fromEntries(D.stakes.map((x) => [x.id, x]));
 
@@ -47,9 +48,9 @@
     rewards: [
       { tier: 0, text: '50金币' },
       { tier: 1, text: '20钻石' },
-      { tier: 2, text: '赛季头像框' },
+      { tier: 2, text: '赛季框' },
       { tier: 3, text: '200钻石' },
-      { tier: 4, text: '500钻石+传说徽章' },
+      { tier: 4, text: '500钻石+徽章' },
     ],
   };
 
@@ -64,11 +65,11 @@
 
   D.people = {
     stella: P('stella', '星星', 3),
-    lily: P('lily', '莉莉', 14, { online: true, status: '对局中', frame: 'wings', bg: 'galaxy', bio: '不连成四子不罢休 ✨', games: 318, win: 62 }),
+    lily: P('lily', '莉莉', 14, { vip: 2, online: true, status: '对局中', frame: 'wings', bg: 'galaxy', bio: '不连成四子不罢休 ✨', games: 318, win: 62 }),
     kai: P('kai', '阿凯', 9, { online: true, status: '在大厅', bg: 'arena', bio: '回合制>实时，不服来战。', games: 142, win: 51 }),
     mia: P('mia', '米娅', 11, { online: true, status: '对局中', frame: 'balloon', bg: 'sunset', bio: '连珠女王 👑', games: 204, win: 55 }),
     alex: P('alex', '阿乐', 8, { online: true, status: '在大厅', bio: '这赛季冲黄金', games: 97, win: 57 }),
-    daniel: P('daniel', '大牛', 16, { online: true, status: '对局中', frame: 'crown', bg: 'arena', bio: '小队队长，常开麦。', games: 401, win: 64 }),
+    daniel: P('daniel', '大牛', 16, { vip: 1, online: true, status: '对局中', frame: 'crown', bg: 'arena', bio: '小队队长，常开麦。', games: 401, win: 64 }),
     lucas: P('lucas', '卢卡', 6, { online: true, status: '在房间中', bio: '慢慢下，稳稳赢 🧩', games: 66, win: 48 }),
     sofia: P('sofia', '索菲', 7, { seen: '2小时前', bio: '你好呀 👋', games: 88, win: 50 }),
     emma: P('emma', '艾玛', 5, { seen: '昨天', bio: '休闲玩家', games: 41, win: 44 }),
@@ -80,7 +81,7 @@
     marco: P('marco', '马可', 9, { seen: '30分钟前', bio: '哈喽！', games: 120, win: 52 }),
     hana: P('hana', '花花', 8, { online: true, status: '正在开房', bio: '只玩轻松局 🌙', games: 110, win: 54 }),
     zoe: P('zoe', '佐伊', 10, { online: true, status: '对局中', bio: '夜猫子', games: 133, win: 51 }),
-    olivia: P('olivia', '奥莉', 21, { online: true, status: '在大厅', frame: 'crown', bio: '第2赛季冠军', games: 820, win: 71 }),
+    olivia: P('olivia', '奥莉', 21, { vip: 2, online: true, status: '在大厅', frame: 'crown', bio: '第2赛季冠军', games: 820, win: 71 }),
     isabella: P('isabella', '贝拉', 15, { online: true, status: '正在开房', bio: '冲鸭！', games: 300, win: 60 }),
     ruby: P('ruby', '露比', 12, { online: true, status: '对局中', bio: '幸运数字7', games: 190, win: 55 }),
     george: P('george', '老乔', 18, { online: true, status: '在大厅', bio: '姜还是老的辣', games: 610, win: 66 }),
@@ -103,6 +104,7 @@
     rocket: { name: '火箭冲刺', price: 350, ring: 'blue', deco: `${IMG}ui/rocket.png`, pos: 'bl' },
     season: { name: '夏日激战', price: 0, season: true, ring: 'season', deco: `${IMG}ui/trophy.png`, pos: 'br' },
     vip: { name: '会员金框', price: 0, vip: true, ring: 'vip', deco: `${IMG}ui/sparkle.png`, pos: 'tr' },
+    svip: { name: '超级会员框', price: 0, vip: 2, ring: 'svip', deco: `${IMG}ui/crown.png`, pos: 'top' },
   };
   D.bubbles = {
     default: { name: '经典', price: 0 },
@@ -138,7 +140,47 @@
     { id: 'g2', usd: 4.99, gems: 550, bonus: '+10%' },
     { id: 'g3', usd: 9.99, gems: 1200, bonus: '+20%' },
   ];
-  D.vip = { usd: 4.99, gems: 300, perks: ['每月领300钻石', '优先匹配', '专属会员金框', '签到奖励翻倍'] };
+  /* ---------- 会员：两档（参考 Yalla Ludo Knight / Baron） ---------- */
+  // Store.vipTier() 返回 0 / 1 / 2；Store.perk(key) 取当前档位的权益值（非会员取 tiers[0]）
+  D.vip = {
+    tiers: [
+      { id: 0, name: '普通用户', usd: 0, gems: 0, dailyCoins: 0, dailyGems: 0, aid: 0, protect: 0, expBonus: 0, friendCap: 100, sign: 1, voiceFree: false, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: false, priority: false, pin: false, frame: null, stickers: 0 },
+      { id: 1, name: '会员', short: '会员', usd: 4.99, gems: 300, dailyCoins: 1000, dailyGems: 5, aid: 1, protect: 2, expBonus: 0.2, friendCap: 200, sign: 2, voiceFree: true, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: true, priority: true, pin: true, frame: 'vip', stickers: 1 },
+      { id: 2, name: '超级会员', short: '超级', usd: 14.99, gems: 1200, dailyCoins: 3000, dailyGems: 20, aid: 2, protect: 5, expBonus: 0.5, friendCap: 500, sign: 3, voiceFree: true, videoFree: true, vipStake: true, visitors: true, entryFx: true, freePass: true, priority: true, pin: true, frame: 'svip', stickers: 3 },
+    ],
+    // 非会员（或会员打视频）单次通话价格，单位钻石；每次最长 30 分钟
+    call: { voice: 20, video: 50, maxMin: 30 },
+    // 会员中心权益分组：key 对应 tiers 里的字段，text(t) 生成展示文案（t 为档位）
+    groups: [
+      { id: 'game', name: '对局特权', items: [
+        { key: 'dailyCoins', icon: 'coin', title: '每日免费金币', text: (t) => (t.dailyCoins ? `每天领${t.dailyCoins}` : '—') },
+        { key: 'aid', icon: 'shield', title: '破产补助', text: (t) => (t.aid ? `金币不够时每天${t.aid}次` : '—') },
+        { key: 'protect', icon: 'shield', title: '段位保护卡', text: (t) => (t.protect ? `每周${t.protect}张，输了不掉分` : '—') },
+        { key: 'priority', icon: 'zap', title: '优先匹配', text: (t) => (t.priority ? '匹配更快' : '—') },
+        { key: 'freePass', icon: 'ticket', title: '高级房免房卡', text: (t) => (t.freePass ? '直接进入' : '—') },
+        { key: 'vipStake', icon: 'crown', title: '会员专属场', text: (t) => (t.vipStake ? '奖池更高' : '—') },
+      ] },
+      { id: 'social', name: '社交特权', items: [
+        { key: 'voiceFree', icon: 'phone', title: '语音通话', text: (t) => (t.voiceFree ? '免费' : '20钻石/次') },
+        { key: 'videoFree', icon: 'video', title: '视频通话', text: (t) => (t.videoFree ? '免费' : '50钻石/次') },
+        { key: 'friendCap', icon: 'users', title: '好友上限', text: (t) => `${t.friendCap}人` },
+        { key: 'visitors', icon: 'eye', title: '谁看过我', text: (t) => (t.visitors ? '查看访客' : '—') },
+        { key: 'pin', icon: 'userPlus', title: '好友申请置顶', text: (t) => (t.pin ? '带附言、优先展示' : '—') },
+      ] },
+      { id: 'identity', name: '身份特权', items: [
+        { key: 'frame', icon: 'crown', title: '专属头像框', text: (t) => (t.frame === 'svip' ? '超级会员动态框' : t.frame ? '会员金框' : '—') },
+        { key: 'name', icon: 'star', title: '名字颜色', text: (t) => (t.id === 2 ? '彩色名字+超级标' : t.id === 1 ? '金色名字+会员标' : '—') },
+        { key: 'entryFx', icon: 'sparkles', title: '对局入场特效', text: (t) => (t.entryFx ? '匹配成功专属特效' : '—') },
+        { key: 'stickers', icon: 'smile', title: '专属表情和气泡', text: (t) => (t.stickers ? `${t.stickers}套` : '—') },
+      ] },
+      { id: 'grow', name: '成长特权', items: [
+        { key: 'gems', icon: 'gift', title: '开通即得钻石', text: (t) => (t.gems ? `${t.gems}钻石` : '—') },
+        { key: 'dailyGems', icon: 'gem', title: '每日钻石', text: (t) => (t.dailyGems ? `每天${t.dailyGems}` : '—') },
+        { key: 'sign', icon: 'calendar', title: '签到奖励', text: (t) => (t.sign > 1 ? `×${t.sign}` : '—') },
+        { key: 'expBonus', icon: 'chart', title: '对局经验', text: (t) => (t.expBonus ? `+${Math.round(t.expBonus * 100)}%` : '—') },
+      ] },
+    ],
+  };
 
   /* ---------- 签到 ---------- */
   D.signin = [
