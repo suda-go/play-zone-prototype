@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>畅玩空间 · 互动游戏频道原型</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/battle.css">
+  <link rel="stylesheet" href="css/growth.css">
+  <link rel="stylesheet" href="css/social.css">
+  <link rel="stylesheet" href="css/me.css">
+</head>
+<body>
+  <!-- 共享渐变：表情团子、段位徽章（放在不隐藏的 SVG 里，避免 Chrome 引用失效） -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="blobg" x1="16" y1="6" x2="50" y2="62" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#62a0ff"/><stop offset=".5" stop-color="#2f67e6"/><stop offset="1" stop-color="#0b2fae"/>
+      </linearGradient>
+      <linearGradient id="tier0" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f1b47c"/><stop offset="1" stop-color="#9a5524"/></linearGradient>
+      <linearGradient id="tier1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eef2f8"/><stop offset="1" stop-color="#8d9bb3"/></linearGradient>
+      <linearGradient id="tier2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe680"/><stop offset="1" stop-color="#ee9a00"/></linearGradient>
+      <linearGradient id="tier3" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8f7ee"/><stop offset="1" stop-color="#1fa3bf"/></linearGradient>
+      <linearGradient id="tier4" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4b8ff"/><stop offset="1" stop-color="#4f6bff"/></linearGradient>
+    </defs>
+  </svg>
+
+  <div class="stage">
+    <div class="device" id="device">
+      <i class="device-key key-power" aria-hidden="true"></i>
+      <i class="device-key key-volume" aria-hidden="true"></i>
+      <div class="screen">
+
+        <!-- 页面：内容由 js/pages/*.js 渲染 -->
+        <main class="pages">
+          <!-- 频道 4 个 Tab（Play 为启动页） -->
+          <section class="page" data-page="play"></section>
+          <section class="page" data-page="rooms"></section>
+          <section class="page" data-page="chat"></section>
+          <section class="page" data-page="me"></section>
+
+          <!-- 对局链路 -->
+          <section class="page" data-page="detail" data-status="light"></section>
+          <section class="page" data-page="match" data-status="light" data-transient></section>
+          <section class="page" data-page="game" data-status="light" data-transient></section>
+          <section class="page" data-page="result" data-status="light" data-transient></section>
+
+          <!-- 大厅功能 -->
+          <section class="page" data-page="tasks"></section>
+          <section class="page" data-page="rank" data-status="light"></section>
+          <section class="page" data-page="shop"></section>
+
+          <!-- 房间与社交 -->
+          <section class="page" data-page="create"></section>
+          <section class="page" data-page="room" data-status="light"></section>
+          <section class="page" data-page="dm"></section>
+          <section class="page" data-page="requests"></section>
+          <section class="page" data-page="addfriend"></section>
+          <section class="page" data-page="newgroup"></section>
+          <section class="page" data-page="profile" data-status="light"></section>
+
+          <!-- 我的 -->
+          <section class="page" data-page="edit"></section>
+          <section class="page" data-page="wallet"></section>
+          <section class="page" data-page="bag"></section>
+          <section class="page" data-page="stats"></section>
+          <section class="page" data-page="badges"></section>
+          <section class="page" data-page="settings"></section>
+        </main>
+
+        <!-- 系统层：安卓状态栏、挖孔摄像头、手势条（手机上直接打开时隐藏） -->
+        <div class="status-bar" aria-hidden="true">
+          <span class="status-time">2:32</span>
+          <span class="status-icons">
+            <svg width="17" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+            <svg width="16" height="12" viewBox="0 0 17 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M1.6 4.6a10 10 0 0 1 13.8 0"/><path d="M4.3 7.4a6.1 6.1 0 0 1 8.4 0"/><circle cx="8.5" cy="10.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+            <svg width="25" height="12" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="currentColor"/><path d="M25 4.5v4c.8-.3 1.5-1.1 1.5-2s-.7-1.7-1.5-2z" fill="currentColor" opacity=".45"/></svg>
+          </span>
+        </div>
+        <div class="punch-hole" aria-hidden="true"></div>
+        <div class="gesture-bar" aria-hidden="true"></div>
+
+        <div class="fly-layer" aria-hidden="true"></div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/pages/play.js"></script>
+  <script src="js/pages/battle.js"></script>
+  <script src="js/pages/tasks.js"></script>
+  <script src="js/pages/rank.js"></script>
+  <script src="js/pages/shop.js"></script>
+  <script src="js/pages/rooms.js"></script>
+  <script src="js/pages/chat.js"></script>
+  <script src="js/pages/me.js"></script>
+</body>
+</html>

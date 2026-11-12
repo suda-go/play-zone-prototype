@@ -1,0 +1,104 @@
+/* =========================================================
+   C Play 大厅（启动页）、B3 签到、C3 回合制、C4 好友弹层
+   ========================================================= */
+
+/* ---------- C Play 大厅（对照 Figma 游戏大厅） ---------- */
+.page[data-page="play"] { background: #f3f1ff; }
+.lobby-bg { position: absolute; left: 0; right: 0; top: 0; height: 380px; background: url(../assets/img/fx/aurora.jpg) center top / cover; -webkit-mask: linear-gradient(#000 45%, transparent); mask: linear-gradient(#000 45%, transparent); pointer-events: none; }
+.lobby-top { position: relative; z-index: 5; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: calc(var(--status-h) + 6px) 8px 8px 12px; }
+.lobby-me { position: relative; margin: 0 2px; }
+.lobby-me .av-img { box-shadow: 0 0 0 2px #fff; }
+.lobby-lv { position: absolute; left: 50%; bottom: -6px; height: 15px; padding: 0 5px; border-radius: 8px; background: var(--g-purple); color: #fff; font: 800 9.5px/15px var(--num); white-space: nowrap; transform: translateX(-50%); box-shadow: 0 0 0 1.5px #fff; }
+.lobby-chips { flex: 1; display: flex; justify-content: flex-end; gap: 6px; }
+.lobby-sign img, .lobby-shop img { width: 30px; height: 30px; object-fit: contain; }
+.lobby-sign .count { top: 2px; right: 0; }
+.lobby-body { position: relative; z-index: 1; }
+.season { display: flex; align-items: center; gap: 10px; width: calc(100% - 32px); margin: 4px 16px 0; padding: 9px 12px 9px 10px; border-radius: 16px; background: linear-gradient(100deg, #6c4dff, #9b5cff 55%, #ff6fb1); color: #fff; text-align: left; box-shadow: 0 10px 22px -14px rgba(108, 77, 255, .85); }
+.season-trophy { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .25)); }
+.season-txt { flex: 1; min-width: 0; }
+.season-txt b { display: block; font-size: 14px; font-weight: 800; }
+.season-txt span { display: block; font-size: 12px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.season-left { display: flex; align-items: center; gap: 3px; padding: 4px 8px; border-radius: 10px; background: rgba(255, 255, 255, .2); font: 700 11px var(--num); white-space: nowrap; }
+.turn { display: flex; align-items: center; gap: 12px; margin: 12px 16px 0; padding: 12px; }
+.turn.is-mine { box-shadow: 0 0 0 1.5px #ffb36b, 0 10px 24px -16px rgba(255, 120, 40, .7); }
+.turn-m { flex: 1; min-width: 0; }
+.turn-tt { display: flex; align-items: center; gap: 6px; }
+.turn-tt b { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.turn-sub { display: block; margin-top: 1px; font-size: 12px; color: var(--text-2); }
+.turn-time { display: flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 700; color: #ff7a2f; }
+.turn:not(.is-mine) .turn-time { color: var(--text-3); font-weight: 500; }
+.sec-n { margin-left: 2px; font-size: 13px; font-weight: 700; font-style: normal; color: var(--text-3); }
+.lobby-friends { gap: 12px; padding: 2px 16px 4px; }
+.lf { flex-shrink: 0; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.lf b { max-width: 62px; margin-top: 4px; font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lf > span { max-width: 66px; font-size: 10.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lf-plus { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; border: 1.5px dashed #b6c1dc; background: #fff; color: var(--blue); }
+.lobby-cats { position: sticky; top: 0; z-index: 4; padding: 4px 0 10px; background: linear-gradient(#f3f1ff 78%, rgba(243, 241, 255, 0)); }
+.lobby-cats .hscroll { gap: 8px; padding: 0 16px; }
+.lobby-games { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.gcard { position: relative; height: 204px; overflow: hidden; border-radius: 18px; cursor: pointer; box-shadow: 0 12px 26px -16px rgba(30, 40, 120, .75); transition: transform .15s; }
+.gcard:active { transform: scale(.985); }
+.lobby-games > .gcard:first-child { box-shadow: 0 0 0 3px var(--blue), 0 12px 26px -16px rgba(30, 40, 120, .75); }
+.gcard-cover { width: 100%; height: 100%; object-fit: cover; }
+.gcard-tags { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }
+.gcard-cost { position: absolute; right: 10px; top: 10px; display: flex; align-items: center; gap: 3px; height: 24px; padding: 0 9px; border-radius: 12px; background: rgba(0, 0, 0, .45); color: #fff; font: 700 12px var(--num); backdrop-filter: blur(6px); }
+.gcard-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 34px 12px 12px; background: linear-gradient(rgba(10, 20, 80, 0), rgba(10, 20, 80, .78)); color: #fff; }
+.gcard-icon { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85); }
+.gcard-txt { flex: 1; min-width: 0; }
+.gcard-txt b { display: block; font-size: 17px; font-weight: 800; text-shadow: 0 1px 4px rgba(0, 0, 0, .35); }
+.gcard-txt span { display: flex; align-items: center; gap: 5px; font-size: 12px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gcard-play { height: 34px; padding: 0 20px; font-size: 15px; font-weight: 800; }
+.live-dot { display: inline-block; flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: #3bf08f; box-shadow: 0 0 0 2px rgba(59, 240, 143, .25); }
+.mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mcard { padding: 8px 8px 10px; border-radius: 18px; background: #fff; box-shadow: var(--shadow-s); cursor: pointer; transition: transform .15s; }
+.mcard:active { transform: scale(.97); }
+.mcard-img { position: relative; aspect-ratio: 1.3; overflow: hidden; border-radius: 13px; }
+.mcard-img img { width: 100%; height: 100%; object-fit: cover; }
+.mcard-tag { position: absolute; left: 6px; top: 6px; }
+.mcard-online { position: absolute; left: 6px; bottom: 6px; display: flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 9px; background: rgba(0, 0, 0, .5); color: #fff; font: 700 10.5px/1.4 var(--num); }
+.mcard > b { display: block; margin: 8px 2px 4px; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mcard-foot { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 2px; }
+.mcard-meta { display: flex; align-items: center; gap: 3px; font-size: 11.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; }
+.mcard .btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
+
+/* ---------- B3 7 日签到 ---------- */
+.sign-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sign-day { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px 9px; border-radius: 14px; background: #f3f5fb; box-shadow: inset 0 0 0 1px var(--line); }
+.sign-d { font-size: 11px; font-weight: 700; color: var(--text-2); white-space: nowrap; }
+.sign-ic { height: 40px; display: grid; place-items: center; }
+.sign-ic img, .sign-ic .av { width: 36px !important; height: 36px !important; }
+.sign-day > b { font: 800 13px var(--num); }
+.sign-check { position: absolute; inset: 0; display: none; place-items: center; border-radius: inherit; background: rgba(255, 255, 255, .62); color: var(--green); }
+.sign-day.is-done .sign-check { display: grid; }
+.sign-day.is-today { background: linear-gradient(180deg, #fff3df, #ffe0b3); box-shadow: inset 0 0 0 2px #ffaf45; animation: glow 1.6s infinite; }
+.sign-day.is-today .sign-d { color: #e8740c; }
+.sign-day.is-next .sign-d { color: var(--blue); }
+.sign-day.is-claiming { animation: bump .5s var(--spring); }
+.sign-big { grid-column: span 2; flex-direction: row; justify-content: flex-start; gap: 6px; padding: 8px 10px; background: linear-gradient(135deg, #efe6ff, #ffe3f1); text-align: left; }
+.sign-big .sign-d { position: absolute; top: 6px; left: 10px; color: #7b5cff; }
+.sign-gift { width: 56px; margin-top: 12px; }
+.sign-big-items { display: flex; flex-direction: column; margin-top: 12px; }
+.sign-big-items b { white-space: nowrap; font-size: 11px; font-weight: 800; color: #5a3fd1; line-height: 1.35; }
+.sign-bal { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 14px 0 10px; font-size: 13px; color: var(--text-2); }
+.sign-bal span { display: flex; align-items: center; gap: 3px; font: 700 14px var(--num); color: var(--text); }
+.sign-note { margin-top: 8px; text-align: center; font-size: 12px; color: var(--text-3); }
+.demo-link { display: block; margin: 8px auto 0; padding: 4px 10px; border-radius: 8px; border: 1px dashed #c5cad8; font-size: 12px; color: var(--text-2); }
+
+/* ---------- C3 回合制 ---------- */
+.tb-players { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 2px 0 4px; }
+.tb-players > span { display: flex; align-items: center; gap: 6px; }
+.tb-players b { font-weight: 800; }
+.tb-players em { font: 900 18px var(--display); font-style: normal; color: var(--text-3); }
+.tb { display: flex; justify-content: center; }
+.tb-tip { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-size: 12.5px; color: var(--text-2); text-align: center; }
+
+/* ---------- C4 好友弹层 ---------- */
+.fs-hd { display: flex; align-items: center; gap: 14px; padding: 14px 0 8px; }
+.fs-txt h3 { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 800; }
+.fs-txt p { font-size: 13px; color: var(--text-2); }
+.fs-txt p.is-on { color: var(--green); font-weight: 600; }
+.fs-fav { display: flex; align-items: center; gap: 8px; margin: 6px 0 16px; font-size: 12.5px; color: var(--text-2); }
+.fs-fav img { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
+.fs-btns { display: flex; flex-direction: column; gap: 10px; }
+.fs-row { display: flex; gap: 10px; }
+.fs-row .btn { flex: 1; }
