@@ -418,3 +418,5 @@
 
 /* V7 首发版：去掉了左上角缩小按钮，标题离边缘留点距离 */
 .gm-top .gm-title { padding-left: 12px; }
+/* V7：对手资料卡去掉段位，统计改成三项 */
+.op-stats { grid-template-columns: repeat(3, 1fr); }

@@ -132,14 +132,12 @@
       { id: 'game', name: '对局特权', items: [
         { key: 'dailyCoins', icon: 'coin', title: '每日免费金币', text: (t) => (t.dailyCoins ? `每天领${t.dailyCoins}` : '—') },
         { key: 'aid', icon: 'shield', title: '破产补助', text: (t) => (t.aid ? `金币不够时每天${t.aid}次` : '—') },
-        { key: 'protect', icon: 'shield', title: '段位保护卡', text: (t) => (t.protect ? `每周${t.protect}张，输了不掉分` : '—') },
         { key: 'priority', icon: 'zap', title: '优先匹配', text: (t) => (t.priority ? '匹配更快' : '—') },
       ] },
       { id: 'social', name: '社交特权', items: [
         { key: 'voiceFree', icon: 'phone', title: '语音通话', text: (t) => (t.voiceFree ? '免费' : '200金币/次') },
         { key: 'videoFree', icon: 'video', title: '视频通话', text: (t) => (t.videoFree ? '免费' : '500金币/次') },
         { key: 'friendCap', icon: 'users', title: '好友上限', text: (t) => `${t.friendCap}人` },
-        { key: 'visitors', icon: 'eye', title: '谁看过我', text: (t) => (t.visitors ? '查看访客' : '—') },
         { key: 'pin', icon: 'userPlus', title: '好友申请置顶', text: (t) => (t.pin ? '带附言、优先展示' : '—') },
       ] },
       { id: 'identity', name: '身份特权', items: [
@@ -151,7 +149,6 @@
       { id: 'grow', name: '成长特权', items: [
         { key: 'bonus', icon: 'gift', title: '开通即得金币', text: (t) => (t.bonus ? `${t.bonus.toLocaleString('zh-CN')}金币` : '—') },
         { key: 'sign', icon: 'calendar', title: '签到奖励', text: (t) => (t.sign > 1 ? `×${t.sign}` : '—') },
-        { key: 'expBonus', icon: 'chart', title: '对局经验', text: (t) => (t.expBonus ? `+${Math.round(t.expBonus * 100)}%` : '—') },
       ] },
     ],
   };
@@ -178,7 +175,6 @@
     T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { coins: 800 }, 'friends'),
     T('w_win', 'weekly', '赢10局', 10, 'wins', { coins: 200 }, 'c4'),
     T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { coins: 1000 }, 'recent', { period: '2026.11.01 - 11.30' }),
-    T('l_notify', 'limited', '开启回合提醒', 1, 'notify', { coins: 1000 }, 'notify', { period: '3个月' }),
     T('l_share', 'limited', '分享3次', 3, 'shares', { coins: 1000 }, 'share', { period: '2026.11.01 - 12.31' }),
   ];
   D.taskGroups = [
@@ -240,7 +236,7 @@
       { from: 'lucas', type: 'invite', game: 'c4', room: 'squad', text: '房间开好了，谁先来', t: '09:20' },
     ] },
     kai: { type: 'dm', with: 'kai', unread: 1, msgs: [
-      { from: 'kai', text: '轮到你了！别让我等太久 ⏳', t: '08:47' },
+      { from: 'kai', text: '上一局下得不错，改天再约 👍', t: '08:47' },
     ] },
     system: { type: 'system', name: 'Soulgame', unread: 1, msgs: [
       { from: 'system', text: '欢迎来到 Soulgame！快速开始找人下一局，或者约好友一起玩，赢家拿走奖池。', t: '周一' },
@@ -262,7 +258,6 @@
     ],
     pts: { lily: 1360, daniel: 760, mia: 520, kai: 380, alex: 240 }, // 和各好友的亲密度，其他好友用 def
     def: 60,
-    pets: { lily: { name: '豆豆', img: `${IMG}pet/doudou.svg`, days: 12 } }, // 示例只有莉莉
   };
 
   /* ---------- 局内表情 ---------- */

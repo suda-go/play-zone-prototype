@@ -1,5 +1,5 @@
 /**
- * L 我的：L1 主页头部（含会员条、游客绑定提示）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包（V7 首发版不做 L6 徽章）、
+ * L 我的：L1 主页头部（含会员条、游客绑定提示）、L2 编辑资料、L3 战绩、L4 钱包、L5 背包（V7 首发版不做 L6 徽章）、
  * L7 设置（含账号与退出登录、重置演示）
  */
 (() => {
@@ -36,7 +36,7 @@
     const t = T[tier];
     const sub = Store.canVipDaily()
       ? `<small class="is-hot">今日福利待领取 ${UI.dot('vip')}</small>`
-      : `<small>每天${UI.fmt(t.dailyCoins)}金币 · 签到×${t.sign} · 保护卡${Store.protectLeft()}张</small>`;
+      : `<small>每天${UI.fmt(t.dailyCoins)}金币 · 签到×${t.sign} · 破产补助</small>`;
     return `<button class="me-vip is-t${tier}" data-act="vip"><img class="me-vip-crown" src="${IMG}ui/crown.png" alt="">
       <span class="me-vip-main"><b>${t.name}生效中</b>${sub}</span>
       <span class="me-vip-btn">${Store.canVipDaily() ? '去领取' : '会员中心'}</span></button>`;
@@ -53,8 +53,6 @@
   App.page('me', {
     render(el) {
       const s = Store.s;
-      const need = Store.need(s.user.lv);
-      const r = Store.rank(D.GAME);
       const winRate = pct(s.record.wins, s.record.games);
       const owned = s.owned.frame.length + s.owned.bubble.length + s.owned.bg.length;
       el.innerHTML = `
@@ -69,24 +67,21 @@
             <h1>${UI.name('me')}</h1>
             <button class="me-id" data-act="copy">ID ${s.user.uid} ${UI.ic('copy', 13)}</button>
             <p class="me-bio">${UI.esc(s.user.bio)}</p>
-            <div class="me-lv"><span class="me-lv-tag">Lv${s.user.lv}</span>${UI.bar(s.user.exp, need, 'is-green')}<em>${s.user.exp}/${need}经验</em></div>
           </div>
           ${guestBanner()}
           ${vipBanner()}
           <div class="me-wallet">
-            <button data-go="wallet" data-cur="exp">${UI.cur('exp', 30)}<b>Lv${s.user.lv}</b><span>经验${s.user.exp}</span></button>
             <button data-go="wallet" data-cur="coins">${UI.cur('coins', 30)}${UI.bind('coins')}<span>金币</span></button>
           </div>
           <button class="me-stats card" data-go="stats">
             <span><b>${s.record.games}</b>对局</span><span><b>${winRate}%</b>胜率</span>
-            <span>${UI.tier(r.tier, 24)}<b>${D.tiers[r.tier]}</b>四子棋段位</span>
+            <span><b>${s.record.wins}</b>胜场</span>
             ${UI.ic('right', 18, 'cell-arrow')}
           </button>
           <div class="cells me-cells">
             <button class="cell" data-go="bag"><span class="cell-ic">${UI.ic('bag', 21)}</span><span class="cell-main">背包</span><span class="cell-val">${owned}件</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="wallet"><span class="cell-ic">${UI.ic('wallet', 21)}</span><span class="cell-main">钱包与明细</span><span class="cell-val">${s.log.length}条记录</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="friends"><span class="cell-ic">${UI.ic('users', 21)}</span><span class="cell-main">好友</span><span class="cell-val">${s.friends.length}${s.requests.length ? ` <i class="count is-inline">${s.requests.length}</i>` : ''}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell me-visitors" data-go="visitors"><span class="cell-ic">${UI.ic('eye', 21)}</span><span class="cell-main">谁看过我</span><span class="cell-val">${Store.perk('visitors') ? `${s.visitors.length}位访客` : `${UI.ic('lock', 13)} ${s.visitors.length}位访客`}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="shop"><span class="cell-ic">${UI.ic('gift', 21)}</span><span class="cell-main">商城</span><span class="cell-val">装扮、充值和会员</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="settings"><span class="cell-ic">${UI.ic('gear', 21)}</span><span class="cell-main">设置</span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
@@ -103,33 +98,6 @@
     },
   });
 
-  /* ================= 谁看过我（超级会员可见） ================= */
-  App.page('visitors', {
-    render(el) {
-      const list = Store.s.visitors || [];
-      const open = !!Store.perk('visitors');
-      const rows = list.map((v) => {
-        const p = D.people[v.id];
-        if (!p) return '';
-        return `<div class="row vs-row" data-uid="${v.id}">${UI.av(v.id, 44, { on: open })}
-          <span class="row-main"><b>${open ? UI.name(v.id) : '***'}</b><span>${v.t}看过你的主页${open ? ` · Lv${p.lv}` : ''}</span></span>
-          ${open ? `<button class="btn btn-line btn-sm" data-act="see" data-uid="${v.id}">去看看</button>` : ''}</div>`;
-      }).join('');
-      el.innerHTML = `${UI.nav({ title: '谁看过我', sub: '最近7天', cls: 'is-white' })}
-        <div class="body vs-body" data-scroll="main">
-          <div class="vs-sum"><span class="vs-sum-ic">${UI.ic('eye', 24)}</span><span><b>最近有${list.length}人看过你</b><span>${open ? '去打个招呼，说不定能多个好友' : '开通超级会员，看看是谁对你感兴趣'}</span></span></div>
-          ${list.length ? `<div class="vs-list ${open ? '' : 'is-locked'}">${rows}
-            ${open ? '' : `<div class="vs-lock"><span class="vs-lock-ic">${UI.ic('lock', 24)}</span><b>超级会员专属</b><p>开通后能看到所有访客，并直接去TA的主页</p>
-              <button class="btn btn-lg vs-cta" data-act="unlock">开通超级会员查看访客</button></div>`}</div>` : UI.empty('还没有人来看过你，多去对局交朋友吧')}
-          <p class="vs-tip">${UI.ic('info', 13)} 访客记录保留7天</p>
-          <div class="bottom-space"></div>
-        </div>`;
-    },
-    act: {
-      see: (el) => App.go('profile', { uid: el.dataset.uid }),
-      unlock: () => Vip.open(2),
-    },
-  });
 
   /* ================= L2 编辑资料 ================= */
   let pickBg = null;
@@ -177,16 +145,15 @@
   App.page('wallet', {
     render(el, p) {
       const s = Store.s;
-      const f = p.cur && ['coins', 'exp'].includes(p.cur) ? p.cur : 'all';
+      const f = p.cur === 'coins' ? 'coins' : 'all';
       const logs = s.log.filter((x) => f === 'all' || x.cur === f);
-      const tabs = [['all', '全部'], ['coins', '金币'], ['exp', '经验']];
+      const tabs = [['all', '全部'], ['coins', '金币']];
       el.innerHTML = `${UI.nav({ title: '钱包', cls: 'is-white' })}
         <div class="body wl-body" data-scroll="main">
           <div class="wl-sum">
             <div><span>${UI.cur('coins', 26)}金币</span>${UI.bind('coins')}<button class="btn btn-white btn-sm" data-act="topup" data-cur="coins">充值</button></div>
-            <div><span>${UI.cur('exp', 26)}等级</span><b class="num">Lv${s.user.lv}</b><em>${s.user.exp}/${Store.need(s.user.lv)}经验</em></div>
           </div>
-          <p class="wl-rule">金币：对局底注、买装扮和道具、通话 · 经验：用于升级<span class="nowrap">（胜+50，负+20）</span></p>
+          <p class="wl-rule">金币：对局底注、买装扮、付费通话；赢了拿走奖池，做任务、签到也能领</p>
           <div class="pills wl-tabs">${tabs.map(([id, label]) => `<button class="pill ${id === f ? 'is-active' : ''}" data-act="f" data-f="${id}">${label}</button>`).join('')}</div>
           <div class="wl-list">${logs.length ? logs.map((x) => `<div class="wl-row">${UI.cur(x.cur, 30)}<span class="row-main"><b>${UI.esc(x.note)}</b><span>${ago(x.t)}</span></span><em class="${x.n > 0 ? 'is-in' : 'is-out'}">${x.n > 0 ? '+' : ''}${UI.fmt(x.n)}</em></div>`).join('')
             : UI.empty('还没有记录，先去领新手礼包吧！')}</div>
@@ -245,19 +212,10 @@
     render(el) {
       const s = Store.s;
       const g = D.game[D.GAME];
-      const r = Store.rank(D.GAME);
-      const gs = s.gstats[D.GAME] || { g: 0, w: 0 };
       const name = (id) => (D.people[id] ? D.people[id].name : id === 'bot' ? '人机' : '—');
       el.innerHTML = `${UI.nav({ title: '战绩', cls: 'is-white' })}
         <div class="body st-body" data-scroll="main">
           <div class="st-sum card"><span><b>${s.record.games}</b>对局</span><span><b>${s.record.wins}</b>胜场</span><span><b>${pct(s.record.wins, s.record.games)}%</b>胜率</span><span><b>${Math.floor(s.cnt.all.seconds / 60)}分钟</b>游戏时长</span></div>
-          <div class="sec-hd"><h2>段位</h2></div>
-          <div class="st-game card">
-            <img class="st-ic" src="${g.icon}" alt="">
-            <div class="st-game-main"><b>${g.name}</b><span>${UI.tier(r.tier, 20)}${D.tiers[r.tier]} · ${r.pts}/100分</span>
-              <small>${gs.g}局 · 胜${gs.w}局 · 胜率${pct(gs.w, gs.g)}%</small></div>
-            <button class="btn btn-orange btn-sm" data-tab="play">去对局</button>
-          </div>
           <div class="sec-hd"><h2>最近对局</h2></div>
           <div class="st-list">${s.history.length ? s.history.map((m) => {
             const st = m.stake && D.stake[m.stake];
@@ -297,7 +255,7 @@
             <div class="cell"><span class="cell-ic">${UI.ic('volume', 20)}</span><span class="cell-main">音效</span>${UI.toggle(st.sound, 'toggle', 'data-k="sound"')}</div>
           </div>
           <div class="set-hd">通知</div>
-          <div class="cells">${row('invite', '游戏邀请', '好友邀请你一起玩时提醒')}${row('friend', '好友申请', '有人想加你好友时提醒')}${row('turn', '回合提醒', '回合制游戏轮到你时提醒')}</div>
+          <div class="cells">${row('invite', '游戏邀请', '好友邀请你一起玩时提醒')}${row('friend', '好友申请', '有人想加你好友时提醒')}</div>
           <div class="set-hd">演示调试</div>
           <div class="cells">
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>

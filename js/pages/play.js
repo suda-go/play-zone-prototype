@@ -3,7 +3,7 @@
  *   顶栏 → 四子棋标志 → 玩法入口（快速开始、和好友玩）。V7 首发版不做赛季、排行榜
  *   快速开始一点就匹配；金币分场收进“换场次”弹层
  * 以及启动相关的：B2 新手礼包、B5 退出挽留、B6 离线收益（B3 7 日签到在 tasks.js 顶部）、
- * C3 回合制对局（和 Kai，入口是右下角悬浮窗；V7 首发版悬浮窗先不做，这个入口暂时关闭）、K3 好友主动发来邀请
+ * K3 好友主动发来邀请（V7 首发版不做 C3 回合制对局）
  */
 (() => {
   'use strict';
@@ -11,7 +11,6 @@
   const IMG = D.IMG;
   let retainShown = false;
   let pingTimer = 0;
-  let kaiTimer = 0;
   const pageEl = () => document.querySelector('.page[data-page="play"]');
 
   /* ================= 启动 / 退出 ================= */
@@ -44,7 +43,7 @@
   function header() {
     const s = Store.s;
     return `<header class="lobby-top safe-top">
-      <button class="lobby-me" data-tab="me" aria-label="我的资料">${UI.av('me', 36)}<span class="lobby-lv">Lv${s.user.lv}</span></button>
+      <button class="lobby-me" data-tab="me" aria-label="我的资料">${UI.av('me', 36)}</button>
       <div class="lobby-chips">${UI.chips(['coins'])}</div>
       <button class="icon-btn lobby-sign" data-go="tasks" aria-label="签到和任务"><img src="${IMG}ui/calendar.png" alt="">${UI.count('welfare')}</button>
       <button class="icon-btn lobby-shop" data-go="shop" aria-label="商城"><img src="${IMG}ui/store.png" alt=""></button>
@@ -81,7 +80,7 @@
     const normal = D.stakes.filter((x) => !x.vip);
     const ok = normal.filter((x) => Battle.canEnter(x) === 'ok');
     const lower = ok.filter((x) => x.bet <= last.bet);
-    return lower[lower.length - 1] || ok[0] || normal.find((x) => Store.s.user.lv >= x.lv) || last;
+    return lower[lower.length - 1] || ok[0] || normal[0] || last;
   }
 
   /** 玩法入口：快速开始、和好友玩（V7 首发版先不做人机练习、创建房间、超级会员场） */
@@ -113,7 +112,7 @@
       <b class="stake-name">${st.vip ? `${UI.vipTag(2)} ` : ''}${st.name}</b>
       <span class="stake-bet">${UI.cur('coins', 22)}${UI.fmt(st.bet)}</span>
       <span class="stake-pot">奖池 ${UI.fmt(Battle.pot(st))}</span>
-      ${k === 'vip' ? `<span class="stake-lock">${UI.ic('crown', 12)} 超级会员专属 · 奖池×${st.potX}</span>` : k === 'lock' ? `<span class="stake-lock">${UI.ic('lock', 12)} Lv${st.lv}解锁</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}${st.vip ? ` · 奖池×${st.potX}` : ''}</span>`}
+      ${k === 'vip' ? `<span class="stake-lock">${UI.ic('crown', 12)} 超级会员专属 · 奖池×${st.potX}</span>` : `<span class="stake-on"><i class="live-dot"></i>${UI.fmt(st.online)}${st.vip ? ` · 奖池×${st.potX}` : ''}</span>`}
       ${s.stake === st.id && k !== 'lock' && k !== 'vip' ? '<i class="stake-tag">上次</i>' : ''}
       ${st.vip ? `<img class="stake-crown" src="${IMG}ui/crown.png" alt="">` : ''}
     </button>`;
@@ -127,8 +126,6 @@
       acts: {
         stake: (el) => {
           const st = D.stake[el.dataset.id];
-          // 等级不够：留在弹层里提示，其他情况（开局、金币不足、会员专属）交给 Battle.quick
-          if (Battle.canEnter(st) === 'lock') { UI.toast(`${st.name}需要Lv${st.lv}解锁`); Sfx.play('error'); return; }
           c.close();
           Battle.quick(st.id);
         },
@@ -187,86 +184,6 @@
     }
   }
 
-  /* ================= 回合制提醒：右下角悬浮窗（原首页卡片） ================= */
-  function goTurn() {
-    if (App.top() !== 'play') App.tab('play');
-    App.whenIdle(() => setTimeout(openTurn, 200));
-  }
-  UI.floater.add(() => {
-    if (!Store.s.welcome) return null;
-    const t = Store.s.turn;
-    const p = D.people[t.with];
-    return {
-      id: 'turn', key: t.my ? 'my' : 'wait', close: true, uid: t.with, urgent: t.my,
-      board: C4.html(t.board, { cls: 'is-mini' }),
-      title: t.my ? '轮到你了 · 去落子' : `等${p.name}落子`,
-      sub: t.my ? `回合制 · 还剩23小时` : '回合制 · 点击催一下',
-      onTap: () => { if (t.my) goTurn(); else { UI.toast(`已催${p.name}落子👋`); scheduleKai(3500); } },
-    };
-  }, 1);
-
-  /* ================= C3 回合制对局 ================= */
-  function openTurn() {
-    const t = Store.s.turn;
-    const p = D.people[t.with];
-    if (!t.my) { UI.toast(`等待${p.name}落子`); return; }
-    const c = UI.sheet({
-      title: `对战${p.name} · 轮到你了`,
-      sub: '四子棋 · 回合制。点击一列落子。',
-      html: `<div class="tb-players"><span>${UI.av('me', 28)}<b>你</b><i class="disc p1"></i></span><em>VS</em><span><i class="disc p2"></i><b>${p.name}</b>${UI.av(t.with, 28)}</span></div>
-        <div class="tb">${C4.html(t.board, { cls: 'is-sheet', cols: true })}</div>
-        <p class="tb-tip">${UI.ic('info', 14)} 你落子后，${p.name}有24小时回应，到时会通知你。</p>`,
-      acts: { col: (el) => moveTurn(c, +el.dataset.c) },
-    });
-  }
-  async function moveTurn(c, col) {
-    const t = Store.s.turn;
-    if (!t.my) return;
-    const row = C4.drop(t.board, col, 1);
-    if (row < 0) { UI.toast('这一列已经满了'); return; }
-    t.my = false;
-    Store.save();
-    C4.paint(c.$('.c4'), row, col, 1);
-    Sfx.play('drop');
-    const win = C4.wins(t.board, 1);
-    await UI.sleep(750);
-    c.close();
-    if (win) {
-      t.board = C4.empty();
-      t.my = true;
-      Store.save();
-      App.refresh('play');
-      await UI.reward({ title: '你赢了！', sub: `你在回合制四子棋中击败了${D.people[t.with].name}。`, img: `${IMG}ui/trophy.png`, items: { coins: 300 }, note: '回合制胜利' });
-      return;
-    }
-    UI.toast(`已落子！${D.people[t.with].name}有24小时回应`);
-    App.refresh('play');
-    scheduleKai(25000);
-  }
-  function scheduleKai(ms) {
-    clearTimeout(kaiTimer);
-    kaiTimer = setTimeout(() => {
-      kaiTimer = 0;
-      const t = Store.s.turn;
-      if (t.my) return;
-      const col = C4.bot(t.board, 2, 1, 0.9);
-      let text = '四子棋轮到你了';
-      if (col < 0 || C4.full(t.board)) {
-        t.board = C4.empty();
-        text = '棋盘下满了。新开一局，轮到你了！';
-      } else {
-        C4.drop(t.board, col, 2);
-        if (C4.wins(t.board, 2)) { t.board = C4.empty(); text = `${D.people[t.with].name}赢了这局。新开一局，轮到你了！`; }
-      }
-      t.my = true;
-      Store.save();
-      Store.post(t.with, { from: t.with, text: '轮到你了！😎' });
-      UI.notify({ img: D.people[t.with].avatar, title: `${D.people[t.with].name}已落子`, text, btn: '去落子',
-        onTap: goTurn });
-      if (App.top() === 'play') App.refresh('play');
-    }, ms);
-  }
-
   /* ================= K3 好友主动发来邀请 ================= */
   function schedulePing() {
     if (Store.s.pinged || pingTimer) return;
@@ -300,7 +217,6 @@
         await UI.coach(el.querySelector('.lobby-sign'), '每天签到、做任务，免费领金币，第7天有大奖！', { key: 'sign' });
       }
       schedulePing();
-      if (!Store.s.turn.my && !kaiTimer) scheduleKai(9000);
     },
     back() {
       if (!retainShown && (Store.claimable() > 0 || Store.canSign())) {
@@ -312,12 +228,6 @@
       return false;
     },
     act: {
-      turn: () => openTurn(),
-      nudge: () => {
-        const p = D.people[Store.s.turn.with];
-        UI.toast(`已催${p.name}落子👋`);
-        scheduleKai(3500);
-      },
       quick: (el) => Battle.quick(el.dataset.id),
       stakes: () => stakeSheet(),
       howto: () => Battle.howto(D.GAME, { manual: true }),

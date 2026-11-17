@@ -43,12 +43,12 @@
     const { it, owned, equipped, lock } = state(kind, id);
     let big;
     if (kind === 'frame') {
-      big = `<div class="sd-frame">${UI.av('me', 116, { frame: id })}<b>${UI.esc(Store.s.user.name)}</b><span>Lv${Store.s.user.lv}</span></div>`;
+      big = `<div class="sd-frame">${UI.av('me', 116, { frame: id })}<b>${UI.esc(Store.s.user.name)}</b></div>`;
     } else if (kind === 'bubble') {
       big = `<div class="sd-chat"><div class="sd-msg">${UI.av('lily', 30)}<span class="sd-bub">打得漂亮！再来一局？</span></div>
         <div class="sd-msg is-me"><span class="sd-bub ${UI.bubble(id)}">没问题！等我1分钟😎</span>${UI.av('me', 30)}</div></div>`;
     } else {
-      big = `<div class="sd-bg" style="background:${UI.bg(id)}"><div class="sd-bg-card">${UI.av('me', 52)}<b>${UI.esc(Store.s.user.name)}</b><span>Lv${Store.s.user.lv} · ID ${Store.s.user.uid}</span></div></div>`;
+      big = `<div class="sd-bg" style="background:${UI.bg(id)}"><div class="sd-bg-card">${UI.av('me', 52)}<b>${UI.esc(Store.s.user.name)}</b><span>ID ${Store.s.user.uid}</span></div></div>`;
     }
     const where = { frame: '会显示在个人主页、聊天、房间和对局中。', bubble: '你发出的聊天消息会使用这个样式。', bg: '显示在个人主页顶部。' }[kind];
     const foot = equipped ? `<button class="btn btn-ghost btn-lg btn-block" data-act="unequip">${kind === 'frame' ? '卸下' : '恢复默认'}</button>`
@@ -315,7 +315,7 @@
       const covered = cur === 2 && k === 1;
       const pts = k === 1
         ? [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '破产补助', '会员金框']
-        : [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '视频通话免费', '谁看过我'];
+        : [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '视频通话免费', `好友上限${t.friendCap}人`];
       const btn = on || covered ? '查看权益' : cur === 1 && k === 2 ? `升级 · ${UI.usd(t.usd)}/月` : `开通 · ${UI.usd(t.usd)}/月`;
       return `<button class="shv-card is-t${k} ${on ? 'is-on' : ''}" data-act="vip" data-t="${k}">
         <span class="shv-hd">${UI.av('me', 46, { frame: t.frame })}<span class="shv-tt"><b>${t.name}${on ? '<i class="shv-on">生效中</i>' : ''}</b><em>${covered ? '已包含在超级会员中' : `${UI.usd(t.usd)}/月 · 开通送${UI.fmt(t.bonus)}金币`}</em></span></span>

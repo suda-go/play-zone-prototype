@@ -131,3 +131,5 @@
 .set-body .cell-main small { margin-top: 1px; }
 .set-reset .cell-ic, .set-reset .cell-main { color: var(--red); }
 .set-foot { margin: 24px 0 0; text-align: center; font-size: 12px; line-height: 1.6; color: var(--text-3); }
+/* V7：不做等级，我的页只剩金币一项 */
+.me-wallet { grid-template-columns: 1fr; }

@@ -10,12 +10,11 @@
   const CROWN = `${IMG}ui/crown.png`;
   const VIDEO = '<svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
   // 对比表只列关键几行
-  const CMP = ['dailyCoins', 'aid', 'protect', 'voiceFree', 'videoFree', 'friendCap', 'visitors', 'frame', 'sign', 'expBonus', 'bonus'];
+  const CMP = ['dailyCoins', 'aid', 'voiceFree', 'videoFree', 'friendCap', 'frame', 'sign', 'bonus'];
   // 对比表格子窄，几项用短文案
   const SHORT = {
     dailyCoins: (t) => `${UI.fmt(t.dailyCoins)}/天`,
     aid: (t) => `${t.aid}次/天`,
-    protect: (t) => `${t.protect}张/周`,
     frame: (t) => (t.frame === 'svip' ? '动态框' : '金框'),
   };
   const ITEMS = Object.fromEntries(D.vip.groups.flatMap((g) => g.items).map((it) => [it.key, it]));
@@ -64,7 +63,6 @@
         </div>
         <div class="vp-left">
           <span>${UI.ic('shield', 14)}破产补助<b>${Store.aidLeft()}/${t.aid}</b>次/天</span>
-          <span>${UI.ic('shield', 14)}段位保护卡<b>${Store.protectLeft()}/${t.protect}</b>张/周</span>
         </div>
       </div>`;
   }

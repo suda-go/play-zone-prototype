@@ -107,11 +107,11 @@ window.C4 = (() => {
       const steps = gameId === 'c4' ? [
         { t: '点击一列', d: '棋子会落到这一列最下面的空位。', art: 'drop' },
         { t: '四子连珠', d: '横、竖、斜连成4颗同色棋子就赢了。', art: 'line' },
-        { t: '堵住对手', d: '及时拦截对手的连线。堵住3次及以上，就算输了也有段位保护。', art: 'block' },
+        { t: '堵住对手', d: '及时拦截对手的连线，别让对方先连成四子。', art: 'block' },
       ] : [
-        { t: '快速匹配', d: `优先匹配好友，其次是${g.name}中段位相近的玩家。`, art: 'cover' },
+        { t: '快速匹配', d: `优先匹配好友，其次是${g.name}中水平相近的玩家。`, art: 'cover' },
         { t: '全力取胜', d: g.desc, art: 'cover2' },
-        { t: '领取奖励', d: '获胜可得金币、经验和段位分，每一局都计入任务进度。', art: 'reward' },
+        { t: '领取奖励', d: '赢家拿走奖池金币，每一局都计入任务进度。', art: 'reward' },
       ];
       const art = (a) => {
         if (a === 'drop') return `<div class="ht-board">${C4.html([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0, 0], [0, 1, 2, 1, 0, 0, 0]], { cls: 'is-howto' })}<b class="disc p1 ht-falling"></b><span class="ht-hand">👆</span></div>`;
@@ -176,7 +176,6 @@ window.C4 = (() => {
   /** 场次是否可进：返回 'vip' | 'lock' | 'poor' | 'ok' */
   function canEnter(st) {
     if (st.vip && Store.vipTier() < st.vip) return 'vip';
-    if (Store.s.user.lv < st.lv) return 'lock';
     if (Store.s.coins < st.bet) return 'poor';
     return 'ok';
   }
@@ -270,11 +269,10 @@ window.C4 = (() => {
     M.timers = [];
     const el = M.el;
     const P = D.people[opp];
-    const r = Store.rank(M.p.game);
     el.querySelector('.mt-title').innerHTML = how === 'boost' ? '加速成功！已匹配' : '匹配成功！';
     el.querySelector('.mt-fast').hidden = true;
-    el.querySelector('.mt-tip').textContent = P.ai ? '极速匹配：对手是AI' : `${P.name} · 段位相近`;
-    el.querySelector('.mt-opp').innerHTML = `${UI.av(opp, 92)}<b>${P.name}${P.ai ? ' <i class="ai-tag">AI</i>' : ''}</b><span>${P.ai ? '极速匹配' : `${D.tiers[Math.min(4, r.tier + (Math.random() < 0.3 ? 1 : 0))]} · Lv ${P.lv}`}</span>`;
+    el.querySelector('.mt-tip').textContent = P.ai ? '极速匹配：对手是AI' : `${P.name} · 水平相近`;
+    el.querySelector('.mt-opp').innerHTML = `${UI.av(opp, 92)}<b>${P.name}${P.ai ? ' <i class="ai-tag">AI</i>' : ''}</b><span>${P.ai ? '极速匹配' : `胜率${P.win}%`}</span>`;
     el.classList.add('is-found');
     // 超级会员入场特效：彩色光环 + 登场横幅
     if (Store.perk('entryFx')) {
@@ -319,7 +317,6 @@ window.C4 = (() => {
   App.page('match', {
     render(el, p) {
       const g = D.game[p.game] || D.game[D.GAME];
-      const r = Store.rank(g.id);
       const st = Battle.stakeOf(p.stake);
       // 状态类加在页面节点上，重写内容不会清掉：不清的话第二次匹配起一进来就显示“加载中”
       el.classList.remove('is-found', 'is-loading', 'is-vipfx', 'is-boost');
@@ -333,7 +330,7 @@ window.C4 = (() => {
           ${p.double ? `<span class="mt-double">${UI.ic('zap', 13)} 本局奖池翻倍</span>` : ''}
         </div>
         <h2 class="mt-title">匹配中<i class="mt-dots"><b>.</b><b>.</b><b>.</b></i></h2>
-        <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">优先匹配好友和段位相近的玩家</span></div>
+        <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">优先匹配好友和水平相近的玩家</span></div>
         <div class="mt-fast" hidden>
           <button class="btn btn-glass btn-md" data-act="fast">${UI.ic('bot', 17)} 极速匹配 · 人机</button>
         </div>
@@ -342,7 +339,7 @@ window.C4 = (() => {
           <div class="mt-half is-red"><img class="mt-lines" src="${IMG}fx/speedlines.png" alt=""><img class="mt-tone" src="${IMG}fx/halftone.png" alt=""></div>
           <i class="mt-split"></i>
           <img class="mt-blobs" src="${IMG}brand/blobs-vs.png" alt="">
-          <div class="mt-p mt-me">${UI.av('me', 92)}<b>${UI.esc(Store.s.user.name)}</b><span>${D.tiers[r.tier]} · Lv ${Store.s.user.lv}</span></div>
+          <div class="mt-p mt-me">${UI.av('me', 92)}<b>${UI.esc(Store.s.user.name)}</b><span>胜率${Battle.winRate()}</span></div>
           <div class="mt-p mt-opp"><span class="mt-search"><i></i><i></i><i></i></span><b>搜索中</b><span>&nbsp;</span></div>
           <div class="mt-vs"><b class="v">V</b><b class="s">S</b></div>
           <img class="mt-rocket" src="${IMG}ui/rocket.png" alt="">
@@ -646,7 +643,6 @@ window.C4 = (() => {
     const P = D.people[uid];
     if (!P || P.ai) return;
     const played = Math.max(Store.s.history.filter((h) => h.vs === uid).length, Store.s.mateGames[uid] || 0);
-    const rank = Math.min(4, Math.floor((D.boardFriends.find((x) => x.id === uid)?.score || P.lv * 18) / 100));
     const btn = () => {
       if (Store.isFriend(uid)) return `<span class="btn is-disabled btn-lg btn-block">${UI.ic('userCheck', 18)} 已是好友</span>`;
       if (Store.s.sent.includes(uid)) return `<span class="btn is-disabled btn-lg btn-block">${UI.ic('check', 18)} 已发送好友申请</span>`;
@@ -659,8 +655,8 @@ window.C4 = (() => {
     };
     const c = UI.sheet({
       cls: 'sheet-opp',
-      html: `<div class="op-hd">${UI.av(uid, 64, { on: true })}<div class="op-m"><h3>${UI.name(uid)} <span class="tag tag-event">Lv${P.lv}</span></h3><p>${UI.esc(P.bio || '这个人很懒，什么都没写')}</p></div></div>
-        <div class="op-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span><b class="op-tier">${UI.tier(rank, 18)}${D.tiers[rank]}</b>段位</span><span><b>${played}</b>和你玩过</span></div>
+      html: `<div class="op-hd">${UI.av(uid, 64, { on: true })}<div class="op-m"><h3>${UI.name(uid)}</h3><p>${UI.esc(P.bio || '这个人很懒，什么都没写')}</p></div></div>
+        <div class="op-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span><b>${played}</b>和你玩过</span></div>
         <div class="op-btn">${btn()}</div>
         <p class="op-tip">${UI.ic('info', 13)} 对局还在进行，计时不会暂停</p>`,
       acts: {
@@ -752,25 +748,17 @@ window.C4 = (() => {
     const board = C4.copy(G.board);
     G = null;
     const practice = p.mode === 'ai';
-    const room = p.mode === 'room'; // 好友房：不计段位、不加经验；V6 起房主可以设入场金币（0 为免费房）
+    const room = p.mode === 'room'; // 好友房：V6 起房主可以设入场金币（0 为免费房）
     const roomBet = room ? (p.bet || 0) : 0;
     const staked = !practice && !room;
     const st = Battle.stakeOf(p.stake);
-    const before = { ...Store.rank(g.id) };
     let coins = 0; // 本局到账金币（赢：奖池；平：退还底注）
-    let exp = 0;
-    let delta = 0;
-    let protect = false;
     Store.count('seconds', sec);
     if (!practice) {
       if (staked) {
-        if (outcome === 'win') { coins = Battle.pot(st, p.double); exp = 50; delta = 25; }
-        else if (outcome === 'draw') { coins = st.bet; exp = 30; }
-        else { exp = opt.forfeit ? 10 : 20; protect = !opt.forfeit && blocks >= 3; delta = protect ? 0 : -15; }
-        // 会员段位保护卡：输了（非认输/超时）自动使用，本局不扣段位分
-        if (outcome === 'lose' && !opt.forfeit && !protect && Store.protectLeft() > 0 && Store.useProtect()) { protect = true; delta = 0; opt.card = 1; }
-        // 会员经验加成
-        if (exp && Store.perk('expBonus')) { opt.expBonus = Math.round(exp * Store.perk('expBonus')); exp += opt.expBonus; }
+        // V7 首发版不做等级和段位：只结算金币
+        if (outcome === 'win') coins = Battle.pot(st, p.double);
+        else if (outcome === 'draw') coins = st.bet;
         if (p.double) Store.s.doubleNext = false;
       } else if (roomBet) {
         // 有入场金币的好友房：赢家拿走奖池，平局退还底注
@@ -780,7 +768,6 @@ window.C4 = (() => {
       Store.count('games');
       if (outcome === 'win') Store.count('wins');
     }
-    const rk = !staked || !delta ? null : Store.addRank(g.id, delta);
     const net = staked ? coins - st.bet : roomBet ? coins - roomBet : 0;
     Store.addMatch({ game: g.id, vs: opp, win: outcome === 'win', draw: outcome === 'draw', coins: net, stake: staked ? st.id : '', bet: roomBet, practice, mode: p.mode });
     if (!D.people[opp].ai) Store.addRecent(opp);
@@ -791,8 +778,7 @@ window.C4 = (() => {
     }
     const params = {
       game: g.id, mode: p.mode, room: p.room || '', opp, outcome, stake: st.id,
-      forfeit: opt.forfeit ? 1 : 0, timeout: opt.timeout ? 1 : 0, coins, net, exp, expBonus: opt.expBonus || 0, delta, protect: protect ? 1 : 0, card: opt.card ? 1 : 0,
-      before, after: rk ? rk.after : before, up: rk && rk.up ? 1 : 0, down: rk && rk.down ? 1 : 0,
+      forfeit: opt.forfeit ? 1 : 0, timeout: opt.timeout ? 1 : 0, coins, net,
       blocks, moves, sec, double: p.double || 0, bet: roomBet,
     };
     if (min) {
@@ -831,7 +817,7 @@ window.C4 = (() => {
         <div class="gm-stage">
           <div class="gm-turn">准备开始…</div>
           ${C4.html(C4.empty(), { cls: 'is-game', cols: true })}
-          <div class="gm-stats"><span>${UI.ic('shield', 14)} 拦截 <b class="gm-blocks">0</b></span><span>${UI.ic('gamepad', 14)} 步数 <b class="gm-moves">0</b></span>${p.mode === 'quick' || p.mode === 'fast' ? `<span>${UI.ic('info', 14)} 拦截3次＝段位保护</span>` : ''}</div>
+          <div class="gm-stats"><span>${UI.ic('shield', 14)} 拦截 <b class="gm-blocks">0</b></span><span>${UI.ic('gamepad', 14)} 步数 <b class="gm-moves">0</b></span>${p.mode === 'quick' || p.mode === 'fast' ? `` : ''}</div>
         </div>
         <div class="gm-dm"></div>
         <div class="gm-bar">
@@ -945,7 +931,7 @@ window.C4 = (() => {
     const line = friend ? (n ? `你们已经一起玩了${n}局` : '好友对局不扣金币也能约') : p.outcome === 'win' ? `${P.name}说：再来一局，我不服！` : p.outcome === 'lose' ? `${P.name}说：打得不错，加个好友？` : `${P.name}说：难分高下，交个朋友吧`;
     return `<div class="rs-mate">
       ${UI.av(p.opp, 46, { on: true })}
-      <div class="rs-mate-m"><b>${UI.esc(P.name)} <i>Lv${P.lv}</i></b><span>${line}</span></div>
+      <div class="rs-mate-m"><b>${UI.esc(P.name)}</b><span>${line}</span></div>
       <div class="rs-mate-btns">
         ${friendBtn(p.opp)}
         ${p.mode === 'room' ? '' : `<button class="rs-rematch" data-act="rematch">${UI.ic('swords', 15)} 再战TA</button>`}
@@ -972,34 +958,13 @@ window.C4 = (() => {
     </div>`;
   }
 
-  function rankTip(r) {
-    if (r.tier >= 4) return `${D.tiers[4]}！已经登顶啦。`;
-    const n = Math.ceil((100 - r.pts) / 25);
-    return `再赢${n}局升至${D.tiers[r.tier + 1]}`;
-  }
+  /** 结算面板：好友房说明 + 本局数据（V7 首发版不做经验和段位） */
   function progress(p) {
-    const s = Store.s;
-    const need = Store.need(s.user.lv);
-    const b = p.before;
-    const dl = p.protect ? '±0 · 已保护' : p.delta > 0 ? `段位分+${p.delta}` : p.delta < 0 ? `段位分${p.delta}` : '段位分±0';
-    const playable = true;
+    const stats = `<div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div>`;
     if (p.mode === 'room') {
-      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} ${p.bet ? `好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}；不计段位。` : '免费好友房：不扣金币、不计段位，只管和朋友玩。'}</p>
-        <div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div></div>`;
+      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} ${p.bet ? `好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}。` : '免费好友房：不扣金币，只管和朋友玩。'}</p>${stats}</div>`;
     }
-    return `<div class="rs-panel">
-      <div class="rs-row">
-        <span class="rs-row-ic">${UI.cur('exp', 34)}</span>
-        <div class="rs-row-m"><div class="rs-row-t"><b>经验+${p.exp}${p.expBonus ? `<i class="rs-bonus">${UI.vipTag(Store.vipTier())}+${p.expBonus}</i>` : ''}</b><span class="rs-exp-txt">Lv ${s.user.lv} · ${s.user.exp}/${need}</span></div>${UI.bar(s.user.exp, need, 'is-green rs-exp-bar')}</div>
-      </div>
-      <div class="rs-row">
-        <span class="rs-row-ic rs-tier">${UI.tier(b.tier, 36)}</span>
-        <div class="rs-row-m"><div class="rs-row-t"><b class="${p.delta < 0 ? 'is-neg' : ''}">${dl}</b><span class="rs-rank-txt">${D.tiers[b.tier]} · ${b.pts}/100</span></div>${UI.bar(b.pts, 100, 'is-gold rs-rank-bar')}<span class="rs-rank-tip">${rankTip(p.after)}</span></div>
-      </div>
-      ${p.protect ? `<div class="rs-protect">${UI.ic('shield', 18)}<span>${p.card ? `<b>段位保护卡生效</b> 本局不扣分，本周还剩${Store.protectLeft()}张。` : `<b>段位保护</b> 你拦截了${p.blocks}次，本局不扣分。`}</span></div>` : ''}
-      ${!p.protect && p.outcome === 'lose' && !p.forfeit && playable ? `<div class="rs-protect is-hint">${UI.ic('info', 16)}<span>单局拦截3次及以上，输了也不扣分。本局你拦截了${p.blocks}次。</span></div>` : ''}
-      <div class="rs-stats">${playable ? `<span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span>` : ''}<span>用时 <b>${mmss(p.sec)}</b></span></div>
-    </div>`;
+    return `<div class="rs-panel">${stats}</div>`;
   }
 
   function taskList() {
@@ -1020,64 +985,6 @@ window.C4 = (() => {
     </div>`;
   }
 
-  function animRank(el, p) {
-    const bar = el.querySelector('.rs-rank-bar > i');
-    const txt = el.querySelector('.rs-rank-txt');
-    const tierEl = el.querySelector('.rs-tier');
-    if (!bar) return;
-    const b = p.before;
-    const a = p.after;
-    const finish = () => { txt.textContent = `${D.tiers[a.tier]} · ${a.pts}/100`; };
-    if (a.tier === b.tier) { bar.style.width = `${a.pts}%`; finish(); return; }
-    bar.style.width = a.tier > b.tier ? '100%' : '0%';
-    setTimeout(() => {
-      tierEl.innerHTML = UI.tier(a.tier, 36);
-      tierEl.classList.add('is-pop');
-      bar.style.transition = 'none';
-      bar.style.width = a.tier > b.tier ? '0%' : '100%';
-      void bar.offsetWidth;
-      bar.style.transition = '';
-      bar.style.width = `${a.pts}%`;
-      finish();
-    }, 950);
-  }
-
-  async function grantExp(el, p) {
-    const s = Store.s;
-    const bar = el.querySelector('.rs-exp-bar > i');
-    const txt = el.querySelector('.rs-exp-txt');
-    const ups = Store.addExp(p.exp, `${D.game[p.game].name} · ${{ win: '胜利', lose: '失败', draw: '平局' }[p.outcome] || p.outcome}`);
-    const settle = () => {
-      bar.style.width = `${(s.user.exp / Store.need(s.user.lv)) * 100}%`;
-      txt.textContent = `Lv ${s.user.lv} · ${s.user.exp}/${Store.need(s.user.lv)}`;
-    };
-    if (!ups.length) { settle(); return; }
-    bar.style.width = '100%';
-    await UI.sleep(950);
-    bar.style.transition = 'none';
-    bar.style.width = '0%';
-    void bar.offsetWidth;
-    bar.style.transition = '';
-    settle();
-    for (const lv of ups) {
-      // eslint-disable-next-line no-await-in-loop
-      await UI.reward({
-        title: `升到${lv}级啦！`, sub: '恭喜升级，这是你的升级奖励', img: `${IMG}brand/mascot-cheer.png`,
-        badge: `Lv${lv}`, items: { coins: 600 }, note: `Lv${lv}升级奖励`, cls: 'is-levelup', sfx: 'win',
-      });
-    }
-  }
-
-  async function promoted(el, p) {
-    const a = p.after;
-    await UI.dialog({
-      cls: 'dlg-promo',
-      art: `<span class="promo-tier">${UI.tier(a.tier, 112)}</span>`,
-      title: `晋升${D.tiers[a.tier]}！`,
-      text: `你在${D.game[p.game].name}中达到${D.tiers[a.tier]}，继续冲吧！`,
-      buttons: [{ label: '太棒了！', key: 'ok' }],
-    });
-  }
 
   App.page('result', {
     render(el, p) {
@@ -1098,7 +1005,7 @@ window.C4 = (() => {
           <div class="rs-hero ${cls}">${hero(p)}</div>
           <div class="rs-cards">${card('me', p, true)}${card(p.opp, p, false)}</div>
           ${mateHtml(p)}
-          ${practice ? `<div class="rs-panel rs-practice"><p>${UI.ic('bot', 18)} 练习局不影响段位和金币。</p><button class="btn btn-orange btn-md" data-act="ranked">去${st.name} · ${UI.cur('coins', 16)}${UI.fmt(st.bet)}</button></div>` : progress(p)}
+          ${practice ? `<div class="rs-panel rs-practice"><p>${UI.ic('bot', 18)} 练习局不影响金币。</p><button class="btn btn-orange btn-md" data-act="ranked">去${st.name} · ${UI.cur('coins', 16)}${UI.fmt(st.bet)}</button></div>` : progress(p)}
           <div class="rs-tasks-box">${practice ? '' : tasksHtml()}</div>
           <div class="bottom-space" style="height:96px"></div>
         </div>
@@ -1114,13 +1021,10 @@ window.C4 = (() => {
       if (p.granted) return;
       p.granted = true;
       await UI.sleep(450);
-      animRank(el, p);
       if (p.coins) {
         await UI.fly('coins', el.querySelector('.rs-card.is-me .rs-gain'), p.coins);
         UI.release('coins');
       }
-      if (p.exp) await grantExp(el, p);
-      if (p.up) await promoted(el, p);
     },
     act: {
       lobby: () => App.backTo('play'),
@@ -1186,7 +1090,7 @@ window.C4 = (() => {
           title: p.outcome === 'win' ? '分享胜利' : '分享对局',
           text,
           game: g.id,
-          preview: `<div class="share-prev"><img src="${g.icon}" alt=""><div><b>${UI.esc(text)}</b><span>${g.name} · ${D.tiers[p.after.tier]} · ${p.after.pts}/100</span></div></div>`,
+          preview: `<div class="share-prev"><img src="${g.icon}" alt=""><div><b>${UI.esc(text)}</b><span>${g.name} · Soulgame</span></div></div>`,
         });
       },
     },

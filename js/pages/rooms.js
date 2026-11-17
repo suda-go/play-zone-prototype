@@ -179,7 +179,7 @@
             <button class="${form.priv ? 'is-active' : ''}" data-act="priv" data-v="1">${UI.ic('lock', 22)}<b>私密</b><span>仅限邀请</span></button></div></div>
           <div class="cr-sec"><h3>入场金币</h3><div class="bet-grid">${D.roomBets.map((b) => betOpt(b, form.bet)).join('')}</div></div>
           <div class="cr-sec cr-row"><div><b>${UI.ic('ticket', 16)} 高级房</b><span>消耗1张房卡 · 在列表中高亮显示</span></div>${UI.toggle(form.premium, 'premium')}</div>
-          <p class="cr-note">${UI.ic('info', 14)}<span>入场金币在开局时扣除，赢家拿走奖池（底注×2），平局退还；选「免费」就不扣金币。房间对局不计段位。你有${UI.cur('coins', 14)}${UI.fmt(Store.s.coins)}金币、${UI.cur('pass', 14)}${Store.s.pass}张房卡。</span></p>
+          <p class="cr-note">${UI.ic('info', 14)}<span>入场金币在开局时扣除，赢家拿走奖池（底注×2），平局退还；选「免费」就不扣金币。你有${UI.cur('coins', 14)}${UI.fmt(Store.s.coins)}金币、${UI.cur('pass', 14)}${Store.s.pass}张房卡。</span></p>
           <div class="bottom-space" style="height:90px"></div>
         </div>
         <div class="cr-foot"><button class="btn btn-primary btn-lg btn-block" data-act="create">创建房间</button></div>`;
@@ -354,7 +354,7 @@
         ${UI.nav({ title: UI.esc(r.name), sub: `房间号 ${String(parseInt(r.id.replace(/\D/g, '') || '4829', 10) % 900000 + 100000)} · ${r.private ? '私密' : '公开'} · ${r.lang}`, cls: 'is-light', right: `<button class="icon-btn" data-act="invite" aria-label="邀请">${UI.ic('userPlus', 21)}</button><button class="icon-btn" data-act="shareRoom" aria-label="分享">${UI.ic('share', 20)}</button>` })}
         <div class="rm-game">
           <img src="${g.icon}" alt="">
-          <div class="row-main"><b>${g.name}</b><span>${betText(betOf(r))} · 不计段位${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
+          <div class="row-main"><b>${g.name}</b><span>${betText(betOf(r))}${r.premium ? ` · ${UI.ic('ticket', 11)} 高级房` : ''}</span></div>
           <span class="rm-count">${r.seats.length}/${r.max}</span>
         </div>
         <div class="rm-seats-box">${seatsHtml(r, st)}</div>

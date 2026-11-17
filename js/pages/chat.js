@@ -1,6 +1,6 @@
 /**
  * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表（顶部「最近一起玩」）、K5 好友申请、
- * K6 添加好友、K7 群聊、K8 好友主页；V5 好友私聊顶部的亲密度和一起养的宠物（静态展示）
+ * K6 添加好友、K7 群聊、K8 好友主页；V5 好友私聊顶部的亲密度（静态展示，V7 去掉了宠物）
  * 只有四子棋（D.GAME），邀请好友直接建房，不再选游戏
  */
 (() => {
@@ -97,7 +97,7 @@
     const rows = list.map((u) => {
       const P = D.people[u];
       return `<div class="fr-row fr-rc" data-go="profile" data-uid="${u}">${UI.av(u, 46, { on: true })}
-        <span class="row-main"><b>${P.name} <i class="fr-lv">Lv${P.lv}</i></b><span>${recentLine(u)}</span></span>
+        <span class="row-main"><b>${P.name}</b><span>${recentLine(u)}</span></span>
         ${recentBtn(u)}</div>`;
     }).join('');
     return `<section class="fr-recent" id="fr-recent">
@@ -110,7 +110,7 @@
     const on = list.filter((p) => p.online);
     const off = list.filter((p) => !p.online);
     const row = (p) => `<div class="fr-row" data-go="profile" data-uid="${p.id}">${UI.av(p.id, 46, { on: true })}
-      <span class="row-main"><b>${p.name} <i class="fr-lv">Lv${p.lv}</i></b><span class="${p.online ? 'is-on' : ''}">${p.online ? UI.esc(p.status) : `${p.seen}在线`}</span></span>
+      <span class="row-main"><b>${p.name}</b><span class="${p.online ? 'is-on' : ''}">${p.online ? UI.esc(p.status) : `${p.seen}在线`}</span></span>
       ${p.online ? `<button class="fr-call" data-act="callVoice" data-uid="${p.id}" aria-label="和${UI.esc(p.name)}语音通话">${UI.ic('phone', 16)}</button><button class="btn btn-line btn-sm" data-act="invite" data-uid="${p.id}">邀请</button>` : `<button class="btn btn-ghost btn-sm" data-go="dm" data-id="${p.id}">发消息</button>`}
     </div>`;
     const tier = Store.vipTier();
@@ -247,7 +247,7 @@
     Store.read(id);
   }
 
-  /** V5 好友私聊顶部：亲密度等级，以及两个人一起养的宠物（演示：读 D.intimacy 的静态数据，只展示，没有交互） */
+  /** V5 好友私聊顶部：亲密度等级（演示：读 D.intimacy 的静态数据，只展示，没有交互；V7 去掉了宠物） */
   const HEART = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.2C.3 8.5 2.2 4.5 6 4.1c2.2-.2 4.2 1 6 3.1 1.8-2.1 3.8-3.3 6-3.1 3.8.4 5.7 4.4 4 7.7C19.5 16.4 12 21 12 21z"/></svg>';
   function intimacyHtml(uid) {
     if (!Store.isFriend(uid)) return '';
@@ -255,14 +255,12 @@
     const pts = I.pts[uid] ?? I.def;
     const cur = [...I.levels].reverse().find((l) => pts >= l.need);
     const next = I.levels.find((l) => l.need > pts);
-    const pet = I.pets[uid];
-    return `<div class="im-card ${pet ? 'has-pet' : ''}">
+    return `<div class="im-card">
       <div class="im-main">
         <div class="im-top"><span class="im-pair">${UI.av('me', 26, { frame: false })}<i class="im-heart">${HEART}</i>${UI.av(uid, 26, { frame: false })}</span><b>亲密度 Lv${cur.lv} · ${cur.name}</b><em class="im-num">${next ? `${pts}/${next.need}` : pts}</em></div>
         ${next ? UI.bar(pts - cur.need, next.need - cur.need, 'im-bar') : UI.bar(1, 1, 'im-bar')}
         <span class="im-sub">${next ? '聊天、一起下棋、通话都能涨亲密度' : '已是最高等级'}</span>
       </div>
-      ${pet ? `<div class="im-pet"><img src="${pet.img}" alt="${pet.name}"><span><b>${pet.name}</b><small>一起养了${pet.days}天</small></span><i class="im-tag">示意</i></div>` : ''}
     </div>`;
   }
 
@@ -392,7 +390,7 @@
         <div class="body" data-scroll="main">${list.length ? `<div class="req-list">${list.map((u) => {
           const P = D.people[u];
           return `<div class="req-row">${UI.av(u, 52, { on: true })}
-            <span class="row-main" data-go="profile" data-uid="${u}"><b>${P.name} <i class="fr-lv">Lv${P.lv}</i></b><span>${playedWith(u) ? `和你玩过${playedWith(u)}局` : `四子棋${P.games}局`} · 胜率${P.win}%</span></span>
+            <span class="row-main" data-go="profile" data-uid="${u}"><b>${P.name}</b><span>${playedWith(u) ? `和你玩过${playedWith(u)}局` : `四子棋${P.games}局`} · 胜率${P.win}%</span></span>
             <button class="btn btn-ghost btn-sm" data-act="decline" data-uid="${u}">拒绝</button>
             <button class="btn btn-primary btn-sm" data-act="accept" data-uid="${u}">同意</button>
           </div>`;
@@ -431,7 +429,7 @@
       : sent ? '<span class="af-st">已申请</span>'
         : req ? `<button class="btn btn-primary btn-sm" data-act="accept" data-uid="${p.id}">同意</button>`
           : `<button class="btn btn-primary btn-sm" data-act="add" data-uid="${p.id}">${UI.ic('plus', 14)} 加好友</button>`;
-    return `<div class="fr-row" data-go="profile" data-uid="${p.id}">${UI.av(p.id, 46, { on: true })}<span class="row-main"><b>${p.name} <i class="fr-lv">Lv${p.lv}</i></b><span>ID ${p.uid}</span></span>${btn}</div>`;
+    return `<div class="fr-row" data-go="profile" data-uid="${p.id}">${UI.av(p.id, 46, { on: true })}<span class="row-main"><b>${p.name}</b><span>ID ${p.uid}</span></span>${btn}</div>`;
   }
   App.page('addfriend', {
     render(el) {
@@ -506,7 +504,6 @@
       const f = Store.isFriend(P.id);
       const sent = Store.s.sent.includes(P.id);
       const req = Store.s.requests.includes(P.id);
-      const rank = Math.min(4, Math.floor((D.boardFriends.find((x) => x.id === P.id)?.score || P.lv * 18) / 100));
       const g = D.game[D.GAME];
       const played = playedWith(P.id);
       el.innerHTML = `
@@ -515,10 +512,10 @@
         <div class="body pf-body" data-scroll="main">
           <div class="pf-card">
             <div class="pf-av">${UI.av(P.id, 92, { on: true })}</div>
-            <h1>${UI.name(P.id)} <span class="tag tag-event">Lv${P.lv}</span></h1>
+            <h1>${UI.name(P.id)}</h1>
             <p class="pf-id">ID ${P.uid} · ${P.online ? `<span class="is-on">${UI.esc(P.status)}</span>` : `${P.seen}在线`}</p>
             <p class="pf-bio">${UI.esc(P.bio || '—')}</p>
-            <div class="pf-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span>${UI.tier(rank, 26)}<b>${D.tiers[rank]}</b></span></div>
+            <div class="pf-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span></div>
             ${f ? `<div class="pf-calls">${['voice', 'video'].map((k) => {
               const free = Store.perk(k === 'video' ? 'videoFree' : 'voiceFree');
               return `<button class="pf-call ${P.online ? '' : 'is-off'}" data-act="${k === 'video' ? 'callVideo' : 'callVoice'}">
@@ -528,7 +525,7 @@
           <div class="sec-hd"><h2>${g.name}战绩</h2></div>
           <div class="pf-c4 card">
             <img class="pf-c4-ic" src="${g.icon}" alt="">
-            <span class="row-main"><b>${g.name} · ${D.tiers[rank]}</b><span>共${P.games}局 · 胜率${P.win}%</span></span>
+            <span class="row-main"><b>${g.name}</b><span>共${P.games}局 · 胜率${P.win}%</span></span>
             <span class="pf-c4-vs">${played ? `<b>${played}<small>局</small></b><i>和你玩过</i>` : '<i>还没和你<br>一起玩过</i>'}</span>
           </div>
           <div class="bottom-space" style="height:100px"></div>
