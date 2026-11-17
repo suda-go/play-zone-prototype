@@ -16,9 +16,9 @@
       case 'share': UI.share({ title: '分享 Soulgame', text: '快来 Soulgame 和我一起玩四子棋！', onShared: () => App.refresh('tasks') }); break;
       case 'ad': Shop.watchAd(); break;
       case 'create': App.go('create', {}); break;
-      // 好友页里有"最近一起玩"列表，两类社交任务都去那里
-      case 'friends':
-      case 'recent': App.tab('chat', { seg: 'friends' }); break;
+      // 和好友玩：去好友列表；加一起玩过的人：去添加好友页（有“最近一起玩过”列表，好友列表里有好友时不再显示这一栏）
+      case 'friends': App.tab('chat', { seg: 'friends' }); break;
+      case 'recent': App.go('addfriend'); break;
       case 'notify': {
         const k = await UI.dialog({
           art: `<span class="perm-ic">${UI.ic('bell', 40)}</span>`,

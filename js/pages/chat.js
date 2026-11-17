@@ -129,7 +129,7 @@
       <div class="fr-cap"><span>好友 <b>${list.length}</b>/${cap}</span>${UI.bar(list.length, cap, 'fr-cap-bar')}
         ${tier < 2 ? `<button class="fr-cap-up" data-act="capVip" data-tier="${tier + 1}">${UI.ic('crown', 13)}${tier ? `超级会员上限${D.vip.tiers[2].friendCap}` : '会员提升上限'}${UI.ic('right', 12)}</button>` : `<i class="fr-cap-max">${UI.vipTag(2)}已是最高上限</i>`}</div>
       <button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${Store.s.requests.length ? `${Store.s.requests.length}条待处理` : '暂无新申请'}</span></span>${Store.s.requests.length ? `<i class="count is-inline">${Store.s.requests.length}</i>` : ''}${UI.ic('right', 18)}</button>
-      ${Store.s.recent.length ? recentSec() : ''}
+      ${Store.s.recent.length && !list.length ? recentSec() : ''}
       ${list.length ? `<div class="fr-hd">在线 · ${on.length}</div>${on.map(row).join('')}
       <div class="fr-hd">离线 · ${off.length}</div>${off.map(row).join('')}`
         : noFriendsHtml('先玩一局：对局中点对手头像、结算页点“加好友”都能加；也可以按昵称或 ID 搜索。')}`;
