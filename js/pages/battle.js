@@ -98,6 +98,8 @@ window.C4 = (() => {
   'use strict';
 
   const IMG = D.IMG;
+  // V7 本地对战：同一台手机上的第二位玩家（红方）
+  D.people.local2 = { id: 'local2', name: '好友', lv: 1, avatar: `${IMG}avatars/p2.svg`, local: true, online: true, frame: null, bg: 'aurora', status: '' };
   D.people.bot = { id: 'bot', name: '诺娃', lv: 5, avatar: `${IMG}brand/blob-face.png`, ai: true, online: true, frame: null, bg: 'aurora', fav: ['c4'], status: 'AI' };
 
   /** B4 玩法引导：15 秒图解，3 步各 5 秒，可跳过 */
@@ -208,7 +210,7 @@ window.C4 = (() => {
       const p = { game: D.GAME, mode: 'quick', stake: st.id, double: Store.s.doubleNext ? 1 : 0 };
       if (opt.replace) App.replace('match', p, { anim: 'fade' }); else App.go('match', p, { anim: 'up' });
     };
-    if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
+    start(); // V7：不再先放15秒玩法说明，让新用户马上开局（首页“玩法”、对局里的“?”随时能看）
   }
   /** A 再战TA：和同一个对手按同一场次再来一局，对方同意后直接开局 */
   function rematch(opp, stakeId) {
@@ -223,7 +225,13 @@ window.C4 = (() => {
     if (busy()) return;
     const p = { game: D.GAME, mode: 'ai', opp: 'bot', first: Math.random() < 0.6 ? 1 : 2 };
     const start = () => (opt.replace ? App.replace('game', p) : App.go('game', p, { anim: 'up' }));
-    if (!Store.s.howto[D.GAME]) howto(D.GAME).then(start); else start();
+    start();
+  }
+  /** V7 本地对战：同一台手机两人轮流下，不扣金币、不计战绩。first 可指定先手（再来一局时让输的一方先下） */
+  function local(opt = {}) {
+    if (busy()) return;
+    const p = { game: D.GAME, mode: 'local', opp: 'local2', first: opt.first || (Math.random() < 0.5 ? 1 : 2) };
+    if (opt.replace) App.replace('game', p); else App.go('game', p, { anim: 'up' });
   }
   /** 房间开局（V6）：房主设了入场金币就在这里扣底注；赢家拿走奖池（底注×2），平局退还，不计段位 */
   function fromRoom(room, opp) {
@@ -238,7 +246,7 @@ window.C4 = (() => {
     return gs && gs.g ? `${Math.round((gs.w / gs.g) * 100)}%` : '—';
   };
 
-  window.Battle = Object.assign(window.Battle || {}, { quick, rematch, practice, fromRoom, howto, stakeOf, pot, canEnter, winRate });
+  window.Battle = Object.assign(window.Battle || {}, { quick, rematch, practice, local, fromRoom, howto, stakeOf, pot, canEnter, winRate });
 })();
 
 /* ================= E1–E4 匹配 ================= */
@@ -285,11 +293,11 @@ window.C4 = (() => {
     }
     Sfx.play('reward');
     const p = M.p;
-    M.timers.push(setTimeout(() => el.classList.add('is-loading'), 1200));
+    M.timers.push(setTimeout(() => el.classList.add('is-loading'), 900));
     M.timers.push(setTimeout(() => {
       stop();
       App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', stake: p.stake, opp, double: p.double, first: Math.random() < 0.55 ? 1 : 2 });
-    }, 3000));
+    }, 2000));
   }
 
   async function cancel() {
@@ -360,7 +368,7 @@ window.C4 = (() => {
           el.querySelector('.mt-tip').textContent = '等太久？试试极速匹配';
         }
       }, 250);
-      M.timers.push(setTimeout(() => found(pickOpp()), Store.s.vip ? 3200 : 9500));
+      M.timers.push(setTimeout(() => found(pickOpp()), Store.s.vip ? 1800 : 3500)); // V7：缩短等待，会员更快
     },
     leave: () => stop(),
     back() { cancel(); return false; },
@@ -393,7 +401,7 @@ window.C4 = (() => {
   const canAdd = (uid) => !Store.isFriend(uid) && !Store.s.sent.includes(uid);
   const player = (uid, who) => {
     const p = UI.person(uid);
-    const tap = who === 2 && !p.ai;
+    const tap = who === 2 && !p.ai && !p.local;
     const tag = tap ? 'button' : 'span';
     return `<div class="gm-pl p${who}">
       <${tag} class="gm-av${tap ? ' is-tap' : ''}"${tap ? ' data-act="opp" aria-label="查看对手资料"' : ''}><svg class="gm-ring" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32"/></svg>${UI.av(uid, 54)}<span class="gm-pop"></span><i class="gm-voice" aria-hidden="true"><b></b><b></b><b></b></i>${tap && canAdd(uid) ? '<i class="gm-add" aria-hidden="true">+</i>' : ''}</${tag}>
@@ -426,6 +434,12 @@ window.C4 = (() => {
     el.classList.toggle('is-myturn', who === 1);
     el.classList.toggle('is-oppturn', who === 2);
     el.querySelectorAll('.gm-pl').forEach((x) => x.classList.toggle('is-turn', x.classList.contains(`p${who}`)));
+    if (G.p.mode === 'local') {
+      el.querySelector('.gm-turn').innerHTML = who === 1 ? `<b>蓝方落子</b> · ${UI.esc(Store.s.user.name)}` : '<b>红方落子</b> · 好友';
+      ring(0);
+      clearInterval(G.tick);
+      return;
+    }
     el.querySelector('.gm-turn').innerHTML = who === 1 ? '<b>轮到你了</b> · 点击一列落子' : `<b>${name(G.opp)}</b>思考中…`;
     if (who === 1) closePanel();
     setClock(15);
@@ -499,21 +513,52 @@ window.C4 = (() => {
     }
     settle(2);
   }
+  /** V7 本地对战：哪一方落子都走这里 */
+  function localMove(col) {
+    if (!G || G.over || !G.turn) return;
+    const who = G.turn;
+    const row = C4.drop(G.board, col, who);
+    if (row < 0) { UI.toast('这一列满了'); Sfx.play('error'); return; }
+    G.turn = 0;
+    G.moves += 1;
+    C4.paint(board(), row, col, who);
+    Sfx.play('drop');
+    G.el.querySelector('.gm-moves').textContent = G.moves;
+    settle(who);
+  }
+  /** V7 本地对战结束：不结算金币和战绩，弹窗问要不要再来一局（输的一方先下） */
+  async function localEnd(winner) {
+    if (!G) return;
+    clearAll();
+    Store.count('seconds', Math.max(1, Math.round((Date.now() - G.t0) / 1000)));
+    G = null;
+    const who = winner === 1 ? `${UI.esc(Store.s.user.name)}（蓝方）` : '好友（红方）';
+    const k = await UI.dialog({
+      img: winner ? `${IMG}ui/trophy.png` : `${IMG}brand/mascot.png`,
+      title: winner ? `${who}赢了！` : '平局',
+      text: winner ? '先连成了四子。换输的一方先下，再来一局？' : '棋盘下满了，难分高下！',
+      x: false,
+      buttons: [{ label: '再来一局', key: 'again', cls: 'btn-orange' }, { label: '返回首页', key: 'home', cls: 'btn-ghost' }],
+    });
+    if (k === 'again') Battle.local({ replace: true, first: winner === 1 ? 2 : winner === 2 ? 1 : 0 });
+    else App.backTo('play');
+  }
   function settle(who) {
     const line = C4.wins(G.board, who);
+    const isLocal = G.p.mode === 'local';
     if (line) {
       G.over = true;
       ring(0);
-      G.el.querySelector('.gm-turn').innerHTML = who === 1 ? '<b>四子连珠！</b>' : `<b>${name(G.opp)}</b>连成了四子`;
+      G.el.querySelector('.gm-turn').innerHTML = isLocal ? `<b>${who === 1 ? '蓝方' : '红方'}四子连珠！</b>` : who === 1 ? '<b>四子连珠！</b>' : `<b>${name(G.opp)}</b>连成了四子`;
       later(() => { C4.highlight(board(), line); Sfx.play(who === 1 ? 'win' : 'lose'); }, 420);
-      later(() => end(who === 1 ? 'win' : 'lose'), 2000);
+      later(() => (isLocal ? localEnd(who) : end(who === 1 ? 'win' : 'lose')), isLocal ? 1600 : 2000);
       return;
     }
     if (C4.full(G.board)) {
       G.over = true;
       ring(0);
       G.el.querySelector('.gm-turn').innerHTML = '<b>棋盘已满</b> · 平局';
-      later(() => end('draw'), 1200);
+      later(() => (isLocal ? localEnd(0) : end('draw')), 1200);
       return;
     }
     later(() => startTurn(who === 1 ? 2 : 1), 450);
@@ -685,6 +730,11 @@ window.C4 = (() => {
     if (!G || G.over) return;
     const practice = G.p.mode === 'ai';
     const room = G.p.mode === 'room';
+    if (G.p.mode === 'local') {
+      const ok = await UI.confirm({ title: '结束本局？', text: '本地对战不计输赢，随时可以再开一局。', ok: '结束', cancel: '继续玩' });
+      if (ok && G) { G.over = true; clearAll(); G = null; App.backTo('play'); }
+      return;
+    }
     G.paused = true;
     const ok = await UI.confirm({
       title: practice ? '结束练习？' : '确定认输？',
@@ -798,8 +848,9 @@ window.C4 = (() => {
       const g = D.game[p.game] || D.game[D.GAME];
       const opp = p.opp || 'bot';
       const st = Battle.stakeOf(p.stake);
-      const mode = { quick: `${st.name} · 奖池${UI.fmt(Battle.pot(st, p.double))}`, fast: `${st.name} · 人机`, ai: '人机练习', room: p.bet ? `好友房 · 奖池${UI.fmt(p.bet * 2)}` : '好友房' }[p.mode] || '对局';
+      const mode = { quick: `${st.name} · 奖池${UI.fmt(Battle.pot(st, p.double))}`, fast: `${st.name} · 人机`, ai: '人机练习', local: '本地对战 · 同一台手机', room: p.bet ? `好友房 · 奖池${UI.fmt(p.bet * 2)}` : '好友房' }[p.mode] || '对局';
       const v = Store.s.voice;
+      el.classList.toggle('is-local', p.mode === 'local');
       el.classList.remove('is-myturn', 'is-oppturn');
       el.innerHTML = `
         <div class="gm-bg"><img class="gm-tone" src="${IMG}fx/halftone.png" alt=""></div>
@@ -850,12 +901,16 @@ window.C4 = (() => {
       const first = p.first || 1;
       const intro = document.createElement('div');
       intro.className = 'gm-intro';
-      intro.innerHTML = `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>${p.rematch ? `${name(G.opp)}接受了再战` : '连成4子即可获胜'}</span>`;
+      intro.innerHTML = p.mode === 'local'
+        ? `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '蓝方先手' : '红方先手'}</b><span>两人轮流在这台手机上落子</span>`
+        : `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>${p.rematch ? `${name(G.opp)}接受了再战` : '点一列落子，横竖斜连成4子就赢'}</span>`;
       el.querySelector('.gm-stage').appendChild(intro);
       later(() => { intro.remove(); startTurn(first); }, 1500);
       voiceUI();
-      scheduleTalk();
-      later(() => { if (G && G.turn !== 1) emote('opp', UI.pick(['happy', 'wink', 'cool'])); }, 2600);
+      if (p.mode !== 'local') {
+        scheduleTalk();
+        later(() => { if (G && G.turn !== 1) emote('opp', UI.pick(['happy', 'wink', 'cool'])); }, 2600);
+      }
     },
     leave() { if (G && G.min) return; clearAll(); G = null; },
     back() {
@@ -866,7 +921,7 @@ window.C4 = (() => {
       return false;
     },
     act: {
-      col: (el) => { if (G) G.timeouts = 0; myMove(+el.dataset.c); },
+      col: (el) => { if (G && G.p.mode === 'local') { localMove(+el.dataset.c); return; } if (G) G.timeouts = 0; myMove(+el.dataset.c); },
       quit: () => quit(),
       panel: (el) => openPanel(el.dataset.p),
       ptab: (el) => openPanel(el.dataset.p),

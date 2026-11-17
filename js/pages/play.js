@@ -1,6 +1,6 @@
 /**
  * Play 首页（登录后的启动页）。V4 精简成一屏、不用滚动，参考 Yalla Ludo：
- *   顶栏 → 四子棋标志 → 玩法入口（快速开始、和好友玩）。V7 首发版不做赛季、排行榜
+ *   顶栏 → 一行四子棋标志 → 快速开始（大卡片，一点就匹配）→ 和好友玩、本地对战。V7 首发版不做赛季、排行榜
  *   快速开始一点就匹配；金币分场收进“换场次”弹层
  * 以及启动相关的：B2 新手礼包、B5 退出挽留、B6 离线收益（B3 7 日签到在 tasks.js 顶部）、
  * K3 好友主动发来邀请（V7 首发版不做 C3 回合制对局）
@@ -50,14 +50,13 @@
     </header>`;
   }
 
-  /** 四子棋标志 + 游戏大图（V7 重点突出游戏）：在玩人数和玩法说明放在大图上 */
+  /** 四子棋标志缩成一行（左边标志，右边在玩人数和玩法），把位置让给“开始游戏” */
   function logo() {
     const g = D.game[D.GAME];
     const chars = [...g.name];
     const x = (i) => 44 + i * 82;
     return `<div class="hm-logo">
-      <i class="hm-glow"></i>
-      <svg class="hm-title" viewBox="0 0 252 86" width="252" height="86" role="img" aria-label="${g.name}">
+      <svg class="hm-title" viewBox="0 0 252 86" width="150" height="51" role="img" aria-label="${g.name}">
         <defs>
           <linearGradient id="hmg1" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#7cc0ff"/><stop offset="1" stop-color="#1f4fe0"/></linearGradient>
           <linearGradient id="hmg2" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#ff9aa6"/><stop offset="1" stop-color="#e01f3d"/></linearGradient>
@@ -66,10 +65,7 @@
         <g class="hm-title-o">${chars.map((ch, i) => `<text x="${x(i)}" y="66">${ch}</text>`).join('')}</g>
         <g class="hm-title-i">${chars.map((ch, i) => `<text x="${x(i)}" y="66" class="c${i + 1}">${ch}</text>`).join('')}</g>
       </svg>
-      <div class="hm-stage"><img src="${g.cover}" alt="${g.name}">
-        <span class="hm-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span>
-        <span class="hm-tip">${g.players}实时对战 · 连成四子就赢</span>
-        <button class="hm-howto" data-act="howto">${UI.ic('book', 13)}玩法</button></div>
+      <div class="hm-meta"><span class="hm-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span><button class="hm-howto" data-act="howto">${UI.ic('book', 13)}玩法</button></div>
     </div>`;
   }
 
@@ -86,24 +82,31 @@
     return lower[lower.length - 1] || ok[0] || normal[0] || last;
   }
 
-  /** 玩法入口：快速开始、和好友玩（V7 首发版先不做人机练习、创建房间、超级会员场） */
+  /** 玩法入口：快速开始（最大，放最上面，一点就匹配），下面是和好友玩（线上）、本地对战（同一台手机） */
   function modes() {
     const st = pickStake();
     const online = Store.s.friends.map((id) => D.people[id]).filter((p) => p && p.online);
     const hasFriends = Store.s.friends.length > 0;
     return `<div class="hm-modes">
-      <div class="hm-tile is-quick">
-        <button class="hm-hit" data-act="quick" data-id="${st.id}" aria-label="快速开始 · ${st.name}"></button>
-        <img class="hm-art" src="${IMG}ui/trophy.png" alt="">
+      <div class="hm-tile is-quick is-big">
+        <button class="hm-hit" data-act="quick" data-id="${st.id}" aria-label="开始游戏 · ${st.name}"></button>
+        <img class="hm-art" src="${IMG}games/c4.jpg" alt="">
         <b class="hm-name">快速开始</b>
+        <span class="hm-desc">和真人实时对战 · 赢家拿走奖池</span>
         <button class="hm-change" data-act="stakes" aria-label="换场次">${st.vip ? '超级场' : st.name} · ${UI.cur('coins', 14)}${UI.fmt(st.bet)}${UI.ic('down', 13)}</button>
-        <span class="hm-go">${UI.ic('play', 14)}开始</span>
+        <span class="hm-go">${UI.ic('play', 18)}开始游戏</span>
       </div>
       <button class="hm-tile is-friends" data-act="friends">
         <img class="hm-art" src="${IMG}brand/mascot-cheer.png" alt="">
         <b class="hm-name">和好友玩</b>
         <span class="hm-desc">${hasFriends ? '选入场金币 · 含免费档' : '约朋友来下一局'}</span>
         <span class="hm-avs">${hasFriends ? `${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em>` : `<i class="hm-avs-add">${UI.ic('userPlus', 14)}</i><em>还没有好友</em>`}</span>
+      </button>
+      <button class="hm-tile is-local" data-act="local">
+        <img class="hm-art" src="${IMG}brand/blobs-vs.png" alt="">
+        <b class="hm-name">本地对战</b>
+        <span class="hm-desc">同一台手机 · 两人轮流下</span>
+        <span class="hm-free">免费 · 不用联网匹配</span>
       </button>
     </div>`;
   }
@@ -251,6 +254,7 @@
     },
     act: {
       quick: (el) => Battle.quick(el.dataset.id),
+      local: () => Battle.local(),
       stakes: () => stakeSheet(),
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {

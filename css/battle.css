@@ -420,3 +420,8 @@
 .gm-top .gm-title { padding-left: 12px; }
 /* V7：对手资料卡去掉段位，统计改成三项 */
 .op-stats { grid-template-columns: repeat(3, 1fr); }
+/* V7 本地对战：两人同屏，不计时、没有语音和表情 */
+.page.is-local .gm-mid { visibility: hidden; }
+.page.is-local .gm-bar { display: none; }
+.page.is-local .gm-pl { opacity: .55; }
+.page.is-local .gm-pl.is-turn { opacity: 1; }
