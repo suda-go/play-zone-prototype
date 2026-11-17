@@ -19,6 +19,11 @@
     .t4 { background: linear-gradient(135deg, #22c39a, #1a8fd8); }
     .t5 { background: linear-gradient(135deg, #ffb020, #ff5e7e); }
     .t6 { background: linear-gradient(135deg, #7b5cff, #22c3c9); }
+    .t7 { background: linear-gradient(135deg, #1d2340, #6c4dff); }
+    .log { margin-top: 12px; border-radius: 12px; background: #f6f7fc; padding: 10px 14px; font-size: 13px; color: #3d4466; }
+    .log summary { cursor: pointer; font-weight: 700; color: #2c4fd6; }
+    .log ol { margin: 8px 0 0 18px; line-height: 1.7; }
+    .log .d { color: #8a90a8; margin-right: 6px; }
     .m { flex: 1; min-width: 0; }
     .m h2 { font-size: 18px; font-weight: 800; }
     .m h2 small { margin-left: 8px; font-size: 12px; font-weight: 600; color: #8a90a8; }
@@ -105,7 +110,7 @@
       <div class="card">
         <span class="tag t6">V6</span>
         <div class="m">
-          <h2>好友房入场金币<small>当前最新</small></h2>
+          <h2>好友房入场金币<small>建房选金币</small></h2>
           <ul>
             <li>房主创建房间时选入场金币：免费 / 100 / 500 / 2,000 / 1万</li>
             <li>赢家拿走奖池，平局退还入场金币</li>
@@ -115,9 +120,37 @@
           <div class="btns"><a class="btn" href="https://suda-go.github.io/play-zone-prototype-v6/#login" target="_blank">打开 V6</a><a class="btn ghost" href="https://github.com/suda-go/play-zone-prototype-v6" target="_blank">代码仓库</a></div>
         </div>
       </div>
+      <div class="card">
+        <span class="tag t7">V7</span>
+        <div class="m">
+          <h2>首发版精简<small>当前最新</small></h2>
+          <ul>
+            <li>首页只留「快速开始」和「和好友玩」，新增本地对战（同一台手机两人轮流下）</li>
+            <li>暂不做：悬浮窗、赛季、排行榜、徽章、等级段位、回合制玩法、亲密度和宠物、加速卡、房间列表</li>
+            <li>只用金币一种货币，会员和房卡同步精简；新用户没有好友时各处有引导</li>
+            <li>账号：iOS 加 Apple 登录、注销账号、三方账号只能绑定一次</li>
+          </ul>
+          <details class="log">
+            <summary>更新记录（10 条）</summary>
+            <ol>
+              <li><span class="d">11-17</span>首发版精简：首页只留「快速开始」和「和好友玩」（去掉人机练习、创建房间、超级会员场）；去掉房间列表 Tab；只用金币一种货币（钻石改金币，商城去掉钻石礼包和兑换）；会员和房卡同步精简</li>
+              <li><span class="d">11-17</span>悬浮窗先不做（去掉回合制提醒和对局缩小）；对局页去掉缩小按钮，返回键改成认输确认；首页玩法区下移占满空间</li>
+              <li><span class="d">11-17</span>去掉赛季（首页卡片、赛季头像框）、排行榜（页面和好友排名）、加速卡（匹配页按钮、商城和背包道具，奖励里的加速卡换成金币）</li>
+              <li><span class="d">11-17</span>去掉徽章（徽章页、我的页入口、好友资料里的徽章、解锁提示）；我的页商城说明去掉道具</li>
+              <li><span class="d">11-17</span>去掉谁看过我、等级和段位（结算只算金币，场次不再按等级解锁，会员去掉保护卡和经验加成）、回合制玩法（含回合提醒任务和设置）、好友宠物</li>
+              <li><span class="d">11-17</span>去掉好友亲密度；首页突出游戏（标志下方放游戏大图）；我的页改成金币卡片；纯新用户没有好友、聊天和对局记录时，「和好友玩」、消息页、选好友都有引导，设置里可填充示例好友</li>
+              <li><span class="d">11-17</span>首页突出开始游戏（标志缩成一行，快速开始大卡片放最上面）；新增本地对战（同一台手机两人轮流下）；去掉首局前的玩法说明，匹配等待缩短到约 3.5 秒</li>
+              <li><span class="d">11-17</span>消息 → 好友列表：已有好友时不再显示「最近一起玩」；「加一起玩过的人」任务改为跳到添加好友页</li>
+              <li><span class="d">11-17</span>已有好友时，消息页聊天顶部不再显示「最近一起玩」头像和「找更多」入口（还没有好友时照常显示）</li>
+              <li><span class="d">11-18</span>账号补充：iOS 加 Apple 登录（可演示切换平台）；设置里加注销账号（须知、身份验证、5 秒倒计时确认）；一个三方账号只能绑定一次，已被绑定时给出提示；头像和昵称还是默认的才换成三方资料；游客退出提示去掉「等级」</li>
+            </ol>
+          </details>
+          <div class="btns"><a class="btn" href="https://suda-go.github.io/play-zone-prototype-v7/" target="_blank">打开 V7</a><a class="btn ghost" href="https://github.com/suda-go/play-zone-prototype-v7/commits" target="_blank">代码仓库</a></div>
+        </div>
+      </div>
     </div>
 
-    <p class="note">说明：各版本的演示数据分别保存在浏览器本地，互不影响；想从头体验某个版本，可在该版本"我的 → 设置 → 重置演示"。主站 https://suda-go.github.io/play-zone-prototype/ 目前是 V3；V4、V5、V6 分别是 https://suda-go.github.io/play-zone-prototype-v4/ 、https://suda-go.github.io/play-zone-prototype-v5/ 和 https://suda-go.github.io/play-zone-prototype-v6/ 。</p>
+    <p class="note">说明：各版本的演示数据分别保存在浏览器本地，互不影响；想从头体验某个版本，可在该版本"我的 → 设置 → 重置演示"。主站 https://suda-go.github.io/play-zone-prototype/ 目前是 V3；V4–V7 各有独立站点（play-zone-prototype-v4 至 -v7）。</p>
   </div>
 </body>
 </html>
