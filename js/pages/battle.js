@@ -712,7 +712,7 @@ window.C4 = (() => {
     G.paused = true;
     const ok = await UI.confirm({
       title: practice ? '结束练习？' : '确定认输？',
-      text: practice ? '练习局结束没有惩罚。' : room ? (G.p.bet ? `认输算作失败，底注<b>${UI.fmt(G.p.bet)}金币</b>不予退还。` : '免费好友房认输不扣金币，但这局算你输。') : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。想先离开可以点左上角缩小。`,
+      text: practice ? '练习局结束没有惩罚。' : room ? (G.p.bet ? `认输算作失败，底注<b>${UI.fmt(G.p.bet)}金币</b>不予退还。` : '免费好友房认输不扣金币，但这局算你输。') : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
       ok: practice ? '结束' : '认输', cancel: '继续玩', danger: !practice,
     });
     if (!G) return;
@@ -838,7 +838,6 @@ window.C4 = (() => {
       el.innerHTML = `
         <div class="gm-bg"><img class="gm-tone" src="${IMG}fx/halftone.png" alt=""></div>
         <header class="gm-top safe-top">
-          <button class="icon-btn gm-mini" data-act="mini" aria-label="缩小对局">${UI.ic('down', 26)}</button>
           <div class="gm-title"><b>${g.name}</b><span>${mode}</span></div>
           <button class="icon-btn gm-quit" data-act="quit" aria-label="认输">${UI.ic('flag', 20)}</button>
           <button class="icon-btn" data-act="sound" aria-label="音效">${UI.ic(Store.s.settings.sound ? 'volume' : 'mute', 21)}</button>
@@ -896,13 +895,13 @@ window.C4 = (() => {
     back() {
       const panel = G && G.el.querySelector('.gm-panel');
       if (panel && !panel.hidden) { closePanel(); return false; }
-      minimize();
+      // V7 没有悬浮窗、不能缩小对局：返回键直接问要不要认输
+      quit();
       return false;
     },
     act: {
       col: (el) => { if (G) G.timeouts = 0; myMove(+el.dataset.c); },
       quit: () => quit(),
-      mini: () => minimize(),
       panel: (el) => openPanel(el.dataset.p),
       ptab: (el) => openPanel(el.dataset.p),
       closePanel: () => closePanel(),

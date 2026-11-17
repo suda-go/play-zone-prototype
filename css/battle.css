@@ -415,3 +415,6 @@
 .op-stats b { display: flex; align-items: center; gap: 3px; font: 800 17px var(--num); color: var(--text); }
 .op-stats b.op-tier { font-family: inherit; font-size: 15px; line-height: 1.35; }
 .op-tip { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 10px; font-size: 12px; color: var(--text-3); }
+
+/* V7 首发版：去掉了左上角缩小按钮，标题离边缘留点距离 */
+.gm-top .gm-title { padding-left: 12px; }

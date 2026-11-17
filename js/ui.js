@@ -764,6 +764,8 @@ Store.on((type, meta) => {
   'use strict';
 
   const UI = window.UI;
+  // V7 首发版：悬浮窗先不做（回合制提醒、对局缩小都不显示），以后要用改成 true
+  const ENABLED = false;
   const HIDE_ON = ['game', 'match', 'result', 'call', 'login', 'email'];
   const providers = [];
   const dismissed = {};
@@ -835,6 +837,7 @@ Store.on((type, meta) => {
     return null;
   }
   function render() {
+    if (!ENABLED) return;
     if (!el) { if (!document.querySelector('.screen') || !window.App) return; mount(); }
     const top = App.top();
     const st = HIDE_ON.includes(top) || document.querySelector('.ov-full.is-open') ? null : pick();
@@ -853,5 +856,5 @@ Store.on((type, meta) => {
   }
 
   UI.floater = { add: (fn, prio = 0) => { providers.push({ fn, prio }); providers.sort((x, y) => y.prio - x.prio); }, refresh: render, current: () => cur };
-  setInterval(render, 300);
+  if (ENABLED) setInterval(render, 300);
 })();
