@@ -522,7 +522,7 @@
             ${f ? `<div class="pf-calls">${['voice', 'video'].map((k) => {
               const free = Store.perk(k === 'video' ? 'videoFree' : 'voiceFree');
               return `<button class="pf-call ${P.online ? '' : 'is-off'}" data-act="${k === 'video' ? 'callVideo' : 'callVoice'}">
-                <span class="pf-call-ic is-${k}">${callIc(k, 18)}</span><span class="row-main"><b>${CALL_NAME[k]}</b><span>${free ? '会员免费' : `${D.vip.call[k]}钻石/次 · ${k === 'video' ? '超级会员' : '会员'}免费`}</span></span></button>`;
+                <span class="pf-call-ic is-${k}">${callIc(k, 18)}</span><span class="row-main"><b>${CALL_NAME[k]}</b><span>${free ? '会员免费' : `${D.vip.call[k]}金币/次 · ${k === 'video' ? '超级会员' : '会员'}免费`}</span></span></button>`;
             }).join('')}</div>` : ''}
           </div>
           <div class="sec-hd"><h2>${g.name}战绩</h2></div>

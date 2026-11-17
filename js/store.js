@@ -1,12 +1,12 @@
 /**
- * 状态层：全部运行数据存在 localStorage（键 soulgame.v6，和同域名下其他版本的预览分开存），刷新后保留
+ * 状态层：全部运行数据存在 localStorage（键 soulgame.v7，和同域名下其他版本的预览分开存），刷新后保留
  * 每次修改后 emit(type, meta)，ui.js 订阅后同步余额、红点
  * Store.reset() 清空数据回到新用户状态（需要重新登录）；Store.reset(seed) 换账号登录时用，新状态里预先写入登录信息
  */
 (() => {
   'use strict';
 
-  const KEY = 'soulgame.v6';
+  const KEY = 'soulgame.v7';
   const subs = [];
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });
@@ -234,13 +234,13 @@
   function openChest() {
     s.mystery.chest = true;
     emit('task');
-    return { gems: 50 + 10 * Math.floor(Math.random() * 4), coins: 100 };
+    return { coins: 600 + 100 * Math.floor(Math.random() * 4) };
   }
   function openStreakChest() {
     s.streak.chest = false;
     s.streak.opened = true;
     emit('task');
-    return { gems: 300, coins: 500, boost: 2 };
+    return { coins: 3500, boost: 2 };
   }
   function claimable() {
     let n = tasks().filter((t) => t.state === 'claim').length;
@@ -466,7 +466,7 @@
     if (!canVipDaily()) return null;
     s.vipDaily = s.day;
     save();
-    return { coins: perk('dailyCoins'), gems: perk('dailyGems') };
+    return { coins: perk('dailyCoins') };
   }
   /** 破产补助：每次补 AID 金币 */
   const AID = 500;

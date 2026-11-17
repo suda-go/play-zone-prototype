@@ -2,7 +2,7 @@
  * V3 好友通话：语音 / 视频（演示，不采集真实音视频）
  *
  * Call.start(uid, 'voice'|'video')  发起通话：只能打给在线好友；会员免费（语音 perk voiceFree、视频 perk videoFree），
- *                                   否则弹付费面板（开通会员 / 用钻石按次付费 / 取消）；首次通话询问麦克风（视频再问摄像头）
+ *                                   否则弹付费面板（开通会员 / 用金币按次付费 / 取消）；首次通话询问麦克风（视频再问摄像头）
  * Call.incoming(uid, kind)          模拟好友来电：全屏来电页，接听同样走价格和授权；20秒没接记“对方已取消”
  * Call._ringNow(uid?, kind?)        测试用：立刻来一通电话（默认莉莉语音）
  *
@@ -60,11 +60,11 @@
         sub: `和${UI.esc(nameOf(uid))}${video ? '面对面' : '语音'}聊聊`,
         cls: 'call-pay',
         html: `<div class="cp-hd">${UI.av(uid, 54)}<span class="cp-ic ${video ? 'is-video' : ''}">${ic(video ? 'video' : 'phone', 14)}</span>
-            <div class="cp-txt"><b>${lead}</b><span>不开通也能打：每次${n}钻石，最长${C.maxMin}分钟</span></div></div>
+            <div class="cp-txt"><b>${lead}</b><span>不开通也能打：每次${n}金币，最长${C.maxMin}分钟</span></div></div>
           <div class="cp-ops">
             <button class="btn btn-gold btn-lg btn-block" data-act="callVip">${UI.ic('crown', 18)}${video ? '开通超级会员 · 视频免费' : '开通会员 · 语音免费'}</button>
-            <button class="btn btn-line btn-lg btn-block cp-gems" data-act="callGems">${UI.cur('gems', 18)}<span>用钻石通话 · ${n}钻石/次<small>（最长${C.maxMin}分钟）</small></span></button>
-            <p class="cp-bal">钻石余额 ${UI.cur('gems', 14)}${UI.bind('gems')}</p>
+            <button class="btn btn-line btn-lg btn-block cp-gems" data-act="callGems">${UI.cur('coins', 18)}<span>用金币通话 · ${n}金币/次<small>（最长${C.maxMin}分钟）</small></span></button>
+            <p class="cp-bal">金币余额 ${UI.cur('coins', 14)}${UI.bind('coins')}</p>
             <button class="btn btn-ghost btn-lg btn-block" data-act="close">取消</button>
           </div>`,
         acts: {
@@ -95,8 +95,8 @@
   }
 
   /**
-   * 价格 → 授权 → 扣钻石（授权在扣费之前，拒绝就不用退款）
-   * 返回 { paid } 可以通话；{ vip: true } 去开通会员；{ lack } 钻石不够；null 取消
+   * 价格 → 授权 → 扣金币（授权在扣费之前，拒绝就不用退款）
+   * 返回 { paid } 可以通话；{ vip: true } 去开通会员；{ lack } 金币不够；null 取消
    */
   async function gate(uid, kind) {
     let n = 0;
@@ -105,15 +105,15 @@
       if (pick === 'vip') return { vip: true };
       if (pick !== 'gems') return null;
       n = C[kind];
-      if ((Store.s.gems || 0) < n) return { lack: n - (Store.s.gems || 0) };
+      if ((Store.s.coins || 0) < n) return { lack: n - (Store.s.coins || 0) };
     }
     if (!(await askPerm(kind))) return null;
-    if (n) Store.add('gems', -n, NAME[kind]);
+    if (n) Store.add('coins', -n, NAME[kind]);
     return { paid: n };
   }
   const vipTierFor = (kind) => (kind === 'video' ? 2 : 1);
   function lack(n) {
-    UI.toast(`钻石不够，还差${n}钻石`);
+    UI.toast(`金币不够，还差${n}金币`);
     App.go('shop', { tab: 'topup' }, { queue: true });
   }
 
@@ -196,7 +196,7 @@
     s.sec = 0;
     every(s, tick, 1000);
     if (s.kind === 'voice') later(s, talk, 600);
-    // 钻石通话最长 30 分钟
+    // 付费通话最长 30 分钟
     if (s.paid) later(s, () => finish('limit'), C.maxMin * 60000);
     Sfx.play('tap');
     paint();
@@ -236,8 +236,8 @@
     } else if (s.dir === 'out') {
       msg = { from: 'me', st: 'cancel', dur: 0, text: '已取消' };
       if (s.paid) {
-        Store.add('gems', s.paid, `${NAME[kind]}未接通退回`);
-        toast = `没接通，${s.paid}钻石已退回`;
+        Store.add('coins', s.paid, `${NAME[kind]}未接通退回`);
+        toast = `没接通，${s.paid}金币已退回`;
       }
     } else if (reason === 'timeout') {
       msg = { from: uid, st: 'missed', dur: 0, text: '对方已取消' };
@@ -287,9 +287,9 @@
     const free = isFree(s.kind);
     const t = Store.vipTier();
     let fee;
-    if (s.paid) fee = `${UI.cur('gems', 13)}本次${s.paid}钻石 · 最长${C.maxMin}分钟`;
+    if (s.paid) fee = `${UI.cur('coins', 13)}本次${s.paid}金币 · 最长${C.maxMin}分钟`;
     else if (free) fee = `${UI.vipTag(t)}${s.dir === 'in' ? '会员免费接听' : '会员免费通话'}`;
-    else fee = `${UI.cur('gems', 13)}接听${n}钻石/次 · ${s.kind === 'video' ? '超级会员' : '会员'}免费`;
+    else fee = `${UI.cur('coins', 13)}接听${n}金币/次 · ${s.kind === 'video' ? '超级会员' : '会员'}免费`;
     return `<div class="call-top"><span class="call-lock">${UI.ic('lock', 11)}Soulgame ${NAME[s.kind]} · 演示</span><span class="call-fee">${fee}</span></div>`;
   }
   function statusHtml(s) {

@@ -36,7 +36,6 @@
     { id: 's2', name: '进阶场', bet: 500, lv: 3, online: 21400 },
     { id: 's3', name: '高手场', bet: 2000, lv: 8, online: 9300 },
     { id: 's4', name: '大师场', bet: 10000, lv: 15, online: 3000 },
-    { id: 's5', name: '超级会员场', bet: 2000, lv: 1, online: 1200, vip: 2, potX: 3 }, // 奖池 = 底注×3
   ];
   D.stake = Object.fromEntries(D.stakes.map((x) => [x.id, x]));
 
@@ -47,10 +46,10 @@
     left: '12天06小时',
     rewards: [
       { tier: 0, text: '50金币' },
-      { tier: 1, text: '20钻石' },
+      { tier: 1, text: '200金币' },
       { tier: 2, text: '赛季框' },
-      { tier: 3, text: '200钻石' },
-      { tier: 4, text: '500钻石+徽章' },
+      { tier: 3, text: '2000金币' },
+      { tier: 4, text: '5000金币+徽章' },
     ],
   };
 
@@ -125,8 +124,6 @@
   D.items = [
     { id: 'boost1', name: '加速卡', desc: '1秒内匹配到对手', price: 100, give: { boost: 1 }, img: `${IMG}ui/rocket.png` },
     { id: 'boost5', name: '加速卡×5', desc: '常玩党最划算', price: 450, give: { boost: 5 }, img: `${IMG}ui/rocket.png`, tag: '-10%' },
-    { id: 'pass1', name: '房卡', desc: '可进入1次高级房', price: 200, give: { pass: 1 }, img: `${IMG}ui/pass.svg` },
-    { id: 'pass3', name: '房卡×3', desc: '可进入3次高级房', price: 540, give: { pass: 3 }, img: `${IMG}ui/pass.svg`, tag: '-10%' },
   ];
   D.coinPacks = [
     { id: 'c1', usd: 0.99, coins: 600 },
@@ -135,21 +132,16 @@
     { id: 'c4', usd: 19.99, coins: 12800, bonus: 2400 },
   ];
   D.bundle = { id: 'bundle', usd: 2.99, coins: 2000, name: '金币+免广告卡', desc: '2,000金币，外加30天免广告，广告奖励免看秒到账。' };
-  D.gemPacks = [
-    { id: 'g1', usd: 0.99, gems: 100 },
-    { id: 'g2', usd: 4.99, gems: 550, bonus: '+10%' },
-    { id: 'g3', usd: 9.99, gems: 1200, bonus: '+20%' },
-  ];
   /* ---------- 会员：两档（参考 Yalla Ludo Knight / Baron） ---------- */
   // Store.vipTier() 返回 0 / 1 / 2；Store.perk(key) 取当前档位的权益值（非会员取 tiers[0]）
   D.vip = {
     tiers: [
-      { id: 0, name: '普通用户', usd: 0, gems: 0, dailyCoins: 0, dailyGems: 0, aid: 0, protect: 0, expBonus: 0, friendCap: 100, sign: 1, voiceFree: false, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: false, priority: false, pin: false, frame: null, stickers: 0 },
-      { id: 1, name: '会员', short: '会员', usd: 4.99, gems: 300, dailyCoins: 1000, dailyGems: 5, aid: 1, protect: 2, expBonus: 0.2, friendCap: 200, sign: 2, voiceFree: true, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: true, priority: true, pin: true, frame: 'vip', stickers: 1 },
-      { id: 2, name: '超级会员', short: '超级', usd: 14.99, gems: 1200, dailyCoins: 3000, dailyGems: 20, aid: 2, protect: 5, expBonus: 0.5, friendCap: 500, sign: 3, voiceFree: true, videoFree: true, vipStake: true, visitors: true, entryFx: true, freePass: true, priority: true, pin: true, frame: 'svip', stickers: 3 },
+      { id: 0, name: '普通用户', usd: 0, bonus: 0, dailyCoins: 0, aid: 0, protect: 0, expBonus: 0, friendCap: 100, sign: 1, voiceFree: false, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: false, priority: false, pin: false, frame: null, stickers: 0 },
+      { id: 1, name: '会员', short: '会员', usd: 4.99, bonus: 3000, dailyCoins: 1000, aid: 1, protect: 2, expBonus: 0.2, friendCap: 200, sign: 2, voiceFree: true, videoFree: false, vipStake: false, visitors: false, entryFx: false, freePass: true, priority: true, pin: true, frame: 'vip', stickers: 1 },
+      { id: 2, name: '超级会员', short: '超级', usd: 14.99, bonus: 12000, dailyCoins: 3000, aid: 2, protect: 5, expBonus: 0.5, friendCap: 500, sign: 3, voiceFree: true, videoFree: true, vipStake: true, visitors: true, entryFx: true, freePass: true, priority: true, pin: true, frame: 'svip', stickers: 3 },
     ],
-    // 非会员（或会员打视频）单次通话价格，单位钻石；每次最长 30 分钟
-    call: { voice: 20, video: 50, maxMin: 30 },
+    // 非会员（或会员打视频）单次通话价格，单位金币（V7 单一货币）；每次最长 30 分钟
+    call: { voice: 200, video: 500, maxMin: 30 },
     // 会员中心权益分组：key 对应 tiers 里的字段，text(t) 生成展示文案（t 为档位）
     groups: [
       { id: 'game', name: '对局特权', items: [
@@ -157,12 +149,10 @@
         { key: 'aid', icon: 'shield', title: '破产补助', text: (t) => (t.aid ? `金币不够时每天${t.aid}次` : '—') },
         { key: 'protect', icon: 'shield', title: '段位保护卡', text: (t) => (t.protect ? `每周${t.protect}张，输了不掉分` : '—') },
         { key: 'priority', icon: 'zap', title: '优先匹配', text: (t) => (t.priority ? '匹配更快' : '—') },
-        { key: 'freePass', icon: 'ticket', title: '高级房免房卡', text: (t) => (t.freePass ? '直接进入' : '—') },
-        { key: 'vipStake', icon: 'crown', title: '会员专属场', text: (t) => (t.vipStake ? '奖池更高' : '—') },
       ] },
       { id: 'social', name: '社交特权', items: [
-        { key: 'voiceFree', icon: 'phone', title: '语音通话', text: (t) => (t.voiceFree ? '免费' : '20钻石/次') },
-        { key: 'videoFree', icon: 'video', title: '视频通话', text: (t) => (t.videoFree ? '免费' : '50钻石/次') },
+        { key: 'voiceFree', icon: 'phone', title: '语音通话', text: (t) => (t.voiceFree ? '免费' : '200金币/次') },
+        { key: 'videoFree', icon: 'video', title: '视频通话', text: (t) => (t.videoFree ? '免费' : '500金币/次') },
         { key: 'friendCap', icon: 'users', title: '好友上限', text: (t) => `${t.friendCap}人` },
         { key: 'visitors', icon: 'eye', title: '谁看过我', text: (t) => (t.visitors ? '查看访客' : '—') },
         { key: 'pin', icon: 'userPlus', title: '好友申请置顶', text: (t) => (t.pin ? '带附言、优先展示' : '—') },
@@ -174,8 +164,7 @@
         { key: 'stickers', icon: 'smile', title: '专属表情和气泡', text: (t) => (t.stickers ? `${t.stickers}套` : '—') },
       ] },
       { id: 'grow', name: '成长特权', items: [
-        { key: 'gems', icon: 'gift', title: '开通即得钻石', text: (t) => (t.gems ? `${t.gems}钻石` : '—') },
-        { key: 'dailyGems', icon: 'gem', title: '每日钻石', text: (t) => (t.dailyGems ? `每天${t.dailyGems}` : '—') },
+        { key: 'bonus', icon: 'gift', title: '开通即得金币', text: (t) => (t.bonus ? `${t.bonus.toLocaleString('zh-CN')}金币` : '—') },
         { key: 'sign', icon: 'calendar', title: '签到奖励', text: (t) => (t.sign > 1 ? `×${t.sign}` : '—') },
         { key: 'expBonus', icon: 'chart', title: '对局经验', text: (t) => (t.expBonus ? `+${Math.round(t.expBonus * 100)}%` : '—') },
       ] },
@@ -184,7 +173,7 @@
 
   /* ---------- 签到 ---------- */
   D.signin = [
-    { gems: 10 }, { coins: 100 }, { gems: 20 }, { boost: 1 }, { gems: 30 }, { coins: 200 }, { gems: 100, frame: 'balloon' },
+    { coins: 100 }, { coins: 150 }, { coins: 200 }, { boost: 1 }, { coins: 300 }, { coins: 400 }, { coins: 1000, frame: 'balloon' },
   ];
 
   /* ---------- 任务 ---------- */
@@ -193,19 +182,19 @@
   D.tasks = [
     T('n_first', 'newbie', '完成第一局对战', 1, 'games', { coins: 50 }, 'c4'),
     T('n_time', 'newbie', '游玩3分钟', 3, 'minutes', { coins: 50 }, 'c4', { unit: '分钟' }),
-    T('n_friend', 'newbie', '添加1位好友', 1, 'friendsAdded', { gems: 30 }, 'addfriend'),
+    T('n_friend', 'newbie', '添加1位好友', 1, 'friendsAdded', { coins: 300 }, 'addfriend'),
     T('n_frame', 'newbie', '装备一个头像框', 1, 'framesEquipped', { coins: 100 }, 'shop'),
-    T('d_play', 'daily', '玩3局', 3, 'games', { gems: 20 }, 'c4'),
-    T('d_win', 'daily', '赢1局', 1, 'wins', { gems: 30 }, 'c4'),
+    T('d_play', 'daily', '玩3局', 3, 'games', { coins: 200 }, 'c4'),
+    T('d_win', 'daily', '赢1局', 1, 'wins', { coins: 300 }, 'c4'),
     T('d_emoji', 'daily', '对局中发3个表情', 3, 'emojis', { coins: 50 }, 'c4'),
-    T('d_share', 'daily', '分享1次', 1, 'shares', { gems: 10 }, 'share'),
+    T('d_share', 'daily', '分享1次', 1, 'shares', { coins: 100 }, 'share'),
     T('d_ad', 'daily', '看1次广告', 1, 'ads', { coins: 30 }, 'ad'),
-    T('w_friend', 'weekly', '和好友玩3局', 3, 'friendGames', { gems: 100 }, 'friends'),
-    T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { gems: 80 }, 'create'),
+    T('w_friend', 'weekly', '和好友玩3局', 3, 'friendGames', { coins: 1000 }, 'friends'),
+    T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { coins: 800 }, 'friends'),
     T('w_win', 'weekly', '赢10局', 10, 'wins', { coins: 200 }, 'c4'),
-    T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { gems: 100 }, 'recent', { period: '2026.11.01 - 11.30' }),
-    T('l_notify', 'limited', '开启回合提醒', 1, 'notify', { gems: 100 }, 'notify', { period: '3个月' }),
-    T('l_share', 'limited', '分享3次', 3, 'shares', { gems: 100 }, 'share', { period: '2026.11.01 - 12.31' }),
+    T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { coins: 1000 }, 'recent', { period: '2026.11.01 - 11.30' }),
+    T('l_notify', 'limited', '开启回合提醒', 1, 'notify', { coins: 1000 }, 'notify', { period: '3个月' }),
+    T('l_share', 'limited', '分享3次', 3, 'shares', { coins: 1000 }, 'share', { period: '2026.11.01 - 12.31' }),
   ];
   D.taskGroups = [
     { id: 'newbie', name: '新手任务', sub: '轻松上手，奖励拿不停' },

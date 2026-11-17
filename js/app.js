@@ -34,7 +34,7 @@
   const DUR = 360;
   const EASE = 'cubic-bezier(.32, .72, 0, 1)';
   const HOME = 'play';
-  const TABS = ['play', 'rooms', 'chat', 'me'];
+  const TABS = ['play', 'chat', 'me']; // V7 首发版：房间列表 Tab 先不做
   const LOGIN = 'login';
   const AUTH_PAGES = ['login', 'email']; // 未登录时能打开的页面
 
@@ -50,10 +50,10 @@
   const device = () => document.getElementById('device');
 
   function loadParams() {
-    try { return JSON.parse(sessionStorage.getItem('pz.params.v6')) || {}; } catch (_) { return {}; }
+    try { return JSON.parse(sessionStorage.getItem('pz.params.v7')) || {}; } catch (_) { return {}; }
   }
   function saveParams() {
-    try { sessionStorage.setItem('pz.params.v6', JSON.stringify(params)); } catch (_) { /* 隐私模式下忽略 */ }
+    try { sessionStorage.setItem('pz.params.v7', JSON.stringify(params)); } catch (_) { /* 隐私模式下忽略 */ }
   }
 
   function setActive(id, on) {

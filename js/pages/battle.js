@@ -111,13 +111,13 @@ window.C4 = (() => {
       ] : [
         { t: '快速匹配', d: `优先匹配好友，其次是${g.name}中段位相近的玩家。`, art: 'cover' },
         { t: '全力取胜', d: g.desc, art: 'cover2' },
-        { t: '领取奖励', d: '获胜可得钻石、经验和段位分，每一局都计入任务进度。', art: 'reward' },
+        { t: '领取奖励', d: '获胜可得金币、经验和段位分，每一局都计入任务进度。', art: 'reward' },
       ];
       const art = (a) => {
         if (a === 'drop') return `<div class="ht-board">${C4.html([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0, 0], [0, 1, 2, 1, 0, 0, 0]], { cls: 'is-howto' })}<b class="disc p1 ht-falling"></b><span class="ht-hand">👆</span></div>`;
         if (a === 'line') return `<div class="ht-board">${C4.html([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 2, 0, 0], [0, 0, 1, 2, 2, 0, 0], [0, 1, 2, 1, 2, 0, 0]], { cls: 'is-howto ht-line' })}</div>`;
         if (a === 'block') return `<div class="ht-board">${C4.html([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 2, 2, 2, 0, 1, 1]], { cls: 'is-howto' })}<b class="disc p1 ht-falling is-block"></b><span class="ht-shield">${UI.ic('shield', 30)}</span></div>`;
-        if (a === 'reward') return `<div class="ht-reward"><img src="${IMG}ui/trophy.png" alt=""><span>${UI.cur('gems', 30)}+30</span><span>${UI.cur('exp', 30)}+50</span></div>`;
+        if (a === 'reward') return `<div class="ht-reward"><img src="${IMG}ui/trophy.png" alt=""><span>${UI.cur('coins', 30)}+300</span><span>${UI.cur('exp', 30)}+50</span></div>`;
         return `<div class="ht-cover ${a === 'cover2' ? 'is-zoom' : ''}"><img src="${g.cover || g.icon}" alt=""></div>`;
       };
       let i = 0;
@@ -1084,7 +1084,7 @@ window.C4 = (() => {
       // eslint-disable-next-line no-await-in-loop
       await UI.reward({
         title: `升到${lv}级啦！`, sub: '恭喜升级，这是你的升级奖励', img: `${IMG}brand/mascot-cheer.png`,
-        badge: `Lv${lv}`, items: { gems: 50, coins: 100 }, note: `Lv${lv}升级奖励`, cls: 'is-levelup', sfx: 'win',
+        badge: `Lv${lv}`, items: { coins: 600 }, note: `Lv${lv}升级奖励`, cls: 'is-levelup', sfx: 'win',
       });
     }
   }

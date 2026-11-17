@@ -76,7 +76,7 @@
           ${vipBanner()}
           <div class="me-wallet">
             <button data-go="wallet" data-cur="exp">${UI.cur('exp', 30)}<b>Lv${s.user.lv}</b><span>经验${s.user.exp}</span></button>
-            <button data-go="wallet" data-cur="gems">${UI.cur('gems', 30)}${UI.bind('gems')}<span>钻石</span></button>
+            <button data-go="bag" data-kind="items">${UI.cur('boost', 30)}${UI.bind('boost')}<span>加速卡</span></button>
             <button data-go="wallet" data-cur="coins">${UI.cur('coins', 30)}${UI.bind('coins')}<span>金币</span></button>
           </div>
           <button class="me-stats card" data-go="stats">
@@ -180,17 +180,16 @@
   App.page('wallet', {
     render(el, p) {
       const s = Store.s;
-      const f = p.cur && ['gems', 'coins', 'exp'].includes(p.cur) ? p.cur : 'all';
+      const f = p.cur && ['coins', 'exp'].includes(p.cur) ? p.cur : 'all';
       const logs = s.log.filter((x) => f === 'all' || x.cur === f);
-      const tabs = [['all', '全部'], ['gems', '钻石'], ['coins', '金币'], ['exp', '经验']];
+      const tabs = [['all', '全部'], ['coins', '金币'], ['exp', '经验']];
       el.innerHTML = `${UI.nav({ title: '钱包', cls: 'is-white' })}
         <div class="body wl-body" data-scroll="main">
           <div class="wl-sum">
-            <div><span>${UI.cur('gems', 26)}钻石</span>${UI.bind('gems')}<button class="btn btn-white btn-sm" data-act="topup" data-cur="gems">获取更多</button></div>
             <div><span>${UI.cur('coins', 26)}金币</span>${UI.bind('coins')}<button class="btn btn-white btn-sm" data-act="topup" data-cur="coins">充值</button></div>
             <div><span>${UI.cur('exp', 26)}等级</span><b class="num">Lv${s.user.lv}</b><em>${s.user.exp}/${Store.need(s.user.lv)}经验</em></div>
           </div>
-          <p class="wl-rule">金币：对局底注、买装扮和道具 · 钻石：充值获得，可兑换金币 · 经验：用于升级<span class="nowrap">（胜+50，负+20）</span></p>
+          <p class="wl-rule">金币：对局底注、买装扮和道具、通话 · 经验：用于升级<span class="nowrap">（胜+50，负+20）</span></p>
           <div class="pills wl-tabs">${tabs.map(([id, label]) => `<button class="pill ${id === f ? 'is-active' : ''}" data-act="f" data-f="${id}">${label}</button>`).join('')}</div>
           <div class="wl-list">${logs.length ? logs.map((x) => `<div class="wl-row">${UI.cur(x.cur, 30)}<span class="row-main"><b>${UI.esc(x.note)}</b><span>${ago(x.t)}</span></span><em class="${x.n > 0 ? 'is-in' : 'is-out'}">${x.n > 0 ? '+' : ''}${UI.fmt(x.n)}</em></div>`).join('')
             : UI.empty('还没有记录，先去领新手礼包吧！')}</div>
@@ -212,7 +211,6 @@
       if (kind === 'items') {
         grid = `<div class="bag-items">
           <div class="sh-prop"><span class="sh-prop-ic"><img src="${IMG}ui/rocket.png" alt=""></span><div class="row-main"><b>加速卡×${s.boost}</b><span>匹配时使用，1秒内找到对手</span></div><button class="btn btn-line btn-sm" data-go="shop" data-t="items">获取更多</button></div>
-          <div class="sh-prop"><span class="sh-prop-ic"><img src="${IMG}ui/pass.svg" alt=""></span><div class="row-main"><b>房卡×${s.pass}</b><span>可进入或创建高级房</span></div><button class="btn btn-line btn-sm" data-go="shop" data-t="items">获取更多</button></div>
           ${s.adFree ? `<div class="sh-prop"><span class="sh-prop-ic">${UI.ic('shield', 30)}</span><div class="row-main"><b>免广告卡</b><span>生效中 · 看广告奖励直接到账</span></div></div>` : ''}
         </div>`;
       } else {
@@ -326,7 +324,6 @@
           <div class="cells">
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-act="gems"><span class="cell-ic">${UI.cur('gems', 20)}</span><span class="cell-main">钻石清零<small>演示没有钻石、无法兑换金币</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家，从登录页重新开始</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
           <p class="set-foot">Soulgame 原型 · 小米游戏中心<br>所有数据仅保存在当前浏览器中。</p>
@@ -358,10 +355,6 @@
       coins: () => {
         if (Store.s.coins) Store.add('coins', -Store.s.coins, '演示：金币清零');
         UI.toast('金币已清零');
-      },
-      gems: () => {
-        if (Store.s.gems) Store.add('gems', -Store.s.gems, '演示：钻石清零');
-        UI.toast('钻石已清零');
       },
       reset: async () => {
         const ok = await UI.confirm({ title: '确定重置演示？', text: '所有进度、购买、聊天记录和登录信息都会清空，你将以新玩家身份重新开始。', ok: '重置', danger: true });

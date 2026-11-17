@@ -10,7 +10,7 @@
   const CROWN = `${IMG}ui/crown.png`;
   const VIDEO = '<svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
   // 对比表只列关键几行
-  const CMP = ['dailyCoins', 'aid', 'protect', 'freePass', 'vipStake', 'voiceFree', 'videoFree', 'friendCap', 'visitors', 'frame', 'sign', 'expBonus', 'gems'];
+  const CMP = ['dailyCoins', 'aid', 'protect', 'voiceFree', 'videoFree', 'friendCap', 'visitors', 'frame', 'sign', 'expBonus', 'bonus'];
   // 对比表格子窄，几项用短文案
   const SHORT = {
     dailyCoins: (t) => `${UI.fmt(t.dailyCoins)}/天`,
@@ -50,7 +50,7 @@
           </div>
           ${on ? '<i class="vp-on">生效中</i>' : ''}
         </div>
-        ${cur ? daily(cur) : `<div class="vp-gift">${UI.cur('gems', 20)}<span>开通立得<b>${UI.fmt(t.gems)}钻石</b>，每天还能领<b>${UI.fmt(t.dailyCoins)}金币</b></span></div>`}
+        ${cur ? daily(cur) : `<div class="vp-gift">${UI.cur('coins', 20)}<span>开通立得<b>${UI.fmt(t.bonus)}金币</b>，每天还能领<b>${UI.fmt(t.dailyCoins)}金币</b></span></div>`}
       </div>`;
   }
   /** 会员：今日福利 + 剩余补助 / 保护卡 */
@@ -59,7 +59,7 @@
     const can = Store.canVipDaily();
     return `<div class="vp-daily">
         <div class="vp-daily-hd">
-          <span class="vp-daily-tt"><b>今日福利</b><em>${UI.cur('coins', 16)}+${UI.fmt(t.dailyCoins)} ${UI.cur('gems', 16)}+${t.dailyGems}</em></span>
+          <span class="vp-daily-tt"><b>今日福利</b><em>${UI.cur('coins', 16)}+${UI.fmt(t.dailyCoins)}</em></span>
           ${can ? '<button class="btn btn-gold btn-sm vp-daily-btn" data-act="daily">领取</button>' : '<span class="vp-daily-done">今日已领取 · 明天再来</span>'}
         </div>
         <div class="vp-left">
@@ -127,9 +127,9 @@
     App.refresh('vip');
     await UI.reward({
       title: sel === 2 ? '欢迎成为超级会员！' : '欢迎成为会员！',
-      sub: `${up ? '已升级，' : ''}${UI.fmt(t.gems)}钻石和${D.frames[t.frame].name}已到账，记得每天来领福利。`,
+      sub: `${up ? '已升级，' : ''}${UI.fmt(t.bonus)}金币和${D.frames[t.frame].name}已到账，记得每天来领福利。`,
       img: CROWN,
-      items: { gems: t.gems, frame: t.frame },
+      items: { coins: t.bonus, frame: t.frame },
       note: '会员开通',
     });
     App.refresh();
@@ -139,7 +139,7 @@
     render(el) {
       const sel = selTier();
       el.innerHTML = `<div class="vp-bg is-t${sel}"></div>
-        ${UI.nav({ title: '会员中心', right: `<div class="nav-chips">${UI.chips(['gems', 'coins'])}</div>` })}
+        ${UI.nav({ title: '会员中心', right: `<div class="nav-chips">${UI.chips(['coins'])}</div>` })}
         <div class="body vp-body" data-scroll="main">
           ${hero(sel)}
           ${groups(sel)}

@@ -152,7 +152,7 @@
   App.page('tasks', {
     render(el) {
       el.innerHTML = `<div class="tk-bg"></div>
-        ${UI.nav({ title: '任务中心', right: `<div class="nav-chips">${UI.chips(['gems', 'coins'])}</div>` })}
+        ${UI.nav({ title: '任务中心', right: `<div class="nav-chips">${UI.chips(['coins'])}</div>` })}
         <div class="body tk-body" data-scroll="main">
           ${signCard()}
           ${streak()}

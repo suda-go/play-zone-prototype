@@ -123,7 +123,7 @@
     if (s.auth.by === 'guest') {
       const k = await UI.dialog({
         title: '退出游客账号？',
-        text: '游客数据只保存在这台手机上，退出后等级、金币、钻石和好友都会清空，无法找回。',
+        text: '游客数据只保存在这台手机上，退出后等级、金币和好友都会清空，无法找回。',
         buttons: [{ label: '先绑定账号', key: 'bind' }, { label: '仍然退出', key: 'out', cls: 'btn-ghost' }],
       });
       if (k === 'bind') bind();

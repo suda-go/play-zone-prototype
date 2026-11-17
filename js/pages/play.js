@@ -1,6 +1,6 @@
 /**
  * Play 首页（登录后的启动页）。V4 精简成一屏、不用滚动，参考 Yalla Ludo：
- *   顶栏 → 赛季段位 / 好友排名两张小卡片 → 四子棋标志 → 玩法入口（快速开始、和好友玩、人机练习、创建房间、超级会员场）
+ *   顶栏 → 赛季段位 / 好友排名两张小卡片 → 四子棋标志 → 玩法入口（快速开始、和好友玩；V7 首发版只留这两个）
  *   快速开始一点就匹配；金币分场收进“换场次”弹层
  * 以及启动相关的：B2 新手礼包、B5 退出挽留、B6 离线收益（B3 7 日签到在 tasks.js 顶部）、
  * C3 回合制对局（和 Kai，入口是右下角悬浮窗）、K3 好友主动发来邀请
@@ -45,7 +45,7 @@
     const s = Store.s;
     return `<header class="lobby-top safe-top">
       <button class="lobby-me" data-tab="me" aria-label="我的资料">${UI.av('me', 36)}<span class="lobby-lv">Lv${s.user.lv}</span></button>
-      <div class="lobby-chips">${UI.chips(['gems', 'coins'])}</div>
+      <div class="lobby-chips">${UI.chips(['coins'])}</div>
       <button class="icon-btn lobby-sign" data-go="tasks" aria-label="签到和任务"><img src="${IMG}ui/calendar.png" alt="">${UI.count('welfare')}</button>
       <button class="icon-btn lobby-shop" data-go="shop" aria-label="商城"><img src="${IMG}ui/store.png" alt=""></button>
     </header>`;
@@ -103,12 +103,10 @@
     return lower[lower.length - 1] || ok[0] || normal.find((x) => Store.s.user.lv >= x.lv) || last;
   }
 
-  /** 玩法入口：上排两个大块（快速开始、和好友玩），下排三个小块（人机练习、创建房间、超级会员场） */
+  /** 玩法入口：快速开始、和好友玩（V7 首发版先不做人机练习、创建房间、超级会员场） */
   function modes() {
     const st = pickStake();
     const online = Store.s.friends.map((id) => D.people[id]).filter((p) => p && p.online);
-    const vs = D.stakes.find((x) => x.vip);
-    const vipOk = Store.vipTier() >= vs.vip;
     return `<div class="hm-modes">
       <div class="hm-tile is-quick">
         <button class="hm-hit" data-act="quick" data-id="${st.id}" aria-label="快速开始 · ${st.name}"></button>
@@ -123,10 +121,6 @@
         <span class="hm-desc">选入场金币 · 含免费档</span>
         <span class="hm-avs">${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em></span>
       </button>
-      <button class="hm-tile is-s is-ai" data-act="ai"><img class="hm-art" src="${IMG}brand/mascot.png" alt=""><b class="hm-name">人机练习</b><span class="hm-desc">免费练手</span></button>
-      <button class="hm-tile is-s is-room" data-go="create"><img class="hm-art" src="${IMG}ui/pass.svg" alt=""><b class="hm-name">创建房间</b><span class="hm-desc">公开或私密</span></button>
-      <button class="hm-tile is-s is-vip ${vipOk ? '' : 'is-locked'}" data-act="vipStake"><img class="hm-art" src="${IMG}ui/crown.png" alt=""><b class="hm-name">${vs.name}</b>
-        <span class="hm-desc">${vipOk ? '' : UI.ic('lock', 11)}奖池×${vs.potX}</span></button>
     </div>`;
   }
 
@@ -170,7 +164,7 @@
       title: '欢迎来到 Soulgame！',
       sub: '先下一局，再交个朋友。见面礼请收好！',
       img: `${IMG}brand/mascot-gift.png`,
-      items: { gems: 50, coins: 1000, boost: 1 },
+      items: { coins: 1500, boost: 1 },
       btn: '全部领取',
       note: '新手礼包',
     });
@@ -261,7 +255,7 @@
       t.my = true;
       Store.save();
       App.refresh('play');
-      await UI.reward({ title: '你赢了！', sub: `你在回合制四子棋中击败了${D.people[t.with].name}。`, img: `${IMG}ui/trophy.png`, items: { gems: 30 }, note: '回合制胜利' });
+      await UI.reward({ title: '你赢了！', sub: `你在回合制四子棋中击败了${D.people[t.with].name}。`, img: `${IMG}ui/trophy.png`, items: { coins: 300 }, note: '回合制胜利' });
       return;
     }
     UI.toast(`已落子！${D.people[t.with].name}有24小时回应`);
@@ -323,7 +317,7 @@
       else if (pendingOffline) { pendingOffline = false; await offline(); }
       else if (!Store.s.tips.sign && Store.s.cnt.all.games > 0 && !UI.hasOverlay()) {
         // 打完第一局回到首页，再介绍签到
-        await UI.coach(el.querySelector('.lobby-sign'), '每天签到、做任务，免费领钻石，第7天有大奖！', { key: 'sign' });
+        await UI.coach(el.querySelector('.lobby-sign'), '每天签到、做任务，免费领金币，第7天有大奖！', { key: 'sign' });
       }
       schedulePing();
       if (!Store.s.turn.my && !kaiTimer) scheduleKai(9000);
@@ -346,8 +340,6 @@
       },
       quick: (el) => Battle.quick(el.dataset.id),
       stakes: () => stakeSheet(),
-      vipStake: () => Battle.quick(D.stakes.find((x) => x.vip).id),
-      ai: () => Battle.practice(),
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {
         const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '选好友后再选入场金币，有免费档', onlineOnly: true });

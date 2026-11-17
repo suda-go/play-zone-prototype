@@ -1,5 +1,5 @@
 /**
- * I 商城：I1 余额栏、I2 装扮、I3 道具、I4 商品详情、I5 金币充值与钻石兑换金币、I6 钻石礼包、I7 会员入口（详见 vip.js）、
+ * I 商城：I1 余额栏、I2 装扮、I3 道具、I4 商品详情、I5 金币充值（V7 只有金币一种货币）、I7 会员入口（详见 vip.js）、
  * I8 小米钱包支付、I9 看广告领金币、I10 金币不足弹窗
  */
 (() => {
@@ -11,12 +11,6 @@
   const KIND_NAME = { frame: '头像框', bubble: '聊天气泡', bg: '主页背景' };
   const AD_COINS = 100;      // 每次看广告得金币
   const AD_BONUS = 500;      // 看满3次额外金币
-  // 钻石兑换金币：基础 1钻石=10金币，大档多送
-  const EXCHANGE = [
-    { id: 'x1', gems: 10, coins: 100 },
-    { id: 'x2', gems: 50, coins: 550 },
-    { id: 'x3', gems: 200, coins: 2400 },
-  ];
 
   /* ---------- 预览 ---------- */
   function preview(kind, id, size = 64) {
@@ -101,27 +95,15 @@
     });
   }
 
-  /* ---------- 金币不足：任务 / 广告 / 钻石兑换 / 充值，对局场景再加人机练习 ---------- */
+  /* ---------- 金币不足：会员福利 / 任务 / 广告 / 充值（V7 单一货币，没有钻石兑换和人机练习） ---------- */
   function goTopup(sec) {
     UI.closeAll();
     if (App.top() === 'shop') { setTab('topup'); if (sec) scrollToSec(sec); } else App.go('shop', { tab: 'topup', sec });
   }
-  /** 当前钻石按兑换档位最多能换多少金币（可重复兑换，从大档往小档凑） */
-  function maxExchange(gems) {
-    let left = gems;
-    let coins = 0;
-    [...EXCHANGE].sort((a, b) => b.gems - a.gems).forEach((x) => {
-      const n = Math.floor(left / x.gems);
-      left -= n * x.gems;
-      coins += n * x.coins;
-    });
-    return coins;
-  }
-  async function lackDialog({ text, ai }) {
+  async function lackDialog({ text }) {
     const s = Store.s;
-    const waiting = Store.tasks().filter((t) => t.state === 'claim').reduce((a, t) => ({ coins: a.coins + (t.reward.coins || 0), gems: a.gems + (t.reward.gems || 0) }), { coins: 0, gems: 0 });
-    const waitText = [waiting.coins && `${UI.fmt(waiting.coins)}金币`, waiting.gems && `${UI.fmt(waiting.gems)}钻石`].filter(Boolean).join('、');
-    const canEx = maxExchange(s.gems);
+    const waiting = Store.tasks().filter((t) => t.state === 'claim').reduce((a, t) => a + (t.reward.coins || 0), 0);
+    const waitText = waiting ? `${UI.fmt(waiting)}金币` : '';
     const pack = D.coinPacks[0];
     const first = !s.firstPay[pack.id];
     // 会员：破产补助、每日福利；非会员：开通会员入口。都放在最上面
@@ -130,7 +112,7 @@
     const vt = D.vip.tiers[tier || 1];
     const vipOps = [
       aid > 0 && `<button class="lack-op is-vip" data-act="__btn" data-key="aid"><span class="lack-vip-ic">${UI.ic('shield', 20)}</span><span><b>领取破产补助 · +${Store.AID}金币</b><small>${vt.name}特权 · 今日还剩${aid}次</small></span>${UI.ic('right', 18)}</button>`,
-      tier && Store.canVipDaily() && `<button class="lack-op is-vip" data-act="__btn" data-key="vipdaily"><span class="lack-vip-ic">${UI.ic('gift', 20)}</span><span><b>领取会员每日福利</b><small>+${UI.fmt(vt.dailyCoins)}金币 · +${vt.dailyGems}钻石</small></span>${UI.ic('right', 18)}</button>`,
+      tier && Store.canVipDaily() && `<button class="lack-op is-vip" data-act="__btn" data-key="vipdaily"><span class="lack-vip-ic">${UI.ic('gift', 20)}</span><span><b>领取会员每日福利</b><small>+${UI.fmt(vt.dailyCoins)}金币</small></span>${UI.ic('right', 18)}</button>`,
       !tier && `<button class="lack-op is-vip" data-act="__btn" data-key="vip"><span class="lack-vip-ic">${UI.ic('crown', 20)}</span><span><b>开通会员 · 每天领${UI.fmt(vt.dailyCoins)}金币</b><small>还有破产补助、签到×${vt.sign}等特权</small></span>${UI.ic('right', 18)}</button>`,
     ].filter(Boolean).join('');
     const k = await UI.dialog({
@@ -139,12 +121,10 @@
       title: '金币不足',
       text,
       html: `<div class="lack-ops">${vipOps}
-        <button class="lack-op" data-act="__btn" data-key="tasks"><img src="${IMG}ui/calendar.png" alt=""><span><b>做任务</b><small>${waitText ? `${waitText}待领取` : '完成任务领金币和钻石'}</small></span>${UI.ic('right', 18)}</button>
+        <button class="lack-op" data-act="__btn" data-key="tasks"><img src="${IMG}ui/calendar.png" alt=""><span><b>做任务</b><small>${waitText ? `${waitText}待领取` : '完成任务领金币'}</small></span>${UI.ic('right', 18)}</button>
         <button class="lack-op" data-act="__btn" data-key="ad"><span class="lack-tv">${UI.ic('eye', 22)}</span><span><b>看广告</b><small>${s.ads.watched >= 3 ? '今日次数已用完' : `+${AD_COINS}金币 · 今日还剩${3 - s.ads.watched}次`}</small></span>${UI.ic('right', 18)}</button>
-        ${s.gems > 0 ? `<button class="lack-op" data-act="__btn" data-key="exchange"><img src="${IMG}ui/gem.png" alt=""><span><b>钻石换金币</b><small>${canEx ? `你的${UI.fmt(s.gems)}钻石最多可换${UI.fmt(canEx)}金币` : `满${EXCHANGE[0].gems}钻石可换${EXCHANGE[0].coins}金币`}</small></span>${UI.ic('right', 18)}</button>` : ''}
         <button class="lack-op" data-act="__btn" data-key="topup"><img src="${IMG}ui/coin.svg" alt=""><span><b>充值金币</b><small>${first ? `首充双倍 · ${UI.usd(pack.usd)}得${UI.fmt(pack.coins * 2)}金币` : `${UI.fmt(pack.coins)}金币仅需${UI.usd(pack.usd)}`}</small></span>${UI.ic('right', 18)}</button>
-      </div>
-      ${ai ? '<button class="lack-ai" data-act="__btn" data-key="ai">或者免费人机练习</button>' : ''}`,
+      </div>`,
     });
     if (k === 'aid') {
       const n = Store.useAid();
@@ -159,9 +139,7 @@
       App.refresh();
     } else if (k === 'vip') Vip.open(1);
     else if (k === 'tasks') { UI.closeAll(); App.go('tasks'); } else if (k === 'ad') watchAd();
-    else if (k === 'exchange') goTopup('exchange');
     else if (k === 'topup') goTopup();
-    else if (k === 'ai') Battle.practice();
   }
   /** 商城内购买时金币不够 */
   function lackCoins(need) {
@@ -281,7 +259,7 @@
     const st = D.stake[stake];
     const bet = need || (st ? st.bet : 0);
     const where = st ? st.name : '开局';
-    return lackDialog({ text: `${where}底注<b>${UI.fmt(bet)}金币</b>，你只有<b>${UI.fmt(Store.s.coins)}</b>`, ai: true });
+    return lackDialog({ text: `${where}底注<b>${UI.fmt(bet)}金币</b>，你只有<b>${UI.fmt(Store.s.coins)}</b>` });
   }
 
   /* ---------- 各 Tab 内容 ---------- */
@@ -291,13 +269,13 @@
       <div class="sh-grid">${Object.keys(cat).map((id) => itemCard(kind, id)).join('')}</div></section>`).join('');
   }
   function items() {
-    return `<section class="sh-sec"><div class="sh-sec-hd"><h2>道具</h2><span>已有 ${UI.cur('boost', 16)}${UI.bind('boost')} ${UI.cur('pass', 16)}${UI.bind('pass')}</span></div>
+    return `<section class="sh-sec"><div class="sh-sec-hd"><h2>道具</h2><span>已有 ${UI.cur('boost', 16)}${UI.bind('boost')}</span></div>
       <div class="sh-items">${D.items.map((x) => `<div class="sh-prop">
         <span class="sh-prop-ic"><img src="${x.img}" alt="">${x.tag ? `<i class="tag tag-hot">${x.tag}</i>` : ''}</span>
         <div class="row-main"><b>${x.name}</b><span>${x.desc}</span></div>
         <button class="btn btn-orange btn-sm" data-act="buyItem" data-id="${x.id}">${UI.cur('coins', 15)} ${x.price}</button>
       </div>`).join('')}</div>
-      <p class="sh-note">${UI.ic('info', 14)} 加速卡在匹配界面使用，房卡可进入高级房。</p></section>`;
+      <p class="sh-note">${UI.ic('info', 14)} 加速卡在匹配界面使用，1秒内就能找到对手。</p></section>`;
   }
   function topup() {
     const s = Store.s;
@@ -325,22 +303,7 @@
         <span class="sh-usd">${UI.usd(D.bundle.usd)}</span>
       </button>
     </section>
-    <section class="sh-sec sh-exchange"><div class="sh-sec-hd"><h2>钻石换金币</h2><span>我的钻石 ${UI.cur('gems', 16)}${UI.bind('gems')}</span></div>
-      <div class="sh-packs is-3">${EXCHANGE.map((x) => {
-        const bonus = x.coins - x.gems * 10;
-        const poor = s.gems < x.gems;
-        return `<button class="sh-pack sh-ex ${poor ? 'is-poor' : ''}" data-act="exchange" data-id="${x.id}">
-          ${bonus ? `<i class="sh-ribbon is-bonus">多送${UI.fmt(bonus)}</i>` : ''}
-          ${UI.cur('coins', 44)}<b>${UI.fmt(x.coins)}</b><s></s>
-          <span class="sh-ex-cost">${UI.cur('gems', 16)}${UI.fmt(x.gems)}</span></button>`;
-      }).join('')}</div>
-      <p class="sh-note">${UI.ic('info', 14)} 1钻石=10金币，兑换越多送得越多</p>
-    </section>
-    <section class="sh-sec sh-gempacks"><div class="sh-sec-hd"><h2>钻石</h2><span>高级货币，可兑换金币</span></div>
-      <div class="sh-packs is-3">${D.gemPacks.map((x) => `<button class="sh-pack is-gem" data-act="gems" data-id="${x.id}">
-        ${x.bonus ? `<i class="sh-ribbon is-bonus">${x.bonus}</i>` : ''}${UI.cur('gems', 44)}<b>${UI.fmt(x.gems)}</b><s></s><span class="sh-usd">${UI.usd(x.usd)}</span></button>`).join('')}</div>
-      <p class="sh-note">${UI.ic('wallet', 14)} 使用小米钱包支付 · 余额${UI.usd(s.mi)}</p>
-    </section>`;
+    <p class="sh-note">${UI.ic('wallet', 14)} 使用小米钱包支付 · 余额${UI.usd(s.mi)}</p>`;
   }
   /** 会员 Tab：两档会员的简要介绍，详细权益去会员中心 */
   function vip() {
@@ -351,11 +314,11 @@
       const on = cur === k;
       const covered = cur === 2 && k === 1;
       const pts = k === 1
-        ? [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '高级房免房卡', '会员金框']
+        ? [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '破产补助', '会员金框']
         : [`每天${UI.fmt(t.dailyCoins)}金币`, `签到×${t.sign}`, '视频通话免费', '谁看过我'];
       const btn = on || covered ? '查看权益' : cur === 1 && k === 2 ? `升级 · ${UI.usd(t.usd)}/月` : `开通 · ${UI.usd(t.usd)}/月`;
       return `<button class="shv-card is-t${k} ${on ? 'is-on' : ''}" data-act="vip" data-t="${k}">
-        <span class="shv-hd">${UI.av('me', 46, { frame: t.frame })}<span class="shv-tt"><b>${t.name}${on ? '<i class="shv-on">生效中</i>' : ''}</b><em>${covered ? '已包含在超级会员中' : `${UI.usd(t.usd)}/月 · 开通送${UI.fmt(t.gems)}钻石`}</em></span></span>
+        <span class="shv-hd">${UI.av('me', 46, { frame: t.frame })}<span class="shv-tt"><b>${t.name}${on ? '<i class="shv-on">生效中</i>' : ''}</b><em>${covered ? '已包含在超级会员中' : `${UI.usd(t.usd)}/月 · 开通送${UI.fmt(t.bonus)}金币`}</em></span></span>
         <span class="shv-pts">${pts.map((x) => `<i>${UI.ic('check', 12)}${x}</i>`).join('')}</span>
         <span class="shv-btn">${btn}</span>
       </button>`;
@@ -374,7 +337,7 @@
     const body = document.querySelector('.page[data-page="shop"] .sh-body');
     if (body) body.scrollTop = 0;
   }
-  /** 把充值页里的某个区块（exchange / gempacks）滚到可见处 */
+  /** 把充值页里的某个区块滚到可见处 */
   function scrollToSec(sec) {
     requestAnimationFrame(() => {
       const body = document.querySelector('.page[data-page="shop"] .sh-body');
@@ -392,7 +355,7 @@
       const sec = p.sec;
       delete p.sec;
       el.innerHTML = `<div class="sh-bg"></div>
-        ${UI.nav({ title: '商城', right: `<div class="nav-chips">${UI.chips(['gems', 'coins'])}</div>` })}
+        ${UI.nav({ title: '商城', right: `<div class="nav-chips">${UI.chips(['coins'])}</div>` })}
         <img class="sh-mascot" src="${IMG}brand/mascot-gift.png" alt="">
         <div class="seg sh-tabs">${TABS.map(([id, label]) => `<button class="seg-it ${id === tab ? 'is-active' : ''}" data-act="tab" data-t="${id}">${label}</button>`).join('')}</div>
         <div class="body sh-body" data-scroll="main">
@@ -414,21 +377,6 @@
         App.refresh('shop');
       },
       ad: () => watchAd(),
-      exchange: async (el) => {
-        const x = EXCHANGE.find((k) => k.id === el.dataset.id);
-        const gems = Store.s.gems;
-        if (gems < x.gems) {
-          UI.toast(`钻石不够，还差${x.gems - gems}钻石`);
-          scrollToSec('gempacks');
-          return;
-        }
-        const ok = await UI.confirm({ title: `用${x.gems}钻石换${UI.fmt(x.coins)}金币？`, text: `兑换后剩余${UI.cur('gems', 16)}<b>${gems - x.gems}钻石</b>。`, ok: '兑换' });
-        if (!ok) return;
-        const note = `${x.gems}钻石兑换金币`;
-        Store.add('gems', -x.gems, note);
-        await UI.grant({ coins: x.coins }, note, el);
-        App.refresh('shop');
-      },
       coins: async (el) => {
         const x = D.coinPacks.find((k) => k.id === el.dataset.id);
         const first = !Store.s.firstPay[x.id];
@@ -443,12 +391,6 @@
         Store.s.adFree = true;
         await UI.grant({ coins: D.bundle.coins }, D.bundle.name);
         UI.toast('免广告卡已生效，有效期30天');
-        App.refresh('shop');
-      },
-      gems: async (el) => {
-        const x = D.gemPacks.find((k) => k.id === el.dataset.id);
-        if (!(await pay({ title: `${UI.fmt(x.gems)}钻石`, usd: x.usd }))) return;
-        await UI.grant({ gems: x.gems }, `钻石礼包${UI.usd(x.usd)}`);
         App.refresh('shop');
       },
       vip: (el) => Vip.open(+el.dataset.t || 0),

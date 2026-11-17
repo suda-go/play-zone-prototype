@@ -250,7 +250,7 @@
   </header>`;
 
   /** 余额胶囊：点数字看钱包，点 + 去充值 */
-  UI.chips = (keys = ['gems', 'coins'], opt = {}) => keys.map((k) => `<div class="chip ${opt.cls || ''}">
+  UI.chips = (keys = ['coins'], opt = {}) => keys.map((k) => `<div class="chip ${opt.cls || ''}">
       <button class="chip-main" data-go="wallet" data-cur="${k}">${UI.cur(k, 20)}${UI.bind(k)}</button>
       ${opt.plus === false ? '' : `<button class="chip-plus" data-act="topup" data-cur="${k}" aria-label="获取更多">${UI.ic('plus', 13)}</button>`}
     </div>`).join('');
@@ -259,7 +259,6 @@
   UI.tabbar = (active) => {
     const tabs = [
       ['play', '游戏', `<img class="tab-glove g1" src="${D.IMG}ui/glove-blue.png" alt=""><img class="tab-glove g2" src="${D.IMG}ui/glove-red.png" alt="">`, ''],
-      ['rooms', '房间', `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TAB_IC_REF.rooms}</svg>`, ''],
       ['chat', '消息', `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TAB_IC_REF.chat}</svg>`, UI.count('chat')],
       ['me', '我的', `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TAB_IC_REF.me}</svg>`, UI.dot('requests')],
     ];
@@ -605,7 +604,7 @@
       // eslint-disable-next-line no-await-in-loop
       await UI.reward({
         title: `升到${lv}级啦！`, sub: '恭喜升级，这是你的升级奖励', img: `${IMG}brand/mascot-cheer.png`,
-        badge: `Lv${lv}`, items: { gems: 50, coins: 100 }, note: `Lv${lv}升级奖励`, cls: 'is-levelup', sfx: 'win',
+        badge: `Lv${lv}`, items: { coins: 600 }, note: `Lv${lv}升级奖励`, cls: 'is-levelup', sfx: 'win',
       });
     }
     return ups;

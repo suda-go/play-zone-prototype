@@ -155,3 +155,7 @@
 .hm-tile.is-vip .hm-name { color: #ffe9a8; }
 .hm-foot { flex-shrink: 0; display: block; height: 84px; }
 .sheet-stakes .sheet-bd { padding-bottom: 22px; }
+/* V7 首发版：首页只有两个玩法入口，块做高一点 */
+.hm-tile { height: 236px; }
+.hm-tile.is-quick .hm-art { bottom: 52px; width: 116px; height: 116px; }
+.hm-tile.is-friends .hm-art { width: 190px; margin-left: -88px; }
