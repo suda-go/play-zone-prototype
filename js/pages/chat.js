@@ -531,8 +531,6 @@
             <span class="row-main"><b>${g.name} · ${D.tiers[rank]}</b><span>共${P.games}局 · 胜率${P.win}%</span></span>
             <span class="pf-c4-vs">${played ? `<b>${played}<small>局</small></b><i>和你玩过</i>` : '<i>还没和你<br>一起玩过</i>'}</span>
           </div>
-          <div class="sec-hd"><h2>徽章</h2></div>
-          <div class="pf-badges">${D.badges.slice(0, 3 + (P.lv % 4)).map((b) => `<span title="${b.name}"><img src="${b.img}" alt=""><i>${b.name}</i></span>`).join('')}</div>
           <div class="bottom-space" style="height:100px"></div>
         </div>
         <div class="pf-foot">

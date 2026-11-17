@@ -194,7 +194,7 @@
     { title: '玩2局', metric: 'games', goal: 2, go: 'c4' },
   ];
 
-  /* ---------- 徽章 ---------- */
+  /* ---------- 徽章（V7 首发版不展示） ---------- */
   D.badges = [
     { id: 'first_win', name: '首胜', desc: '在 Soulgame 赢得第一局', img: `${IMG}ui/trophy.png` },
     { id: 'social', name: '社交达人', desc: '拥有10位好友', img: `${IMG}ui/headphones.png` },

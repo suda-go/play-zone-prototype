@@ -1,5 +1,5 @@
 /**
- * L 我的：L1 主页头部（含会员条、游客绑定提示）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包、L6 徽章、
+ * L 我的：L1 主页头部（含会员条、游客绑定提示）、谁看过我、L2 编辑资料、L3 战绩、L4 钱包、L5 背包（V7 首发版不做 L6 徽章）、
  * L7 设置（含账号与退出登录、重置演示）
  */
 (() => {
@@ -56,7 +56,6 @@
       const need = Store.need(s.user.lv);
       const r = Store.rank(D.GAME);
       const winRate = pct(s.record.wins, s.record.games);
-      const badges = D.badges.filter((b) => s.badges[b.id]).length;
       const owned = s.owned.frame.length + s.owned.bubble.length + s.owned.bg.length;
       el.innerHTML = `
         <div class="me-bg" style="background:${UI.bg(s.equip.bg)}"><i></i></div>
@@ -85,11 +84,10 @@
           </button>
           <div class="cells me-cells">
             <button class="cell" data-go="bag"><span class="cell-ic">${UI.ic('bag', 21)}</span><span class="cell-main">背包</span><span class="cell-val">${owned}件</span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-go="badges"><span class="cell-ic">${UI.ic('award', 21)}</span><span class="cell-main">徽章</span><span class="cell-val">${badges}/${D.badges.length}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="wallet"><span class="cell-ic">${UI.ic('wallet', 21)}</span><span class="cell-main">钱包与明细</span><span class="cell-val">${s.log.length}条记录</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="friends"><span class="cell-ic">${UI.ic('users', 21)}</span><span class="cell-main">好友</span><span class="cell-val">${s.friends.length}${s.requests.length ? ` <i class="count is-inline">${s.requests.length}</i>` : ''}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell me-visitors" data-go="visitors"><span class="cell-ic">${UI.ic('eye', 21)}</span><span class="cell-main">谁看过我</span><span class="cell-val">${Store.perk('visitors') ? `${s.visitors.length}位访客` : `${UI.ic('lock', 13)} ${s.visitors.length}位访客`}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
-            <button class="cell" data-go="shop"><span class="cell-ic">${UI.ic('gift', 21)}</span><span class="cell-main">商城</span><span class="cell-val">装扮、道具和充值</span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-go="shop"><span class="cell-ic">${UI.ic('gift', 21)}</span><span class="cell-main">商城</span><span class="cell-val">装扮、充值和会员</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="settings"><span class="cell-ic">${UI.ic('gear', 21)}</span><span class="cell-main">设置</span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
           <div class="bottom-space"></div>
@@ -271,25 +269,6 @@
     },
   });
 
-  /* ================= L6 徽章 ================= */
-  App.page('badges', {
-    render(el) {
-      const s = Store.s;
-      const n = D.badges.filter((b) => s.badges[b.id]).length;
-      el.innerHTML = `${UI.nav({ title: '徽章', sub: `已解锁${n}/${D.badges.length}`, cls: 'is-white' })}
-        <div class="body bd-body" data-scroll="main"><div class="bd-grid">${D.badges.map((b) => {
-          const got = s.badges[b.id];
-          return `<button class="bd-it ${got ? 'is-got' : ''}" data-act="info" data-id="${b.id}"><span class="bd-ic"><img src="${b.img}" alt=""></span><b>${b.name}</b><span>${got ? md(got) : '未解锁'}</span></button>`;
-        }).join('')}</div><div class="bottom-space"></div></div>`;
-    },
-    act: {
-      info: (el) => {
-        const b = D.badges.find((x) => x.id === el.dataset.id);
-        const got = Store.s.badges[b.id];
-        UI.dialog({ img: b.img, imgCls: got ? '' : 'is-gray', title: b.name, text: `${b.desc}${got ? `<br><b>${md(got)}解锁</b>` : '<br>尚未解锁'}`, buttons: [{ label: '知道了', key: 'ok' }] });
-      },
-    },
-  });
 
   /* ================= L7 设置 ================= */
   const LANGS = [['简体中文', '简体中文'], ['English', '英语'], ['Español', '西班牙语'], ['Bahasa Indonesia', '印尼语'], ['हिन्दी', '印地语']];

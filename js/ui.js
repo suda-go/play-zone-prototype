@@ -743,15 +743,9 @@ window.Sfx = (() => {
   };
 })();
 
-/* 数据变化 → 同步余额与红点；拿到新徽章时顶部提示 */
+/* 数据变化 → 同步余额与红点（V7 首发版不展示徽章，解锁新徽章不再弹提示） */
 Store.on((type, meta) => {
   UI.sync();
-  if (type === 'badge') {
-    (meta.got || []).forEach((id, i) => {
-      const b = D.badges.find((x) => x.id === id);
-      if (b) setTimeout(() => UI.notify({ img: b.img, title: '解锁新徽章！', text: `${b.name} · ${b.desc}`, onTap: () => App.go('badges') }), 900 + i * 2500);
-    });
-  }
 });
 
 /* ================= 悬浮窗：进行中的对局、回合制“轮到你了”（右下角，可拖动吸边） =================

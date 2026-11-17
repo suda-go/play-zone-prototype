@@ -414,7 +414,7 @@
     emit('match');
   }
 
-  /* ---------- 徽章 ---------- */
+  /* ---------- 徽章（V7 首发版不展示：没有徽章页和解锁提示，这里只记录解锁时间，以后开放时直接可用） ---------- */
   function checkBadges() {
     const cond = {
       first_win: s.cnt.all.wins >= 1,
