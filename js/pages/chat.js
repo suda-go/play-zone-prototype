@@ -1,5 +1,6 @@
 /**
  * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表（顶部「最近一起玩」）、K5 好友申请、
+ *   （V7：K1、K4 的「最近一起玩」都只在还没有好友时出现，有好友后不再显示）
  * K6 添加好友、K7 群聊、K8 好友主页；V7 纯新用户没有好友时的引导
  * 只有四子棋（D.GAME），邀请好友直接建房，不再选游戏
  */
@@ -57,7 +58,8 @@
 
   function msgsSeg() {
     const s = Store.s;
-    const recent = s.recent.filter((u) => D.people[u]);
+    // V7：已有好友时不显示顶部「最近一起玩」这排头像和“找更多”入口（和好友列表一致）
+    const recent = s.friends.length ? [] : s.recent.filter((u) => D.people[u]);
     const rows = s.chatOrder.filter((id) => s.chats[id]).map((id) => {
       const c = s.chats[id];
       const last = c.msgs[c.msgs.length - 1];
