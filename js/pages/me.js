@@ -241,7 +241,7 @@
       // V4 账号：游客可以绑定；正式账号显示登录方式
       const by = Auth.by();
       const guest = Auth.isGuest();
-      const accIc = by === 'google' || by === 'facebook' ? Auth.ICON[by] : UI.ic(by === 'email' ? 'mail' : 'user', 20);
+      const accIc = Auth.ICON[by] || UI.ic(by === 'email' ? 'mail' : 'user', 20);
       const account = guest
         ? `<button class="cell set-acc" data-act="bind"><span class="set-acc-ic is-guest">${accIc}</span><span class="cell-main">账号与绑定<small>${UI.esc(Auth.label())}</small></span><span class="cell-val set-bind">去绑定</span>${UI.ic('right', 18, 'cell-arrow')}</button>`
         : `<div class="cell set-acc"><span class="set-acc-ic is-${by}">${accIc}</span><span class="cell-main">当前账号<small>${UI.esc(Auth.label())}</small></span><span class="cell-val">已登录</span></div>`;
@@ -251,6 +251,7 @@
           <div class="cells">
             ${account}
             <button class="cell set-logout" data-act="logout"><span class="cell-ic">${UI.ic('logout', 20)}</span><span class="cell-main">${guest ? '退出游客账号' : '退出登录'}</span></button>
+            <button class="cell set-del" data-go="delete"><span class="cell-main">注销账号</span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
           <div class="set-hd">通用</div>
           <div class="cells">
@@ -262,6 +263,7 @@
           <div class="set-hd">演示调试</div>
           <div class="cells">
             <button class="cell" data-act="seedFriends"><span class="cell-ic">${UI.ic('users', 20)}</span><span class="cell-main">填充示例好友<small>${Store.s.friends.length ? `已有${Store.s.friends.length}位好友` : '纯新用户没有好友；点这里变成有好友和聊天记录的老用户'}</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <div class="cell"><span class="cell-ic">${UI.ic('phone', 20)}</span><span class="cell-main">模拟 iOS 设备<small>打开后登录页和绑定弹层显示“通过 Apple 登录”</small></span>${UI.toggle(Auth.isIOS(), 'plat')}</div>
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家，从登录页重新开始</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
@@ -302,6 +304,14 @@
       },
       bind: () => Auth.bind(),
       logout: () => Auth.logout(),
+      // 演示：模拟 iOS（iOS 才有 Apple 登录）
+      plat: (el) => {
+        const ios = !Auth.isIOS();
+        Auth.setPlatform(ios ? 'ios' : 'android');
+        el.classList.toggle('is-on', ios);
+        el.setAttribute('aria-checked', String(ios));
+        UI.toast(ios ? '已切换为 iOS 演示，登录页和绑定弹层会显示 Apple 登录' : '已切换为 Android 演示');
+      },
       seedFriends: () => {
         Store.seedFriends();
         App.refresh('settings');

@@ -78,6 +78,12 @@
       owner: '',
       lastBy: '',
       accounts: {},
+      // V7 账号补充：linked 已经关联了 Soulgame 账号的三方账号（一个三方账号只能被绑定一次；初始的 Soul Player 用来演示“已被绑定”）；
+      // appleHide 第一次 Apple 授权时选了隐藏邮箱；demoGone 演示邮箱账号已被注销；flash 刷新后提示一次（例如“账号已注销”）
+      linked: ['google:soulplayer.mix@gmail.com'],
+      appleHide: false,
+      demoGone: false,
+      flash: '',
       visitors: [
         { id: 'hana', t: '10分钟前' }, { id: 'victor', t: '1小时前' }, { id: 'zoe', t: '3小时前' },
         { id: 'marco', t: '昨天' }, { id: 'ruby', t: '昨天' }, { id: 'noah', t: '2天前' },

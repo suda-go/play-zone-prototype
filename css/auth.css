@@ -23,6 +23,10 @@
 .lg-btn.is-facebook { background: #1877f2; color: #fff; box-shadow: 0 8px 16px -10px rgba(24, 119, 242, .9); }
 .lg-btn.is-email { background: #f0f2f8; color: var(--text); }
 .lg-btn.is-email > svg { color: var(--blue); }
+.lg-btn.is-apple { background: #000; color: #fff; }
+/* 演示：右上角切换 Android / iOS */
+.lg-plat { position: absolute; z-index: 3; top: calc(var(--status-h) + 8px); right: 14px; display: flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .88); font-size: 11.5px; font-weight: 700; }
+.lg-plat:active { background: rgba(255, 255, 255, .28); }
 .lg-last { position: absolute; right: 14px; top: -8px; padding: 0 8px; border-radius: 9px; background: var(--g-orange); color: #fff; font-size: 10.5px; font-weight: 800; font-style: normal; line-height: 17px; box-shadow: 0 0 0 2px #fff; }
 .lg-guest { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; height: 46px; margin-top: 6px; font-size: 14.5px; font-weight: 700; color: var(--text-2); }
 .lg-guest:active { color: var(--text); }
@@ -105,3 +109,47 @@
 .set-acc-ic.is-email, .set-acc-ic.is-guest { color: var(--blue); }
 .set-bind { color: var(--orange); font-weight: 800; }
 .set-logout .cell-ic, .set-logout .cell-main { color: var(--red); }
+/* ---------- V7：Google 字母头像、Apple 授权（模拟 iOS 系统面板） ---------- */
+.gg-letter { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: #7b5ad6; color: #fff; font-size: 16px; font-weight: 700; }
+.ap { display: flex; flex-direction: column; align-items: center; padding: 0 2px 6px; text-align: center; color: #1d1d1f; }
+.ap-hd { display: flex; align-items: center; justify-content: center; gap: 6px; align-self: stretch; padding: 2px 0 12px; border-bottom: 1px solid #e5e5ea; font-size: 15px; font-weight: 600; }
+.ap-hd svg { width: 17px; height: 17px; }
+.ap-app { width: 56px; height: 56px; margin-top: 18px; border-radius: 14px; }
+.ap h3 { margin-top: 12px; font-size: 19px; font-weight: 700; }
+.ap-rows { align-self: stretch; margin-top: 16px; border-radius: 12px; background: #f2f2f7; overflow: hidden; text-align: left; }
+.ap-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e5e5ea; font-size: 15px; }
+.ap-row small { font-size: 13px; color: #8e8e93; }
+.ap-opt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-bottom: 1px solid #e5e5ea; text-align: left; }
+.ap-opt:last-child { border-bottom: 0; }
+.ap-opt i { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #c7c7cc; }
+.ap-opt.is-on i { background: #fff; box-shadow: inset 0 0 0 6px #007aff; }
+.ap-opt span { flex: 1; min-width: 0; }
+.ap-opt b { display: block; font-size: 15px; font-weight: 500; }
+.ap-opt small { display: block; font-size: 12.5px; color: #8e8e93; }
+.ap-acc { margin-top: 8px; font-size: 14px; color: #6e6e73; }
+.ap-go { display: flex; align-items: center; justify-content: center; gap: 8px; align-self: stretch; height: 50px; margin-top: 18px; border-radius: 12px; background: #000; color: #fff; font-size: 17px; font-weight: 600; }
+.ap-go:active { filter: brightness(1.3); }
+.ap-note { margin-top: 10px; font-size: 12px; color: #8e8e93; }
+.set-acc-ic.is-apple { color: #000; }
+/* ---------- V7：注销账号 ---------- */
+.set-del .cell-main { color: var(--text-3); }
+.page[data-page="delete"] { background: #fff; }
+.del-body { padding: 4px 20px 0; }
+.del-warn { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; background: #fff1f2; color: var(--red); font-size: 14px; }
+.del-warn > svg { flex-shrink: 0; }
+.del-hd { margin: 20px 0 10px; font-size: 15px; font-weight: 800; }
+.del-list { border-radius: 16px; background: #f6f7fb; }
+.del-it { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #eceef4; font-size: 13.5px; }
+.del-it:last-child { border-bottom: 0; }
+.del-it b { flex-shrink: 0; width: 64px; font-weight: 800; }
+.del-it span { flex: 1; min-width: 0; line-height: 1.5; color: var(--text-2); }
+.del-notes { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--text-2); list-style: disc; }
+.del-notes li + li { margin-top: 6px; }
+.del-check { display: flex; align-items: center; gap: 8px; margin: 22px 0 12px; font-size: 13.5px; font-weight: 600; color: var(--text-2); text-align: left; }
+.del-check i { width: 20px; height: 20px; flex-shrink: 0; display: grid; place-items: center; border-radius: 6px; box-shadow: inset 0 0 0 1.5px #c9cdd8; color: transparent; }
+.del-check.is-on i { background: var(--red); box-shadow: none; color: #fff; }
+.del-go:disabled { opacity: .45; }
+.dv { padding: 4px 0 6px; }
+.dv-next { margin-top: 8px; }
+.dv-next .gg-spin { margin-right: 2px; }
+.del-wait { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 6px; font-size: 15px; font-weight: 700; }
