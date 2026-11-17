@@ -133,3 +133,15 @@
 .set-foot { margin: 24px 0 0; text-align: center; font-size: 12px; line-height: 1.6; color: var(--text-3); }
 /* V7：不做等级，我的页只剩金币一项 */
 .me-wallet { grid-template-columns: 1fr; }
+
+/* V7：我的金币卡片（只剩金币一种货币）：点卡片看明细，右边直接充值 */
+.me-coin { position: relative; display: flex; align-items: center; gap: 12px; margin: 12px 16px 0; padding: 14px 14px 14px 16px; overflow: hidden; border-radius: 20px; background: linear-gradient(135deg, #fff6d8 0%, #ffe39a 55%, #ffc75a 100%); box-shadow: 0 10px 22px -14px rgba(200, 120, 0, .8), inset 0 0 0 1px rgba(255, 255, 255, .7); }
+.me-coin::after { content: ""; position: absolute; right: -28px; bottom: -44px; width: 136px; height: 136px; border-radius: 50%; background: rgba(255, 255, 255, .28); pointer-events: none; }
+.me-coin-hit { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.me-coin-hit:active { background: rgba(255, 255, 255, .15); }
+.me-coin-ic { flex-shrink: 0; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: rgba(255, 255, 255, .6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .9); pointer-events: none; }
+.me-coin-m { flex: 1; min-width: 0; display: flex; flex-direction: column; pointer-events: none; }
+.me-coin-m small { font-size: 12px; font-weight: 700; color: #8a5a00; }
+.me-coin-m .me-coin-n { font: 900 28px/1.15 var(--num); color: #5a3200; }
+.me-coin-m em { display: flex; align-items: center; gap: 1px; font-size: 11.5px; font-style: normal; color: #9a6a10; }
+.me-coin-btn { position: relative; z-index: 2; flex-shrink: 0; }

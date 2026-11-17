@@ -1,6 +1,6 @@
 /**
  * K 社交：K1 消息列表与最近玩家、K2 聊天、K3 邀请卡片、K4 好友列表（顶部「最近一起玩」）、K5 好友申请、
- * K6 添加好友、K7 群聊、K8 好友主页；V5 好友私聊顶部的亲密度（静态展示，V7 去掉了宠物）
+ * K6 添加好友、K7 群聊、K8 好友主页；V7 纯新用户没有好友时的引导
  * 只有四子棋（D.GAME），邀请好友直接建房，不再选游戏
  */
 (() => {
@@ -46,6 +46,15 @@
   }
 
   /* ================= K1 / K4 Chat Tab ================= */
+  /** V7 纯新用户还没有好友：引导先玩一局（结算页、对局中都能加对手），或者按 ID 加好友、邀请朋友 */
+  function noFriendsHtml(text) {
+    return `<div class="nf-card"><img src="${IMG}brand/mascot-cheer.png" alt=""><b>还没有好友</b><p>${text}</p>
+      <div class="nf-btns"><button class="btn btn-primary btn-md" data-act="nfPlay">${UI.ic('play', 14)} 快速开始一局</button>
+        <button class="btn btn-line btn-md" data-go="addfriend">${UI.ic('userPlus', 15)} 添加好友</button></div>
+      <button class="nf-invite" data-act="nfInvite">${UI.ic('share', 14)} 邀请朋友来 Soulgame</button></div>`;
+  }
+  const inviteOut = () => UI.share({ title: '邀请朋友', text: `来 Soulgame 和我一起下四子棋！我的ID是${Store.s.user.uid}` });
+
   function msgsSeg() {
     const s = Store.s;
     const recent = s.recent.filter((u) => D.people[u]);
@@ -67,7 +76,8 @@
           ${f ? `<span class="ch-rp-st">${UI.ic('userCheck', 12)} 好友</span>` : sent ? '<span class="ch-rp-st">已申请</span>' : `<button class="ch-rp-add" data-act="add" data-uid="${u}">${UI.ic('plus', 12)} 加好友</button>`}</div>`;
       }).join('')}</div>` : ''}
       ${s.requests.length ? `<button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${s.requests.map((u) => D.people[u].name).join('、')}想加你为好友</span></span><i class="count is-inline">${s.requests.length}</i>${UI.ic('right', 18)}</button>` : ''}
-      <div class="ch-list">${rows}</div>`;
+      <div class="ch-list">${rows}</div>
+      ${s.chatOrder.some((id) => s.chats[id] && s.chats[id].type !== 'system') ? '' : noFriendsHtml('和对手打完一局，在结算页点“加好友”，通过后就能在这里聊天。')}`;
   }
   /** 和某人一起下过的局数：对局记录（最多30条）和好友局计数取较大值 */
   function playedWith(uid) {
@@ -119,9 +129,10 @@
       <div class="fr-cap"><span>好友 <b>${list.length}</b>/${cap}</span>${UI.bar(list.length, cap, 'fr-cap-bar')}
         ${tier < 2 ? `<button class="fr-cap-up" data-act="capVip" data-tier="${tier + 1}">${UI.ic('crown', 13)}${tier ? `超级会员上限${D.vip.tiers[2].friendCap}` : '会员提升上限'}${UI.ic('right', 12)}</button>` : `<i class="fr-cap-max">${UI.vipTag(2)}已是最高上限</i>`}</div>
       <button class="ch-req" data-go="requests">${UI.ic('userPlus', 20)}<span class="row-main"><b>好友申请</b><span>${Store.s.requests.length ? `${Store.s.requests.length}条待处理` : '暂无新申请'}</span></span>${Store.s.requests.length ? `<i class="count is-inline">${Store.s.requests.length}</i>` : ''}${UI.ic('right', 18)}</button>
-      ${recentSec()}
-      <div class="fr-hd">在线 · ${on.length}</div>${on.map(row).join('')}
-      <div class="fr-hd">离线 · ${off.length}</div>${off.map(row).join('')}`;
+      ${Store.s.recent.length ? recentSec() : ''}
+      ${list.length ? `<div class="fr-hd">在线 · ${on.length}</div>${on.map(row).join('')}
+      <div class="fr-hd">离线 · ${off.length}</div>${off.map(row).join('')}`
+        : noFriendsHtml('先玩一局：对局中点对手头像、结算页点“加好友”都能加；也可以按昵称或 ID 搜索。')}`;
   }
 
   App.page('chat', {
@@ -173,6 +184,8 @@
         App.refresh('chat');
         scheduleAccept(uid, 4000);
       },
+      nfPlay: () => Battle.quick(),
+      nfInvite: () => inviteOut(),
       playRecent: (el) => {
         const uid = el.dataset.uid;
         if (!D.people[uid].online) { UI.toast(`${nameOf(uid)}现在不在线`); return; }
@@ -247,22 +260,6 @@
     Store.read(id);
   }
 
-  /** V5 好友私聊顶部：亲密度等级（演示：读 D.intimacy 的静态数据，只展示，没有交互；V7 去掉了宠物） */
-  const HEART = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.2C.3 8.5 2.2 4.5 6 4.1c2.2-.2 4.2 1 6 3.1 1.8-2.1 3.8-3.3 6-3.1 3.8.4 5.7 4.4 4 7.7C19.5 16.4 12 21 12 21z"/></svg>';
-  function intimacyHtml(uid) {
-    if (!Store.isFriend(uid)) return '';
-    const I = D.intimacy;
-    const pts = I.pts[uid] ?? I.def;
-    const cur = [...I.levels].reverse().find((l) => pts >= l.need);
-    const next = I.levels.find((l) => l.need > pts);
-    return `<div class="im-card">
-      <div class="im-main">
-        <div class="im-top"><span class="im-pair">${UI.av('me', 26, { frame: false })}<i class="im-heart">${HEART}</i>${UI.av(uid, 26, { frame: false })}</span><b>亲密度 Lv${cur.lv} · ${cur.name}</b><em class="im-num">${next ? `${pts}/${next.need}` : pts}</em></div>
-        ${next ? UI.bar(pts - cur.need, next.need - cur.need, 'im-bar') : UI.bar(1, 1, 'im-bar')}
-        <span class="im-sub">${next ? '聊天、一起下棋、通话都能涨亲密度' : '已是最高等级'}</span>
-      </div>
-    </div>`;
-  }
 
   /** 模拟回复：私聊在线好友会回，群里随机一人回 */
   function autoReply(id, text) {
@@ -300,8 +297,7 @@
           <button class="icon-btn" data-go="profile" data-uid="${c.with}" aria-label="个人主页">${UI.ic('users', 21)}</button>`
         : c.type === 'group' ? `<button class="icon-btn" data-act="groupInfo" aria-label="群信息">${UI.ic('more', 22)}</button>` : '';
       el.innerHTML = `${UI.nav({ title: c.type === 'dm' ? UI.name(c.with) : UI.esc(title), sub: UI.esc(sub), cls: 'is-white dm-nav', right })}
-        ${c.type === 'dm' ? intimacyHtml(c.with) : ''}
-        <div class="body dm-msgs" data-scroll="chat">${msgsHtml(id)}</div>
+                <div class="body dm-msgs" data-scroll="chat">${msgsHtml(id)}</div>
         ${c.type === 'system' ? '<div class="dm-ro">官方账号暂不支持回复</div>' : `
         <div class="dm-emoji" hidden>${EMOJI.map((e) => `<button data-act="emoji" data-e="${e}">${e}</button>`).join('')}</div>
         <form class="dm-bar" onsubmit="return false">

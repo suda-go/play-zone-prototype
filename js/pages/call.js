@@ -432,7 +432,7 @@
     const tryRing = () => {
       ringTimer = 0;
       if (Store.s.rang) return;
-      if (!isFreeNow()) { ringTimer = setTimeout(tryRing, 4000); return; }
+      if (!isFreeNow() || !caller()) { ringTimer = setTimeout(tryRing, 4000); return; } // 纯新用户没有好友：等有好友再打来
       ringNow();
     };
     ringTimer = setTimeout(tryRing, 35000);

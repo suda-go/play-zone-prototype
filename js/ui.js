@@ -646,8 +646,9 @@
         return `<div class="row pick-row ${off ? 'is-off' : ''}">${UI.av(p.id, 44, { on: true })}
           <div class="row-main"><b>${p.name}</b><span>${p.online ? UI.esc(p.status || '在线') : `离线 · ${p.seen}`}</span></div>
           <button class="btn btn-sm ${off ? 'btn-ghost' : 'btn-primary'}" data-act="pick" data-uid="${p.id}">${off ? '离线' : btn}</button></div>`;
-      }).join('')}</div>` : UI.empty('还没有好友'),
+      }).join('')}</div>` : `${UI.empty('还没有好友，先去加几个吧')}<button class="btn btn-primary btn-lg btn-block" data-act="goAdd">${UI.ic('userPlus', 18)} 添加好友</button>`,
       acts: {
+        goAdd: () => { c.close(); App.go('addfriend'); },
         pick: (el) => {
           const p = D.people[el.dataset.uid];
           if (onlineOnly && !p.online) { UI.toast(`${p.name}现在不在线`); return; }

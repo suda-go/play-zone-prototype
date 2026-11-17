@@ -50,13 +50,13 @@
     </header>`;
   }
 
-  /** 四子棋标志：彩色描边字，下面是在玩人数和玩法说明 */
+  /** 四子棋标志 + 游戏大图（V7 重点突出游戏）：在玩人数和玩法说明放在大图上 */
   function logo() {
     const g = D.game[D.GAME];
     const chars = [...g.name];
     const x = (i) => 44 + i * 82;
     return `<div class="hm-logo">
-      <i class="hm-glow"></i><i class="disc p1 hm-d1"></i><i class="disc p2 hm-d2"></i><i class="hm-d3"></i>
+      <i class="hm-glow"></i>
       <svg class="hm-title" viewBox="0 0 252 86" width="252" height="86" role="img" aria-label="${g.name}">
         <defs>
           <linearGradient id="hmg1" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#7cc0ff"/><stop offset="1" stop-color="#1f4fe0"/></linearGradient>
@@ -66,7 +66,10 @@
         <g class="hm-title-o">${chars.map((ch, i) => `<text x="${x(i)}" y="66">${ch}</text>`).join('')}</g>
         <g class="hm-title-i">${chars.map((ch, i) => `<text x="${x(i)}" y="66" class="c${i + 1}">${ch}</text>`).join('')}</g>
       </svg>
-      <div class="hm-meta"><span class="hm-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span><button class="hm-howto" data-act="howto">${UI.ic('book', 13)}玩法</button></div>
+      <div class="hm-stage"><img src="${g.cover}" alt="${g.name}">
+        <span class="hm-live"><i class="live-dot"></i>${UI.fmt(g.online)}人在玩</span>
+        <span class="hm-tip">${g.players}实时对战 · 连成四子就赢</span>
+        <button class="hm-howto" data-act="howto">${UI.ic('book', 13)}玩法</button></div>
     </div>`;
   }
 
@@ -87,19 +90,20 @@
   function modes() {
     const st = pickStake();
     const online = Store.s.friends.map((id) => D.people[id]).filter((p) => p && p.online);
+    const hasFriends = Store.s.friends.length > 0;
     return `<div class="hm-modes">
       <div class="hm-tile is-quick">
         <button class="hm-hit" data-act="quick" data-id="${st.id}" aria-label="快速开始 · ${st.name}"></button>
-        <img class="hm-art" src="${IMG}games/c4.jpg" alt="">
+        <img class="hm-art" src="${IMG}ui/trophy.png" alt="">
         <b class="hm-name">快速开始</b>
         <button class="hm-change" data-act="stakes" aria-label="换场次">${st.vip ? '超级场' : st.name} · ${UI.cur('coins', 14)}${UI.fmt(st.bet)}${UI.ic('down', 13)}</button>
         <span class="hm-go">${UI.ic('play', 14)}开始</span>
       </div>
       <button class="hm-tile is-friends" data-act="friends">
-        <img class="hm-art" src="${IMG}brand/blobs-vs.png" alt="">
+        <img class="hm-art" src="${IMG}brand/mascot-cheer.png" alt="">
         <b class="hm-name">和好友玩</b>
-        <span class="hm-desc">选入场金币 · 含免费档</span>
-        <span class="hm-avs">${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em></span>
+        <span class="hm-desc">${hasFriends ? '选入场金币 · 含免费档' : '约朋友来下一局'}</span>
+        <span class="hm-avs">${hasFriends ? `${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em>` : `<i class="hm-avs-add">${UI.ic('userPlus', 14)}</i><em>还没有好友</em>`}</span>
       </button>
     </div>`;
   }
@@ -184,12 +188,30 @@
     }
   }
 
-  /* ================= K3 好友主动发来邀请 ================= */
+  /* ================= V7 纯新用户还没有好友：和好友玩 → 引导先玩一局、加好友或邀请朋友 ================= */
+  function noFriends() {
+    const c = UI.sheet({
+      title: '还没有好友',
+      sub: '先玩游戏，再交朋友：对局中点对手头像、结算页点“加好友”都能加',
+      html: `<div class="nf-ops">
+        <button class="nf-op is-main" data-act="play"><span class="nf-op-ic">${UI.ic('play', 18)}</span><span class="row-main"><b>快速开始一局</b><span>和真人对战，打完就能加对手为好友</span></span>${UI.ic('right', 16)}</button>
+        <button class="nf-op" data-act="add"><span class="nf-op-ic">${UI.ic('userPlus', 18)}</span><span class="row-main"><b>添加好友</b><span>按昵称或 ID 搜索，或从“可能认识的人”里加</span></span>${UI.ic('right', 16)}</button>
+        <button class="nf-op" data-act="invite"><span class="nf-op-ic">${UI.ic('share', 18)}</span><span class="row-main"><b>邀请朋友来 Soulgame</b><span>发链接给朋友，下载后就能一起玩</span></span>${UI.ic('right', 16)}</button>
+      </div>`,
+      acts: {
+        play: () => { c.close(); Battle.quick(pickStake().id); },
+        add: () => { c.close(); App.go('addfriend'); },
+        invite: () => { c.close(); UI.share({ title: '邀请朋友', text: `来 Soulgame 和我一起下四子棋！我的ID是${Store.s.user.uid}` }); },
+      },
+    });
+  }
+
+  /* ================= K3 好友主动发来邀请（莉莉是好友时才会发） ================= */
   function schedulePing() {
     if (Store.s.pinged || pingTimer) return;
     const tryPing = () => {
       const free = App.TABS.includes(App.top()) && !UI.hasOverlay() && !document.querySelector('.coach');
-      if (!free) { pingTimer = setTimeout(tryPing, 4000); return; }
+      if (!free || !Store.isFriend('lily')) { pingTimer = setTimeout(tryPing, 4000); return; }
       pingTimer = 0;
       Store.s.pinged = true;
       Store.post('lily', { from: 'lily', type: 'invite', game: 'c4', room: 'lily', text: '来一局？我在房间等你！' });
@@ -232,6 +254,7 @@
       stakes: () => stakeSheet(),
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {
+        if (!Store.s.friends.length) { noFriends(); return; }
         const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '选好友后再选入场金币，有免费档', onlineOnly: true });
         if (uid) Rooms.withFriend(uid);
       },

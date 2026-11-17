@@ -70,8 +70,11 @@
           </div>
           ${guestBanner()}
           ${vipBanner()}
-          <div class="me-wallet">
-            <button data-go="wallet" data-cur="coins">${UI.cur('coins', 30)}${UI.bind('coins')}<span>金币</span></button>
+          <div class="me-coin">
+            <button class="me-coin-hit" data-go="wallet" data-cur="coins" aria-label="金币明细"></button>
+            <span class="me-coin-ic">${UI.cur('coins', 46)}</span>
+            <span class="me-coin-m"><small>我的金币</small>${UI.bind('coins', 'me-coin-n')}<em>收支明细 ${UI.ic('right', 12)}</em></span>
+            <button class="btn btn-orange btn-md me-coin-btn" data-act="topup" data-cur="coins">${UI.ic('plus', 15)} 充值</button>
           </div>
           <button class="me-stats card" data-go="stats">
             <span><b>${s.record.games}</b>对局</span><span><b>${winRate}%</b>胜率</span>
@@ -258,6 +261,7 @@
           <div class="cells">${row('invite', '游戏邀请', '好友邀请你一起玩时提醒')}${row('friend', '好友申请', '有人想加你好友时提醒')}</div>
           <div class="set-hd">演示调试</div>
           <div class="cells">
+            <button class="cell" data-act="seedFriends"><span class="cell-ic">${UI.ic('users', 20)}</span><span class="cell-main">填充示例好友<small>${Store.s.friends.length ? `已有${Store.s.friends.length}位好友` : '纯新用户没有好友；点这里变成有好友和聊天记录的老用户'}</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家，从登录页重新开始</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
@@ -298,6 +302,11 @@
       },
       bind: () => Auth.bind(),
       logout: () => Auth.logout(),
+      seedFriends: () => {
+        Store.seedFriends();
+        App.refresh('settings');
+        UI.toast(`已填充示例好友，现在有${Store.s.friends.length}位好友`);
+      },
     },
   });
 })();

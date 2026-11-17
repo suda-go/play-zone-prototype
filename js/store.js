@@ -45,24 +45,21 @@
       streak: { days: 0, last: 0, chest: false, opened: false },
       ads: { watched: 0, bonus: false },
       ranks: { c4: { tier: 1, pts: 60 } },
-      record: { games: 12, wins: 7 },
-      gstats: { c4: { g: 12, w: 7 } },
-      history: [
-        { game: 'c4', vs: 'lily', win: false, coins: -100, t: '昨天' },
-        { game: 'c4', vs: 'kai', win: true, coins: 200, t: '昨天' },
-        { game: 'c4', vs: 'mia', win: false, coins: -100, t: '周一' },
-      ],
+      // V7：纯新用户没有对局记录、好友、聊天、好友申请和一起玩过的人；演示老用户用设置里的“填充示例好友”（Store.seedFriends）
+      record: { games: 0, wins: 0 },
+      gstats: { c4: { g: 0, w: 0 } },
+      history: [],
       owned: { frame: [], bubble: ['default'], bg: ['aurora'] },
       equip: { frame: null, bubble: 'default', bg: 'aurora' },
-      friends: ['lily', 'kai', 'mia', 'alex', 'daniel', 'lucas', 'sofia', 'emma', 'aisha', 'ryan'],
-      requests: ['noah', 'grace'],
+      friends: [],
+      requests: [],
       sent: [],
-      recent: ['victor', 'marco', 'hana'],
-      chats: clone(D.chats),
-      chatOrder: [...D.chatOrder],
+      recent: [],
+      chats: { system: clone(D.chats.system) },
+      chatOrder: ['system'],
       turn: { with: 'kai', board: turnBoard(), my: true, wins: 0 },
       rooms: clone(D.rooms),
-      badges: { social: Date.now() },
+      badges: {},
       settings: { invite: true, friend: true, turn: false, sound: true, lang: '简体中文' },
       doubleNext: false,
       howto: {},
@@ -496,6 +493,18 @@
    * 回到新用户状态并刷新页面
    * seed 可选：新状态里预先写入的字段（换账号登录时带上登录信息和邮箱注册表），user 按字段合并
    */
+  /** 演示：变成有好友的老用户（10位好友、2条好友申请、聊天记录、最近一起玩），已有的好友和聊天保留 */
+  const DEMO_FRIENDS = ['lily', 'kai', 'mia', 'alex', 'daniel', 'lucas', 'sofia', 'emma', 'aisha', 'ryan'];
+  function seedFriends() {
+    s.friends = [...new Set([...s.friends, ...DEMO_FRIENDS])];
+    s.requests = [...new Set([...s.requests, 'noah', 'grace'])].filter((u) => !s.friends.includes(u));
+    s.recent = [...new Set([...s.recent, 'victor', 'marco', 'hana'])].slice(0, 8);
+    const demo = clone(D.chats);
+    Object.keys(demo).forEach((id) => { if (!s.chats[id]) s.chats[id] = demo[id]; });
+    s.chatOrder = [...new Set([...s.chatOrder, ...D.chatOrder])];
+    emit('friend', {});
+  }
+
   function reset(seed) {
     resetting = true;
     try {
@@ -523,7 +532,7 @@
     dm, post, read, unread, newGroup,
     room, createRoom, sit, leaveRoom,
     addMatch, checkBadges, badge,
-    nextDay, dots,
+    nextDay, dots, seedFriends,
     vipTier, perk, setVip, canVipDaily, vipDaily, AID, aidLeft, useAid, protectLeft, useProtect,
   };
 })();

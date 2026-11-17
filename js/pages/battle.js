@@ -339,7 +339,7 @@ window.C4 = (() => {
           <div class="mt-half is-red"><img class="mt-lines" src="${IMG}fx/speedlines.png" alt=""><img class="mt-tone" src="${IMG}fx/halftone.png" alt=""></div>
           <i class="mt-split"></i>
           <img class="mt-blobs" src="${IMG}brand/blobs-vs.png" alt="">
-          <div class="mt-p mt-me">${UI.av('me', 92)}<b>${UI.esc(Store.s.user.name)}</b><span>胜率${Battle.winRate()}</span></div>
+          <div class="mt-p mt-me">${UI.av('me', 92)}<b>${UI.esc(Store.s.user.name)}</b><span>${Battle.winRate() === '—' ? '新玩家' : `胜率${Battle.winRate()}`}</span></div>
           <div class="mt-p mt-opp"><span class="mt-search"><i></i><i></i><i></i></span><b>搜索中</b><span>&nbsp;</span></div>
           <div class="mt-vs"><b class="v">V</b><b class="s">S</b></div>
           <img class="mt-rocket" src="${IMG}ui/rocket.png" alt="">
