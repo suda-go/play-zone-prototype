@@ -76,7 +76,6 @@
           ${vipBanner()}
           <div class="me-wallet">
             <button data-go="wallet" data-cur="exp">${UI.cur('exp', 30)}<b>Lv${s.user.lv}</b><span>经验${s.user.exp}</span></button>
-            <button data-go="bag" data-kind="items">${UI.cur('boost', 30)}${UI.bind('boost')}<span>加速卡</span></button>
             <button data-go="wallet" data-cur="coins">${UI.cur('coins', 30)}${UI.bind('coins')}<span>金币</span></button>
           </div>
           <button class="me-stats card" data-go="stats">
@@ -85,7 +84,7 @@
             ${UI.ic('right', 18, 'cell-arrow')}
           </button>
           <div class="cells me-cells">
-            <button class="cell" data-go="bag"><span class="cell-ic">${UI.ic('bag', 21)}</span><span class="cell-main">背包</span><span class="cell-val">${owned}件 · ${UI.cur('boost', 16)}${s.boost}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-go="bag"><span class="cell-ic">${UI.ic('bag', 21)}</span><span class="cell-main">背包</span><span class="cell-val">${owned}件</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="badges"><span class="cell-ic">${UI.ic('award', 21)}</span><span class="cell-main">徽章</span><span class="cell-val">${badges}/${D.badges.length}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-go="wallet"><span class="cell-ic">${UI.ic('wallet', 21)}</span><span class="cell-main">钱包与明细</span><span class="cell-val">${s.log.length}条记录</span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="friends"><span class="cell-ic">${UI.ic('users', 21)}</span><span class="cell-main">好友</span><span class="cell-val">${s.friends.length}${s.requests.length ? ` <i class="count is-inline">${s.requests.length}</i>` : ''}</span>${UI.ic('right', 18, 'cell-arrow')}</button>
@@ -202,7 +201,7 @@
   });
 
   /* ================= L5 背包 ================= */
-  const KINDS = [['frame', '头像框'], ['bubble', '气泡'], ['bg', '背景'], ['items', '道具']];
+  const KINDS = [['frame', '头像框'], ['bubble', '气泡'], ['bg', '背景']]; // V7 首发版没有道具
   App.page('bag', {
     render(el, p) {
       const s = Store.s;
@@ -254,7 +253,7 @@
       el.innerHTML = `${UI.nav({ title: '战绩', cls: 'is-white' })}
         <div class="body st-body" data-scroll="main">
           <div class="st-sum card"><span><b>${s.record.games}</b>对局</span><span><b>${s.record.wins}</b>胜场</span><span><b>${pct(s.record.wins, s.record.games)}%</b>胜率</span><span><b>${Math.floor(s.cnt.all.seconds / 60)}分钟</b>游戏时长</span></div>
-          <div class="sec-hd"><h2>本赛季段位</h2></div>
+          <div class="sec-hd"><h2>段位</h2></div>
           <div class="st-game card">
             <img class="st-ic" src="${g.icon}" alt="">
             <div class="st-game-main"><b>${g.name}</b><span>${UI.tier(r.tier, 20)}${D.tiers[r.tier]} · ${r.pts}/100分</span>

@@ -1,6 +1,6 @@
 /**
  * Play 首页（登录后的启动页）。V4 精简成一屏、不用滚动，参考 Yalla Ludo：
- *   顶栏 → 赛季段位 / 好友排名两张小卡片 → 四子棋标志 → 玩法入口（快速开始、和好友玩；V7 首发版只留这两个）
+ *   顶栏 → 四子棋标志 → 玩法入口（快速开始、和好友玩）。V7 首发版不做赛季、排行榜
  *   快速开始一点就匹配；金币分场收进“换场次”弹层
  * 以及启动相关的：B2 新手礼包、B5 退出挽留、B6 离线收益（B3 7 日签到在 tasks.js 顶部）、
  * C3 回合制对局（和 Kai，入口是右下角悬浮窗；V7 首发版悬浮窗先不做，这个入口暂时关闭）、K3 好友主动发来邀请
@@ -49,25 +49,6 @@
       <button class="icon-btn lobby-sign" data-go="tasks" aria-label="签到和任务"><img src="${IMG}ui/calendar.png" alt="">${UI.count('welfare')}</button>
       <button class="icon-btn lobby-shop" data-go="shop" aria-label="商城"><img src="${IMG}ui/store.png" alt=""></button>
     </header>`;
-  }
-
-  /** 赛季段位、好友排名：两张小卡片，点开都是排行榜（赛季奖励在排行榜页） */
-  function info() {
-    const r = Store.rank(D.GAME);
-    const fr = Rank.friendPos(D.GAME);
-    const days = (D.season.left.match(/^(\d+)天/) || [])[1];
-    return `<div class="hm-info">
-      <button class="hm-card hm-season" data-go="rank">
-        ${UI.tier(r.tier, 40)}
-        <span class="hm-card-m"><small>${D.season.name.split(' · ')[0]}${days ? ` · 剩${days}天` : ''}</small>
-          <b>${D.tiers[r.tier]}<em>${r.pts}/100</em></b>${UI.bar(r.pts, 100, 'is-gold is-thin')}</span>
-      </button>
-      <button class="hm-card hm-rank" data-go="rank">
-        <img src="${IMG}ui/trophy.png" alt="">
-        <span class="hm-card-m"><small>好友排行</small><b>第${fr.pos}名</b><span>全服第${UI.fmt(Rank.myGlobalPos())}名</span></span>
-        ${UI.ic('right', 16, 'hm-card-go')}
-      </button>
-    </div>`;
   }
 
   /** 四子棋标志：彩色描边字，下面是在玩人数和玩法说明 */
@@ -164,7 +145,7 @@
       title: '欢迎来到 Soulgame！',
       sub: '先下一局，再交个朋友。见面礼请收好！',
       img: `${IMG}brand/mascot-gift.png`,
-      items: { coins: 1500, boost: 1 },
+      items: { coins: 1500 },
       btn: '全部领取',
       note: '新手礼包',
     });
@@ -305,7 +286,6 @@
     render(el) {
       el.innerHTML = `<div class="lobby-bg"></div>${header()}
         <div class="body lobby-body hm-body" data-scroll="main">
-          ${info()}
           ${logo()}
           ${modes()}
           <i class="hm-foot" aria-hidden="true"></i>

@@ -6,7 +6,7 @@
   'use strict';
 
   const IMG = D.IMG;
-  const TABS = [['decor', '装扮'], ['items', '道具'], ['topup', '充值'], ['vip', '会员']];
+  const TABS = [['decor', '装扮'], ['topup', '充值'], ['vip', '会员']];
   const KINDS = [['frame', '头像框', D.frames], ['bubble', '聊天气泡', D.bubbles], ['bg', '主页背景', D.bgs]];
   const KIND_NAME = { frame: '头像框', bubble: '聊天气泡', bg: '主页背景' };
   const AD_COINS = 100;      // 每次看广告得金币
@@ -22,7 +22,7 @@
     const it = Store.catalog(kind)[id];
     const owned = Store.owns(kind, id);
     const equipped = Store.s.equip[kind] === id;
-    const lock = !owned && it.vip ? (it.vip === 2 ? '超级会员专属' : '会员专属') : !owned && it.season ? '达到黄金' : '';
+    const lock = !owned && it.vip ? (it.vip === 2 ? '超级会员专属' : '会员专属') : '';
     return { it, owned, equipped, lock };
   }
   function itemCard(kind, id) {

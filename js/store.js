@@ -157,7 +157,6 @@
     const after = { tier: Math.min(4, Math.floor(total / 100)), pts: 0 };
     after.pts = total - after.tier * 100;
     s.ranks[g] = after;
-    if (after.tier >= 2 && !s.owned.frame.includes('season')) s.owned.frame.push('season');
     checkBadges();
     emit('rank', { g, before, after });
     return { before, after, up: after.tier > before.tier, down: after.tier < before.tier };
@@ -240,7 +239,7 @@
     s.streak.chest = false;
     s.streak.opened = true;
     emit('task');
-    return { coins: 3500, boost: 2 };
+    return { coins: 4000 };
   }
   function claimable() {
     let n = tasks().filter((t) => t.state === 'claim').length;

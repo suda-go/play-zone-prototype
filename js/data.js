@@ -39,19 +39,8 @@
   ];
   D.stake = Object.fromEntries(D.stakes.map((x) => [x.id, x]));
 
-  /* ---------- 段位与赛季 ---------- */
+  /* ---------- 段位（V7 首发版不做赛季和排行榜） ---------- */
   D.tiers = ['青铜', '白银', '黄金', '铂金', '星耀'];
-  D.season = {
-    name: '第3赛季 · 夏日激战',
-    left: '12天06小时',
-    rewards: [
-      { tier: 0, text: '50金币' },
-      { tier: 1, text: '200金币' },
-      { tier: 2, text: '赛季框' },
-      { tier: 3, text: '2000金币' },
-      { tier: 4, text: '5000金币+徽章' },
-    ],
-  };
 
   /* ---------- 玩家 ---------- */
   const P = (id, name, lv, o = {}) => ({
@@ -67,7 +56,7 @@
     lily: P('lily', '莉莉', 14, { vip: 2, online: true, status: '对局中', frame: 'wings', bg: 'galaxy', bio: '不连成四子不罢休 ✨', games: 318, win: 62 }),
     kai: P('kai', '阿凯', 9, { online: true, status: '在大厅', bg: 'arena', bio: '回合制>实时，不服来战。', games: 142, win: 51 }),
     mia: P('mia', '米娅', 11, { online: true, status: '对局中', frame: 'balloon', bg: 'sunset', bio: '连珠女王 👑', games: 204, win: 55 }),
-    alex: P('alex', '阿乐', 8, { online: true, status: '在大厅', bio: '这赛季冲黄金', games: 97, win: 57 }),
+    alex: P('alex', '阿乐', 8, { online: true, status: '在大厅', bio: '今年冲黄金', games: 97, win: 57 }),
     daniel: P('daniel', '大牛', 16, { vip: 1, online: true, status: '对局中', frame: 'crown', bg: 'arena', bio: '小队队长，常开麦。', games: 401, win: 64 }),
     lucas: P('lucas', '卢卡', 6, { online: true, status: '在房间中', bio: '慢慢下，稳稳赢 🧩', games: 66, win: 48 }),
     sofia: P('sofia', '索菲', 7, { seen: '2小时前', bio: '你好呀 👋', games: 88, win: 50 }),
@@ -80,7 +69,7 @@
     marco: P('marco', '马可', 9, { seen: '30分钟前', bio: '哈喽！', games: 120, win: 52 }),
     hana: P('hana', '花花', 8, { online: true, status: '正在开房', bio: '只玩轻松局 🌙', games: 110, win: 54 }),
     zoe: P('zoe', '佐伊', 10, { online: true, status: '对局中', bio: '夜猫子', games: 133, win: 51 }),
-    olivia: P('olivia', '奥莉', 21, { vip: 2, online: true, status: '在大厅', frame: 'crown', bio: '第2赛季冠军', games: 820, win: 71 }),
+    olivia: P('olivia', '奥莉', 21, { vip: 2, online: true, status: '在大厅', frame: 'crown', bio: '四子棋老玩家', games: 820, win: 71 }),
     isabella: P('isabella', '贝拉', 15, { online: true, status: '正在开房', bio: '冲鸭！', games: 300, win: 60 }),
     ruby: P('ruby', '露比', 12, { online: true, status: '对局中', bio: '幸运数字7', games: 190, win: 55 }),
     george: P('george', '老乔', 18, { online: true, status: '在大厅', bio: '姜还是老的辣', games: 610, win: 66 }),
@@ -101,7 +90,6 @@
     saturn: { name: '星球轨道', price: 400, ring: 'purple', deco: `${IMG}ui/saturn.png`, pos: 'br' },
     dj: { name: '节奏大师', price: 400, ring: 'pink', deco: `${IMG}ui/headphones.png`, pos: 'head' },
     rocket: { name: '火箭冲刺', price: 350, ring: 'blue', deco: `${IMG}ui/rocket.png`, pos: 'bl' },
-    season: { name: '夏日激战', price: 0, season: true, ring: 'season', deco: `${IMG}ui/trophy.png`, pos: 'br' },
     vip: { name: '会员金框', price: 0, vip: true, ring: 'vip', deco: `${IMG}ui/sparkle.png`, pos: 'tr' },
     svip: { name: '超级会员框', price: 0, vip: 2, ring: 'svip', deco: `${IMG}ui/crown.png`, pos: 'top' },
   };
@@ -121,10 +109,7 @@
     arena: { name: '竞技场', price: 400, css: `url(${IMG}games/clash-cover.jpg) center/cover` },
     garden: { name: '花园', price: 250, css: `url(${IMG}games/squad-cover.jpg) center/cover` },
   };
-  D.items = [
-    { id: 'boost1', name: '加速卡', desc: '1秒内匹配到对手', price: 100, give: { boost: 1 }, img: `${IMG}ui/rocket.png` },
-    { id: 'boost5', name: '加速卡×5', desc: '常玩党最划算', price: 450, give: { boost: 5 }, img: `${IMG}ui/rocket.png`, tag: '-10%' },
-  ];
+  D.items = []; // V7 首发版：加速卡、房卡都不做，商城没有道具
   D.coinPacks = [
     { id: 'c1', usd: 0.99, coins: 600 },
     { id: 'c2', usd: 4.99, coins: 3000, bonus: 300 },
@@ -173,7 +158,7 @@
 
   /* ---------- 签到 ---------- */
   D.signin = [
-    { coins: 100 }, { coins: 150 }, { coins: 200 }, { boost: 1 }, { coins: 300 }, { coins: 400 }, { coins: 1000, frame: 'balloon' },
+    { coins: 100 }, { coins: 150 }, { coins: 200 }, { coins: 250 }, { coins: 300 }, { coins: 400 }, { coins: 1000, frame: 'balloon' },
   ];
 
   /* ---------- 任务 ---------- */
@@ -215,7 +200,6 @@
     { id: 'social', name: '社交达人', desc: '拥有10位好友', img: `${IMG}ui/headphones.png` },
     { id: 'host', name: '人气房主', desc: '创建一个房间', img: `${IMG}ui/store.png` },
     { id: 'wall', name: '铜墙铁壁', desc: '一局内拦截对手3次', img: `${IMG}ui/glove-blue.png` },
-    { id: 'speed', name: '极速玩家', desc: '使用一次加速卡', img: `${IMG}ui/rocket.png` },
     { id: 'collector', name: '收藏家', desc: '拥有3件装扮', img: `${IMG}ui/crown.png` },
     { id: 'explorer', name: '默契搭档', desc: '和同一位好友玩10局', img: `${IMG}ui/saturn.png` },
     { id: 'gold', name: '点石成金', desc: '四子棋达到黄金段位', img: `${IMG}ui/podium.png` },
@@ -259,10 +243,10 @@
       { from: 'kai', text: '轮到你了！别让我等太久 ⏳', t: '08:47' },
     ] },
     system: { type: 'system', name: 'Soulgame', unread: 1, msgs: [
-      { from: 'system', text: '第3赛季 · 夏日激战开始啦！四子棋达到黄金段位，即可解锁“夏日激战”头像框。', t: '周一' },
+      { from: 'system', text: '欢迎来到 Soulgame！快速开始找人下一局，或者约好友一起玩，赢家拿走奖池。', t: '周一' },
     ] },
     mia: { type: 'dm', with: 'mia', unread: 0, msgs: [{ from: 'mia', text: '打得好！🎉', t: '周日' }] },
-    alex: { type: 'dm', with: 'alex', unread: 0, msgs: [{ from: 'alex', text: '赌你这赛季超不过我 😏', t: '周六' }] },
+    alex: { type: 'dm', with: 'alex', unread: 0, msgs: [{ from: 'alex', text: '赌你超不过我 😏', t: '周六' }] },
   };
   D.chatOrder = ['lily', 'squad', 'kai', 'system', 'mia', 'alex'];
   D.replies = ['哈哈，不错嘛 😄', '好啊，来一局！', '等我5分钟', '打得好！', '😂😂😂', '下次记得叫上我！', '马上到 🏃', '你变强了！'];

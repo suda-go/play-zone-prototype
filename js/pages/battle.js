@@ -315,24 +315,6 @@ window.C4 = (() => {
     UI.toast(`已取消匹配 · 退还${UI.fmt(bet)}金币`);
   }
 
-  async function boost() {
-    if (!M || M.found) return;
-    if (Store.s.boost <= 0) {
-      const k = await UI.dialog({
-        img: `${IMG}ui/rocket.png`,
-        title: '加速卡用完了',
-        text: '使用加速卡，1秒内就能匹配到对手。',
-        buttons: [{ label: `${UI.cur('coins', 18)}100 买1张`, key: 'buy', cls: 'btn-orange' }, { label: '继续等待', key: 'no', cls: 'btn-ghost' }],
-      });
-      if (k !== 'buy' || !M || M.found) return;
-      if (Store.buyItem('boost1') === 'poor') { UI.toast('金币不足'); return; }
-    }
-    Store.add('boost', -1, '使用加速卡');
-    Store.badge('speed');
-    M.el.classList.add('is-boost');
-    Sfx.play('match');
-    M.timers.push(setTimeout(() => found(pickOpp(), 'boost'), 900));
-  }
 
   App.page('match', {
     render(el, p) {
@@ -354,7 +336,6 @@ window.C4 = (() => {
         <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">优先匹配好友和段位相近的玩家</span></div>
         <div class="mt-fast" hidden>
           <button class="btn btn-glass btn-md" data-act="fast">${UI.ic('bot', 17)} 极速匹配 · 人机</button>
-          <button class="btn btn-gold btn-md" data-act="boost">${UI.cur('boost', 18)} 使用加速卡 <em class="mt-boost-n">×${Store.s.boost}</em></button>
         </div>
         <div class="mt-arena">
           <div class="mt-half is-blue"><img class="mt-lines" src="${IMG}fx/speedlines.png" alt=""><img class="mt-tone" src="${IMG}fx/halftone.png" alt=""></div>
@@ -379,7 +360,7 @@ window.C4 = (() => {
         if (sec >= 5 && !M.fast) {
           M.fast = true;
           el.querySelector('.mt-fast').hidden = false;
-          el.querySelector('.mt-tip').textContent = '等太久？试试极速匹配或加速卡';
+          el.querySelector('.mt-tip').textContent = '等太久？试试极速匹配';
         }
       }, 250);
       M.timers.push(setTimeout(() => found(pickOpp()), Store.s.vip ? 3200 : 9500));
@@ -389,7 +370,6 @@ window.C4 = (() => {
     act: {
       cancel: () => cancel(),
       fast: () => found('bot', 'fast'),
-      boost: () => boost(),
     },
   });
 })();
@@ -1090,20 +1070,13 @@ window.C4 = (() => {
 
   async function promoted(el, p) {
     const a = p.after;
-    const unlock = a.tier === 2;
-    const k = await UI.dialog({
+    await UI.dialog({
       cls: 'dlg-promo',
       art: `<span class="promo-tier">${UI.tier(a.tier, 112)}</span>`,
       title: `晋升${D.tiers[a.tier]}！`,
-      text: unlock ? `你在${D.game[p.game].name}中达到${D.tiers[a.tier]}，解锁了<b>夏日激战</b>赛季头像框。` : `你在${D.game[p.game].name}中达到${D.tiers[a.tier]}，继续冲吧！`,
-      buttons: unlock ? [{ label: '装备头像框', key: 'equip', cls: 'btn-orange' }, { label: '稍后', key: 'ok', cls: 'btn-ghost' }] : [{ label: '太棒了！', key: 'ok' }],
+      text: `你在${D.game[p.game].name}中达到${D.tiers[a.tier]}，继续冲吧！`,
+      buttons: [{ label: '太棒了！', key: 'ok' }],
     });
-    if (k === 'equip') {
-      Store.equip('frame', 'season');
-      const av = el.querySelector('.rs-card.is-me .av');
-      if (av) av.outerHTML = UI.av('me', 70);
-      UI.toast('已装备夏日激战头像框');
-    }
   }
 
   App.page('result', {
