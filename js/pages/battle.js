@@ -102,8 +102,8 @@ window.C4 = (() => {
   D.people.local2 = { id: 'local2', name: '好友', lv: 1, avatar: `${IMG}avatars/p2.svg`, local: true, online: true, frame: null, bg: 'aurora', status: '' };
   D.people.bot = { id: 'bot', name: '诺娃', lv: 5, avatar: `${IMG}brand/blob-face.png`, ai: true, online: true, frame: null, bg: 'aurora', fav: ['c4'], status: 'AI' };
 
-  /** B4 玩法引导：15 秒图解，3 步各 5 秒，可跳过 */
-  function howto(gameId, { manual = false } = {}) {
+  /** B4 玩法引导：15 秒图解，3 步各 5 秒，可跳过。onOpen 拿到浮层（对局里打开时，对局结束会把它关掉） */
+  function howto(gameId, { manual = false, onOpen } = {}) {
     return new Promise((resolve) => {
       const g = D.game[gameId];
       const steps = gameId === 'c4' ? [
@@ -130,6 +130,14 @@ window.C4 = (() => {
         cls: 'ov-howto',
         closable: false,
         onBack: () => finish(),
+        onOpen,
+        // 不管是自己点完、跳过，还是被对局结束关掉，都停掉动画、记为看过
+        onClose: () => {
+          cancelAnimationFrame(raf);
+          Store.s.howto[gameId] = 1;
+          Store.save();
+          setTimeout(resolve, 200);
+        },
         html: `<div class="ht">
           <div class="ht-top safe-top"><div class="ht-prog">${steps.map(() => '<i><b></b></i>').join('')}</div>
             <button class="ht-skip" data-act="skip">跳过</button></div>
@@ -160,13 +168,7 @@ window.C4 = (() => {
         }
         raf = requestAnimationFrame(tick);
       }
-      function finish() {
-        cancelAnimationFrame(raf);
-        Store.s.howto[gameId] = 1;
-        Store.save();
-        c.close();
-        setTimeout(resolve, 200);
-      }
+      function finish() { c.close(); }
       show(0);
       raf = requestAnimationFrame(tick);
     });
@@ -180,6 +182,18 @@ window.C4 = (() => {
     if (st.vip && Store.vipTier() < st.vip) return 'vip';
     if (Store.s.coins < st.bet) return 'poor';
     return 'ok';
+  }
+  /**
+   * 快速开始用的场次：上次的场次能进就用它；进不了（金币不够、会员过期）就换成底注不超过它、能进的最高一档；
+   * 一档都进不了就用已解锁的最低一档（新手场），点开始时由 quick 弹金币不足，差额最小
+   */
+  function pickStake() {
+    const last = stakeOf(Store.s.stake);
+    if (canEnter(last) === 'ok') return last;
+    const normal = D.stakes.filter((x) => !x.vip);
+    const ok = normal.filter((x) => canEnter(x) === 'ok');
+    const lower = ok.filter((x) => x.bet <= last.bet);
+    return lower[lower.length - 1] || ok[0] || normal[0] || last;
   }
   function checkEnter(st) {
     const k = canEnter(st);
@@ -197,10 +211,10 @@ window.C4 = (() => {
     return true;
   }
 
-  /** 快速匹配：检查等级和金币 → 第一次玩先看引导 → 扣底注 → 匹配页。stakeId 不传就用上次的场次 */
+  /** 快速匹配：检查场次能不能进（会员场、金币）→ 扣底注 → 匹配页。stakeId 不传就按场次自动选择（同首页“开始游戏”，例如消息页的“快速开始一局”） */
   function quick(stakeId, opt = {}) {
     if (busy()) return;
-    const st = stakeOf(stakeId);
+    const st = stakeId ? stakeOf(stakeId) : pickStake();
     if (!checkEnter(st)) return;
     Store.s.stake = st.id;
     Store.save();
@@ -212,12 +226,12 @@ window.C4 = (() => {
     };
     start(); // V7：不再先放15秒玩法说明，让新用户马上开局（首页“玩法”、对局里的“?”随时能看）
   }
-  /** A 再战TA：和同一个对手按同一场次再来一局，对方同意后直接开局 */
-  function rematch(opp, stakeId) {
+  /** A 再战TA：和同一个对手按同一场次再来一局，一方同意后直接开局。byMe：是自己接受了对手的邀请（开场提示不说“对手接受了再战”） */
+  function rematch(opp, stakeId, { byMe = false } = {}) {
     const st = stakeOf(stakeId);
     if (!checkEnter(st)) return false;
     Store.add('coins', -st.bet, `${st.name} · 底注（再战）`);
-    App.replace('game', { game: D.GAME, mode: 'quick', stake: st.id, opp, rematch: 1, first: Math.random() < 0.5 ? 1 : 2 });
+    App.replace('game', { game: D.GAME, mode: 'quick', stake: st.id, opp, rematch: byMe ? 2 : 1, first: Math.random() < 0.5 ? 1 : 2 });
     return true;
   }
   /** vs AI 免费练习：不扣金币、不计段位 */
@@ -246,7 +260,7 @@ window.C4 = (() => {
     return gs && gs.g ? `${Math.round((gs.w / gs.g) * 100)}%` : '—';
   };
 
-  window.Battle = Object.assign(window.Battle || {}, { quick, rematch, practice, local, fromRoom, howto, stakeOf, pot, canEnter, winRate });
+  window.Battle = Object.assign(window.Battle || {}, { quick, rematch, practice, local, fromRoom, howto, stakeOf, pot, canEnter, pickStake, winRate });
 })();
 
 /* ================= E1–E4 匹配 ================= */
@@ -296,7 +310,8 @@ window.C4 = (() => {
     M.timers.push(setTimeout(() => el.classList.add('is-loading'), 900));
     M.timers.push(setTimeout(() => {
       stop();
-      App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', stake: p.stake, opp, double: p.double, first: Math.random() < 0.55 ? 1 : 2 });
+      // 先手双方各 50%（正式产品由服务端在开局时随机决定）
+      App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', stake: p.stake, opp, double: p.double, first: Math.random() < 0.5 ? 1 : 2 });
     }, 2000));
   }
 
@@ -338,7 +353,7 @@ window.C4 = (() => {
           ${p.double ? `<span class="mt-double">${UI.ic('zap', 13)} 本局奖池翻倍</span>` : ''}
         </div>
         <h2 class="mt-title">匹配中<i class="mt-dots"><b>.</b><b>.</b><b>.</b></i></h2>
-        <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">优先匹配好友和水平相近的玩家</span></div>
+        <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">正在为你寻找水平相近的对手</span></div>
         <div class="mt-fast" hidden>
           <button class="btn btn-glass btn-md" data-act="fast">${UI.ic('bot', 17)} 极速匹配 · 人机</button>
         </div>
@@ -361,7 +376,7 @@ window.C4 = (() => {
       M.tick = setInterval(() => {
         if (!M) return;
         const sec = Math.floor((Date.now() - M.t0) / 1000);
-        el.querySelector('.mt-time').textContent = `00:${String(sec).padStart(2, '0')}`;
+        el.querySelector('.mt-time').textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
         if (sec >= 5 && !M.fast) {
           M.fast = true;
           el.querySelector('.mt-fast').hidden = false;
@@ -396,6 +411,10 @@ window.C4 = (() => {
     G.timers.forEach(clearTimeout);
     G.timers = [];
   }
+  // 对局里打开的浮层（认输确认、开麦说明、对手资料、举报、玩法说明）：计时不因它们暂停，
+  // 对局结束时一起关掉再进结算页（例如认输弹窗开着时第 2 次超时）
+  const own = (c) => { if (G) G.ovs.push(c); return c; };
+  function closeOwn() { if (G) G.ovs.splice(0).forEach((c) => c.close()); }
 
   // V5：真人对手的头像可以点，看资料、直接加好友；还不是好友时头像右下角有个“+”
   const canAdd = (uid) => !Store.isFriend(uid) && !Store.s.sent.includes(uid);
@@ -446,7 +465,7 @@ window.C4 = (() => {
     ring(who, 15);
     clearInterval(G.tick);
     G.tick = setInterval(() => {
-      if (!G || G.paused) return;
+      if (!G) return;
       G.left -= 1;
       setClock(Math.max(0, G.left));
       if (who === 1 && G.left <= 5 && G.left > 0) Sfx.play('tick');
@@ -499,9 +518,9 @@ window.C4 = (() => {
   }
   function botMove() {
     if (!G || G.over || G.turn !== 2) return;
-    if (G.paused) { later(botMove, 600); return; }
     const mine = C4.winningCols(G.board, 1);
-    const col = C4.bot(G.board, 2, 1, G.opp === 'bot' ? 0.7 : 0.85);
+    // 人机和模拟的真人对手一样强（正式产品按用户的水平分调整人机难度）
+    const col = C4.bot(G.board, 2, 1, 0.85);
     const row = C4.drop(G.board, col, 2);
     G.turn = 0;
     clearInterval(G.tick);
@@ -567,7 +586,7 @@ window.C4 = (() => {
   /* ---------- E6 局内表情：自己回合置灰，对手回合放大高亮；以弹幕飘过 ---------- */
   function locked() { return G && G.g.playable && G.turn === 1 && !G.over; }
   function openPanel(tab) {
-    if (locked()) { UI.toast('专心落子！对手回合才能发表情'); return; }
+    if (locked()) { UI.toast('专心对局！对手回合才能发表情'); return; }
     const panel = G.el.querySelector('.gm-panel');
     panel.hidden = false;
     panel.querySelectorAll('.gm-ptab').forEach((b) => b.classList.toggle('is-active', b.dataset.p === tab));
@@ -604,7 +623,7 @@ window.C4 = (() => {
   }
   function send(type, text) {
     if (!G) return;
-    if (locked()) { UI.toast('专心落子！对手回合才能发表情'); return; }
+    if (locked()) { UI.toast('专心对局！对手回合才能发表情'); return; }
     closePanel();
     emote('me', type, text);
     Store.count('emojis');
@@ -646,7 +665,7 @@ window.C4 = (() => {
     if (!G || oppIsAI()) return;
     later(() => {
       if (!G || G.over) return;
-      if (Store.s.voice.spk && !G.paused) talk(2, 1200 + Math.random() * 1400);
+      if (Store.s.voice.spk) talk(2, 1200 + Math.random() * 1400);
       scheduleTalk();
     }, 4500 + Math.random() * 5000);
   }
@@ -654,14 +673,11 @@ window.C4 = (() => {
     if (!G) return;
     const v = Store.s.voice;
     if (!v.mic && !v.asked) {
-      G.paused = true;
-      const ok = await UI.confirm({ title: '允许 Soulgame 使用麦克风？', text: '开麦后，对局中可以和对手实时语音聊天。', ok: '允许', cancel: '不允许' });
-      v.asked = true;
-      Store.save();
+      // 开麦前先说明（计时不暂停）；点“不允许”下次再问，点过“允许”以后不再问
+      const ok = await UI.confirm({ title: '允许 Soulgame 使用麦克风？', text: '开麦后，对局中可以和对手实时语音聊天。', ok: '允许', cancel: '不允许', onOpen: own });
       if (!G) return;
-      G.paused = false;
-      if (G.turn) ring(G.turn, G.left);
       if (!ok) { UI.toast('没有开麦，随时可以再打开'); return; }
+      v.asked = true;
     }
     v.mic = !v.mic;
     Store.save();
@@ -681,7 +697,7 @@ window.C4 = (() => {
     UI.toast(v.spk ? '已打开对手声音' : '已静音对手');
   }
 
-  /* ---------- V5 对局中点对手头像：看资料、直接加好友（对局照常进行，计时不暂停） ---------- */
+  /* ---------- V5 对局中点对手头像：看资料、直接加好友、举报（对局照常进行，计时不暂停） ---------- */
   function oppSheet() {
     if (!G) return;
     const uid = G.opp;
@@ -695,12 +711,13 @@ window.C4 = (() => {
       return `<button class="btn btn-primary btn-lg btn-block" data-act="add">${UI.ic('userPlus', 18)} 加好友</button>`;
     };
     const done = () => {
-      c.$('.op-btn').innerHTML = btn();
+      if (!c.closed) c.$('.op-btn').innerHTML = btn();
       if (G && G.opp === uid) G.el.querySelector('.gm-pl.p2 .gm-add')?.remove();
     };
-    const c = UI.sheet({
+    const c = own(UI.sheet({
       cls: 'sheet-opp',
-      html: `<div class="op-hd">${UI.av(uid, 64, { on: true })}<div class="op-m"><h3>${UI.name(uid)}</h3><p>${UI.esc(P.bio || '这个人很懒，什么都没写')}</p></div></div>
+      html: `<div class="op-hd">${UI.av(uid, 64, { on: true })}<div class="op-m"><h3>${UI.name(uid)}</h3><p>${UI.esc(P.bio || '这个人很懒，什么都没写')}</p></div>
+          <button class="op-report" data-act="report">${UI.ic('flag', 14)}举报</button></div>
         <div class="op-stats"><span><b>${P.games}</b>对局</span><span><b>${P.win}%</b>胜率</span><span><b>${played}</b>和你玩过</span></div>
         <div class="op-btn">${btn()}</div>
         <p class="op-tip">${UI.ic('info', 13)} 对局还在进行，计时不会暂停</p>`,
@@ -713,7 +730,12 @@ window.C4 = (() => {
           setTimeout(() => {
             if (!Store.s.sent.includes(uid)) return;
             Store.addFriend(uid);
-            UI.notify({ img: P.avatar, title: `${P.name}通过了你的好友申请`, text: '你们已经是好友了，下完这局聊聊吧！' });
+            done();
+            // 还在这一局里：轻提示，不挡住对手信息；对局已经结束：和结算页加好友一样弹通知，可以直接去聊天
+            if (G && G.opp === uid && !G.over) { UI.toast(`${P.name}通过了你的好友申请`); return; }
+            UI.notify({ img: P.avatar, title: `${P.name}通过了你的好友申请`, text: '你们已经是好友了，打个招呼吧！', btn: '聊天', onTap: () => App.go('dm', { id: uid }) });
+            const tag = document.querySelector('.page[data-page="result"].is-active .rs-mate .rs-friend');
+            if (tag) tag.outerHTML = `<span class="rs-friend is-done">${UI.ic('userCheck', 14)} 已是好友</span>`;
           }, 5000);
         },
         accept: () => {
@@ -721,8 +743,38 @@ window.C4 = (() => {
           done();
           UI.toast(`你和${P.name}已经是好友了`);
         },
+        report: () => { c.close(); report(uid); },
       },
-    });
+    }));
+  }
+
+  /* ---------- V7 举报（对手资料卡右上角）：原因四选一，可补充说明；同一局只能举报同一人一次，对局照常进行 ---------- */
+  const REASONS = ['辱骂和骚扰', '不良语音', '作弊或挂机', '其他'];
+  function report(uid) {
+    if (!G) return;
+    if (G.reported) { UI.toast('已收到举报，我们会尽快处理'); return; }
+    let reason = '';
+    const c = own(UI.sheet({
+      title: '举报',
+      cls: 'sheet-report',
+      html: `<div class="rp-list">${REASONS.map((r) => `<button class="rp-opt" data-act="reason" data-r="${r}"><span>${r}</span><i class="rp-radio"></i></button>`).join('')}</div>
+        <textarea class="rp-note" rows="3" maxlength="200" placeholder="补充说明（选填）"></textarea>`,
+      foot: '<button class="btn btn-primary btn-lg btn-block" data-act="submit" disabled>提交</button>',
+      acts: {
+        reason: (el) => {
+          reason = el.dataset.r;
+          c.panel.querySelectorAll('.rp-opt').forEach((b) => b.classList.toggle('is-on', b === el));
+          c.$('[data-act="submit"]').disabled = false;
+        },
+        submit: () => {
+          if (!reason) return;
+          // 演示：不发到服务端。正式产品附上这一局的表情、快捷语和对局记录，进入人工审核
+          if (G && G.opp === uid) G.reported = true;
+          c.close();
+          UI.toast('已收到举报，我们会尽快处理');
+        },
+      },
+    }));
   }
 
   /* ---------- E7 中途退出 ---------- */
@@ -735,18 +787,16 @@ window.C4 = (() => {
       if (ok && G) { G.over = true; clearAll(); G = null; App.backTo('play'); }
       return;
     }
-    G.paused = true;
+    // 弹窗开着时计时照走、对手照常落子；这期间分出了胜负，弹窗跟着对局结束关掉
     const ok = await UI.confirm({
       title: practice ? '结束练习？' : '确定认输？',
       text: practice ? '练习局结束没有惩罚。' : `认输算作失败，底注<b>${UI.fmt(room ? G.p.bet : Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
       ok: practice ? '结束' : '认输', cancel: '继续玩', danger: !practice,
+      onOpen: own,
     });
-    if (!G) return;
-    G.paused = false;
-    if (ok) {
-      G.over = true;
-      end('lose', { forfeit: true });
-    } else if (G.turn) ring(G.turn, G.left);
+    if (!G || G.over || !ok) return;
+    G.over = true;
+    end('lose', { forfeit: true });
   }
 
   /* ---------- 缩小到悬浮窗：对局在后台继续（计时照走、对手照常落子），点悬浮窗回来 ---------- */
@@ -792,6 +842,7 @@ window.C4 = (() => {
   function end(outcome, opt = {}) {
     if (!G) return;
     clearAll();
+    closeOwn();
     const { p, g, opp, blocks, moves } = G;
     const sec = Math.max(1, Math.round((Date.now() - G.t0) / 1000));
     const min = !!G.min;
@@ -897,13 +948,13 @@ window.C4 = (() => {
         return;
       }
       clearAll();
-      G = { p, el, g: D.game[p.game] || D.game[D.GAME], opp: p.opp || 'bot', board: C4.empty(), turn: 0, left: 15, blocks: 0, moves: 0, t0: Date.now(), timers: [], over: false, paused: false };
+      G = { p, el, g: D.game[p.game] || D.game[D.GAME], opp: p.opp || 'bot', board: C4.empty(), turn: 0, left: 15, blocks: 0, moves: 0, t0: Date.now(), timers: [], ovs: [], over: false };
       const first = p.first || 1;
       const intro = document.createElement('div');
       intro.className = 'gm-intro';
       intro.innerHTML = p.mode === 'local'
         ? `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '蓝方先手' : '红方先手'}</b><span>两人轮流在这台手机上落子</span>`
-        : `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>${p.rematch ? `${name(G.opp)}接受了再战` : '点一列落子，横竖斜连成4子就赢'}</span>`;
+        : `${UI.av(first === 1 ? 'me' : G.opp, 64)}<b>${first === 1 ? '你先手！' : `${name(G.opp)}先手`}</b><span>${p.rematch === 1 ? `${name(G.opp)}接受了再战` : '点一列落子，横竖斜连成4子就赢'}</span>`;
       el.querySelector('.gm-stage').appendChild(intro);
       later(() => { intro.remove(); startTurn(first); }, 1500);
       voiceUI();
@@ -912,7 +963,7 @@ window.C4 = (() => {
         later(() => { if (G && G.turn !== 1) emote('opp', UI.pick(['happy', 'wink', 'cool'])); }, 2600);
       }
     },
-    leave() { if (G && G.min) return; clearAll(); G = null; },
+    leave() { if (G && G.min) return; closeOwn(); clearAll(); G = null; },
     back() {
       const panel = G && G.el.querySelector('.gm-panel');
       if (panel && !panel.hidden) { closePanel(); return false; }
@@ -934,15 +985,7 @@ window.C4 = (() => {
         el.innerHTML = UI.ic(Store.s.settings.sound ? 'volume' : 'mute', 21);
         UI.toast(Store.s.settings.sound ? '音效已开启' : '音效已关闭');
       },
-      help: () => {
-        if (!G) return;
-        G.paused = true;
-        Battle.howto(G.g.id, { manual: true }).then(() => {
-          if (!G) return;
-          G.paused = false;
-          if (G.turn) ring(G.turn, G.left);
-        });
-      },
+      help: () => { if (G) Battle.howto(G.g.id, { manual: true, onOpen: own }); }, // 计时不暂停
       mic: () => toggleMic(),
       spk: () => toggleSpk(),
       opp: () => oppSheet(),
@@ -983,7 +1026,8 @@ window.C4 = (() => {
     if (!P || P.ai || p.mode === 'ai') return '';
     const friend = Store.isFriend(p.opp);
     const n = Store.s.mateGames[p.opp] || 0;
-    const line = friend ? (n ? `你们已经一起玩了${n}局` : '下次可以在“和好友玩”里约TA') : p.outcome === 'win' ? `${P.name}说：再来一局，我不服！` : p.outcome === 'lose' ? `${P.name}说：打得不错，加个好友？` : `${P.name}说：难分高下，交个朋友吧`;
+    // 平台的引导语，不替对手说话
+    const line = friend ? (n ? `你们已经一起玩了${n}局` : '下次可以在“和好友玩”里约TA') : p.outcome === 'win' ? '再战一局？' : p.outcome === 'lose' ? '打得不错，加个好友？' : '难分高下，交个朋友吧';
     return `<div class="rs-mate">
       ${UI.av(p.opp, 46, { on: true })}
       <div class="rs-mate-m"><b>${UI.esc(P.name)}</b><span>${line}</span></div>
@@ -1028,6 +1072,51 @@ window.C4 = (() => {
     list.sort((a, b) => (b.state === 'claim') - (a.state === 'claim'));
     return list.slice(0, 3);
   }
+  /* ---------- V7 收到再战邀请（演示）：对手也还在结算页时发来，信息条变成邀请，10 秒内接受或拒绝 ---------- */
+  let invite = null; // { p, timer, tick, left }
+  const mateBox = () => document.querySelector('.page[data-page="result"] .rs-mate');
+  function clearInvite() {
+    if (!invite) return;
+    clearTimeout(invite.timer);
+    clearInterval(invite.tick);
+    invite = null;
+  }
+  /** 演示：只有快速开始的真人对手会发；输给你的对手更想再来一局（70%），平局 50%，赢了你的 30%；结算页出现 3–4.5 秒后发来 */
+  function scheduleInvite(p) {
+    clearInvite();
+    const P = D.people[p.opp];
+    if (p.mode !== 'quick' || !P || P.ai) return;
+    if (Math.random() >= (p.outcome === 'win' ? 0.7 : p.outcome === 'draw' ? 0.5 : 0.3)) return;
+    invite = { p, timer: setTimeout(() => showInvite(p), 3000 + Math.random() * 1500) };
+  }
+  function showInvite(p) {
+    const box = mateBox();
+    // 已经离开结算页，或者自己已经点了“再战TA”：不再收到邀请
+    if (!invite || invite.p !== p || App.top() !== 'result' || App.params('result') !== p || !box || box.querySelector('.rs-rematch.is-wait')) { clearInvite(); return; }
+    const P = D.people[p.opp];
+    invite.left = 10;
+    box.classList.add('is-invite');
+    box.querySelector('.rs-mate-m span').textContent = `${P.name}想再战一局`;
+    box.querySelector('.rs-mate-btns').innerHTML = `<button class="rs-rematch" data-act="inviteYes">${UI.ic('swords', 15)} 接受<i class="rs-cd">10</i></button>
+      <button class="rs-decline" data-act="inviteNo">拒绝</button>`;
+    Sfx.play('msg');
+    invite.tick = setInterval(() => {
+      invite.left -= 1;
+      const cd = box.querySelector('.rs-cd');
+      if (cd) cd.textContent = invite.left;
+      if (invite.left <= 0) restoreMate(p); // 10 秒没回应：邀请失效
+    }, 1000);
+  }
+  /** 拒绝、超时、接受时金币不够：邀请结束，信息条恢复成加好友 / 再战TA */
+  function restoreMate(p) {
+    clearInvite();
+    const box = mateBox();
+    if (!box) return;
+    box.outerHTML = mateHtml(p);
+    const nb = mateBox();
+    if (nb) UI.decorate(nb);
+  }
+
   function tasksHtml() {
     const list = taskList();
     if (!list.length) return '';
@@ -1075,12 +1164,14 @@ window.C4 = (() => {
     async shown(el, p) {
       if (p.granted) return;
       p.granted = true;
+      scheduleInvite(p);
       await UI.sleep(450);
       if (p.coins) {
         await UI.fly('coins', el.querySelector('.rs-card.is-me .rs-gain'), p.coins);
         UI.release('coins');
       }
     },
+    leave: () => clearInvite(),
     act: {
       lobby: () => App.backTo('play'),
       toRoom: () => App.pop(),
@@ -1094,6 +1185,7 @@ window.C4 = (() => {
         const p = App.params('result');
         const P = D.people[p.opp];
         const st = Battle.stakeOf(p.stake);
+        clearInvite(); // 自己先发起了：演示里对手不再另外发邀请
         if (Battle.canEnter(st) === 'poor') { Shop.lack({ need: st.bet, stake: st.id }); return; }
         el.disabled = true;
         el.classList.add('is-wait');
@@ -1112,6 +1204,13 @@ window.C4 = (() => {
         UI.toast(`${P.name}接受了再战！`);
         Battle.rematch(p.opp, p.stake);
       },
+      inviteYes: () => {
+        const p = App.params('result');
+        clearInvite();
+        // 接受时自己金币不够：rematch 里弹金币不足，对方收到拒绝，信息条恢复
+        if (!Battle.rematch(p.opp, p.stake, { byMe: true })) restoreMate(p);
+      },
+      inviteNo: () => restoreMate(App.params('result')),
       addFriend: (el) => {
         const uid = App.params('result').opp;
         Store.request(uid);

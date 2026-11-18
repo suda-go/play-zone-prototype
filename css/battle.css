@@ -425,3 +425,18 @@
 .page.is-local .gm-bar { display: none; }
 .page.is-local .gm-pl { opacity: .55; }
 .page.is-local .gm-pl.is-turn { opacity: 1; }
+/* V7 对手资料卡右上角的举报入口和举报弹层 */
+.op-hd { position: relative; }
+.op-m { flex: 1; padding-right: 58px; }
+.op-report { position: absolute; top: 10px; right: 0; display: inline-flex; align-items: center; gap: 3px; height: 28px; padding: 0 10px; border-radius: 14px; background: var(--bg); color: var(--text-2); font-size: 12.5px; font-weight: 700; }
+.rp-list { display: flex; flex-direction: column; gap: 8px; }
+.rp-opt { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-radius: 14px; background: var(--bg); font-size: 15px; font-weight: 600; text-align: left; }
+.rp-opt.is-on { background: #eef4ff; box-shadow: inset 0 0 0 1.5px var(--blue); }
+.rp-radio { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px #c5cad8; }
+.rp-opt.is-on .rp-radio { box-shadow: inset 0 0 0 6px var(--blue); }
+.rp-note { display: block; width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; resize: none; }
+/* V7 结算页收到再战邀请：信息条高亮，接受带 10 秒倒计时 */
+.rs-mate.is-invite { box-shadow: inset 0 0 0 2px #ff8a3d, 0 0 0 4px rgba(255, 138, 61, .25), 0 10px 24px -14px rgba(0, 0, 0, .5); }
+.rs-mate.is-invite .rs-mate-m span { color: #e8590c; font-weight: 800; }
+.rs-cd { min-width: 18px; height: 18px; margin-left: 2px; display: grid; place-items: center; border-radius: 9px; background: rgba(255, 255, 255, .3); font: 800 11px var(--num); font-style: normal; }
+.rs-decline { display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 15px; background: #eef1f8; color: var(--text-2); font-size: 12.5px; font-weight: 800; white-space: nowrap; }

@@ -447,8 +447,8 @@
     });
   });
 
-  UI.confirm = ({ title, text, ok = '确定', cancel = '取消', danger = false, img }) => UI.dialog({
-    title, text, img, x: false, row: true,
+  UI.confirm = ({ title, text, ok = '确定', cancel = '取消', danger = false, img, onOpen }) => UI.dialog({
+    title, text, img, x: false, row: true, onOpen,
     buttons: [
       { label: cancel, key: 'cancel', cls: 'btn-ghost' },
       { label: ok, key: 'ok', cls: danger ? 'btn-danger' : 'btn-primary' },

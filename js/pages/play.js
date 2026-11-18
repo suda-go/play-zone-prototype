@@ -69,18 +69,8 @@
     </div>`;
   }
 
-  /**
-   * 快速开始用的场次：上次的场次能进就用它；进不了（金币不够、会员过期）就换成底注不超过它、能进的最高一档；
-   * 一档都进不了就用已解锁的最低一档（新手场），点开始时由 Battle.quick 弹金币不足，差额最小
-   */
-  function pickStake() {
-    const last = Battle.stakeOf(Store.s.stake);
-    if (Battle.canEnter(last) === 'ok') return last;
-    const normal = D.stakes.filter((x) => !x.vip);
-    const ok = normal.filter((x) => Battle.canEnter(x) === 'ok');
-    const lower = ok.filter((x) => x.bet <= last.bet);
-    return lower[lower.length - 1] || ok[0] || normal[0] || last;
-  }
+  /** 快速开始用的场次（规则见 battle.js 的 pickStake，消息页的“快速开始一局”也用它） */
+  const pickStake = () => Battle.pickStake();
 
   /** 玩法入口：快速开始（最大，放最上面，一点就匹配），下面是和好友玩（线上）、本地对战（同一台手机） */
   function modes() {
