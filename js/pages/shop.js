@@ -1,6 +1,6 @@
 /**
  * I 商城：I1 余额栏、I2 装扮、I3 道具、I4 商品详情、I5 金币充值（V7 只有金币一种货币）、I7 会员入口（详见 vip.js）、
- * I8 小米钱包支付、I9 看广告领金币、I10 金币不足弹窗
+ * I8 小米钱包支付、I10 金币不足弹窗（V7 暂不集成广告，没有 I9 看广告领金币）
  */
 (() => {
   'use strict';
@@ -9,8 +9,6 @@
   const TABS = [['decor', '装扮'], ['topup', '充值'], ['vip', '会员']];
   const KINDS = [['frame', '头像框', D.frames], ['bubble', '聊天气泡', D.bubbles], ['bg', '主页背景', D.bgs]];
   const KIND_NAME = { frame: '头像框', bubble: '聊天气泡', bg: '主页背景' };
-  const AD_COINS = 100;      // 每次看广告得金币
-  const AD_BONUS = 500;      // 看满3次额外金币
 
   /* ---------- 预览 ---------- */
   function preview(kind, id, size = 64) {
@@ -95,7 +93,7 @@
     });
   }
 
-  /* ---------- 金币不足：会员福利 / 任务 / 广告 / 充值（V7 单一货币，没有钻石兑换和人机练习） ---------- */
+  /* ---------- 金币不足：会员福利 / 任务 / 充值（V7 单一货币，没有钻石兑换和人机练习；暂不集成广告） ---------- */
   function goTopup(sec) {
     UI.closeAll();
     if (App.top() === 'shop') { setTab('topup'); if (sec) scrollToSec(sec); } else App.go('shop', { tab: 'topup', sec });
@@ -122,7 +120,6 @@
       text,
       html: `<div class="lack-ops">${vipOps}
         <button class="lack-op" data-act="__btn" data-key="tasks"><img src="${IMG}ui/calendar.png" alt=""><span><b>做任务</b><small>${waitText ? `${waitText}待领取` : '完成任务领金币'}</small></span>${UI.ic('right', 18)}</button>
-        <button class="lack-op" data-act="__btn" data-key="ad"><span class="lack-tv">${UI.ic('eye', 22)}</span><span><b>看广告</b><small>${s.ads.watched >= 3 ? '今日次数已用完' : `+${AD_COINS}金币 · 今日还剩${3 - s.ads.watched}次`}</small></span>${UI.ic('right', 18)}</button>
         <button class="lack-op" data-act="__btn" data-key="topup"><img src="${IMG}ui/coin.svg" alt=""><span><b>充值金币</b><small>${first ? `首充双倍 · ${UI.usd(pack.usd)}得${UI.fmt(pack.coins * 2)}金币` : `${UI.fmt(pack.coins)}金币仅需${UI.usd(pack.usd)}`}</small></span>${UI.ic('right', 18)}</button>
       </div>`,
     });
@@ -138,8 +135,7 @@
       await UI.grant(r, '会员每日福利');
       App.refresh();
     } else if (k === 'vip') Vip.open(1);
-    else if (k === 'tasks') { UI.closeAll(); App.go('tasks'); } else if (k === 'ad') watchAd();
-    else if (k === 'topup') goTopup();
+    else if (k === 'tasks') { UI.closeAll(); App.go('tasks'); } else if (k === 'topup') goTopup();
   }
   /** 商城内购买时金币不够 */
   function lackCoins(need) {
@@ -190,68 +186,6 @@
     });
   }
 
-  /* ---------- I9 看广告领金币 ---------- */
-  function watchAd() {
-    const a = Store.s.ads;
-    if (a.watched >= 3) { UI.toast('今日次数已用完（3/3），明天再来吧！'); return; }
-    if (Store.s.adFree) { adReward(true); return; }
-    const LEN = 15;
-    let left = LEN;
-    let done = false;
-    const c = UI.open({
-      type: 'full',
-      cls: 'ov-ad',
-      closable: false,
-      onBack: () => { if (!done) UI.toast('看完广告才能领奖励哦'); else finish(); },
-      html: `<div class="ad">
-        <img class="ad-bg" src="${IMG}gc/sweet.jpg" alt="">
-        <div class="ad-top safe-top"><span class="ad-tag">广告</span><span class="ad-reward">${UI.cur('coins', 16)}<b class="ad-left">${LEN}</b>秒后得奖励</span><button class="ad-x" data-act="x" aria-label="关闭广告">${UI.ic('x', 18)}</button></div>
-        <div class="ad-card">
-          <img class="ad-icon" src="${IMG}games/sweet.jpg" alt="">
-          <b>甜蜜消消</b><span>★ 4.5 · 三消对战 · 免费</span>
-          <button class="btn btn-orange btn-lg" data-act="install">安装</button>
-        </div>
-        <div class="ad-bar"><i></i></div>
-      </div>`,
-      acts: {
-        x: () => { if (!done) { UI.toast('看完广告才能领奖励哦'); return; } finish(); },
-        install: () => UI.demo('跳转应用商店'),
-      },
-    });
-    const bar = c.$('.ad-bar i');
-    bar.style.transition = `width ${LEN}s linear`;
-    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '100%'; }));
-    const t = setInterval(() => {
-      left -= 1;
-      c.$('.ad-left').textContent = Math.max(0, left);
-      if (left <= 0) {
-        clearInterval(t);
-        done = true;
-        c.$('.ad-reward').innerHTML = `${UI.ic('check', 15)} 奖励已到手`;
-        c.el.classList.add('is-done');
-      }
-    }, 1000);
-    function finish() {
-      clearInterval(t);
-      c.opt.closable = true;
-      c.close();
-      adReward(false);
-    }
-  }
-  async function adReward(instant) {
-    const a = Store.s.ads;
-    a.watched += 1;
-    Store.count('ads');
-    if (instant) UI.toast('免广告卡生效，奖励直接到账');
-    await UI.grant({ coins: AD_COINS }, `看广告${a.watched}/3`);
-    if (a.watched >= 3 && !a.bonus) {
-      a.bonus = true;
-      Store.save();
-      await UI.reward({ title: '额外奖励解锁！', sub: '今天已看满3次广告，再送你一份奖励。', img: `${IMG}ui/coin.svg`, items: { coins: AD_BONUS }, note: '看广告额外奖励（3/3）' });
-    }
-    App.refresh();
-  }
-
   /* ---------- I10 金币不足（快速开始入场、好友房入场；where 是文案里“底注”前面的说明） ---------- */
   function lack(o = {}) {
     // 兼容旧调用 lack(need)
@@ -279,16 +213,7 @@
   }
   function topup() {
     const s = Store.s;
-    const a = s.ads;
-    return `<section class="sh-sec">
-      <div class="sh-ad">
-        <span class="sh-ad-ic">${UI.cur('coins', 40)}</span>
-        <div class="row-main"><b>免费金币</b><span>每次${AD_COINS}金币，看满3次加送${AD_BONUS}金币</span>
-          <div class="sh-ad-dots">${[0, 1, 2].map((i) => `<i class="${i < a.watched ? 'is-on' : ''}"></i>`).join('')}<em>${a.watched}/3${a.bonus ? ' · 额外奖励已领' : ''}</em></div></div>
-        <button class="btn ${a.watched >= 3 ? 'is-disabled' : 'btn-primary'} btn-sm" data-act="ad">${a.watched >= 3 ? '已完成' : s.adFree ? '领取' : '看广告'}</button>
-      </div>
-    </section>
-    <section class="sh-sec"><div class="sh-sec-hd"><h2>金币</h2><span>对局底注、买装扮和道具</span></div>
+    return `<section class="sh-sec"><div class="sh-sec-hd"><h2>金币</h2><span>对局底注、买装扮和道具</span></div>
       <div class="sh-packs">${D.coinPacks.map((x) => {
         const first = !s.firstPay[x.id];
         return `<button class="sh-pack" data-act="coins" data-id="${x.id}">
@@ -297,11 +222,6 @@
           ${first ? `<s>${UI.fmt(x.coins)}</s>` : '<s></s>'}
           <span class="sh-usd">${UI.usd(x.usd)}</span></button>`;
       }).join('')}</div>
-      <button class="sh-bundle" data-act="bundle">
-        <span class="sh-bundle-ic">${UI.cur('coins', 34)}<i>+</i>${UI.ic('shield', 26)}</span>
-        <span class="row-main"><b>${D.bundle.name} ${s.adFree ? '<i class="tag tag-new">生效中</i>' : '<i class="tag tag-hot">超值</i>'}</b><span>${D.bundle.desc}</span></span>
-        <span class="sh-usd">${UI.usd(D.bundle.usd)}</span>
-      </button>
     </section>
     <p class="sh-note">${UI.ic('wallet', 14)} 使用小米钱包支付 · 余额${UI.usd(s.mi)}</p>`;
   }
@@ -376,7 +296,6 @@
         UI.toast(`${it.name}已放入背包`);
         App.refresh('shop');
       },
-      ad: () => watchAd(),
       coins: async (el) => {
         const x = D.coinPacks.find((k) => k.id === el.dataset.id);
         const first = !Store.s.firstPay[x.id];
@@ -384,13 +303,6 @@
         if (!(await pay({ title: `${UI.fmt(amount)}金币`, usd: x.usd, sub: first ? '首充×2' : '' }))) return;
         Store.s.firstPay[x.id] = true;
         await UI.grant({ coins: amount }, `充值${UI.usd(x.usd)}`);
-        App.refresh('shop');
-      },
-      bundle: async () => {
-        if (!(await pay({ title: D.bundle.name, usd: D.bundle.usd }))) return;
-        Store.s.adFree = true;
-        await UI.grant({ coins: D.bundle.coins }, D.bundle.name);
-        UI.toast('免广告卡已生效，有效期30天');
         App.refresh('shop');
       },
       vip: (el) => Vip.open(+el.dataset.t || 0),
@@ -404,5 +316,5 @@
     },
   });
 
-  window.Shop = { lack, watchAd, pay, openItem };
+  window.Shop = { lack, pay, openItem };
 })();

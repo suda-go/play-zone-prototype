@@ -1,5 +1,5 @@
 /* =========================================================
-   G 任务中心、H 排行榜、I 商城（含支付、广告、余额不足）
+   G 任务中心、H 排行榜、I 商城（含支付、余额不足）
    ========================================================= */
 
 .nav-chips { display: flex; gap: 6px; }
@@ -178,13 +178,6 @@
 .sh-prop-ic .tag { position: absolute; top: -6px; right: -8px; font-style: normal; }
 .sh-prop .row-main span { white-space: normal; }
 .sh-note { display: flex; align-items: center; gap: 6px; margin: 10px 4px 0; font-size: 12px; color: #a08a5f; }
-.sh-ad { display: flex; align-items: center; gap: 12px; }
-.sh-ad-ic { width: 56px; height: 56px; flex-shrink: 0; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, #d7ecff, #b9dcff); }
-.sh-ad .row-main span { white-space: normal; }
-.sh-ad-dots { display: flex; align-items: center; gap: 5px; margin-top: 6px; }
-.sh-ad-dots i { width: 22px; height: 6px; border-radius: 3px; background: #e7dcc4; }
-.sh-ad-dots i.is-on { background: var(--g-blue); }
-.sh-ad-dots em { margin-left: 4px; font: 700 11.5px var(--num); font-style: normal; color: #a08a5f; }
 .sh-packs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .sh-packs.is-3 { grid-template-columns: repeat(3, 1fr); }
 .sh-pack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 18px 6px 10px; overflow: hidden; border-radius: 18px; background: #fffdf6; box-shadow: inset 0 0 0 1px rgba(240, 200, 120, .55); transition: transform .15s; }
@@ -194,12 +187,6 @@
 .sh-usd { margin-top: 6px; height: 30px; padding: 0 16px; border-radius: 15px; background: var(--g-orange); color: #fff; font: 800 14px/30px var(--num); white-space: nowrap; }
 .sh-ribbon { position: absolute; top: 0; right: 0; padding: 2px 8px; border-radius: 0 18px 0 12px; background: linear-gradient(135deg, #ff5f6d, #ff2d55); color: #fff; font: 800 10px/1.5 var(--num); font-style: normal; }
 .sh-ribbon.is-bonus { background: linear-gradient(135deg, #b48cff, #6c5cff); }
-.sh-bundle { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 10px; padding: 12px; border-radius: 18px; background: linear-gradient(135deg, #fff3d6, #ffe0f0); box-shadow: inset 0 0 0 1.5px #ffc27a; text-align: left; }
-.sh-bundle-ic { display: flex; flex-shrink: 0; align-items: center; gap: 2px; color: #6c5cff; }
-.sh-bundle-ic i { font-style: normal; font-weight: 900; color: #a08a5f; }
-.sh-bundle .row-main b { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; white-space: normal; }
-.sh-bundle .row-main span { font-size: 11.5px; white-space: normal; }
-.sh-bundle .sh-usd { flex-shrink: 0; margin: 0; }
 /* 钻石兑换金币（充值页） */
 .sh-ex-cost { display: flex; align-items: center; gap: 3px; margin-top: 6px; height: 30px; padding: 0 14px; border-radius: 15px; background: linear-gradient(135deg, #b48cff, #6c5cff); color: #fff; font: 800 14px/30px var(--num); white-space: nowrap; }
 .sh-ex.is-poor .sh-ex-cost { background: #d9d2ea; color: #fff; }
@@ -273,24 +260,6 @@
 .pay-ok h3 { margin-top: 12px; font-size: 20px; font-weight: 900; }
 .pay-ok p { font-size: 13px; color: var(--text-2); }
 
-/* 看广告 */
-.ov-ad .ov-mask { background: #000; }
-.ad { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; color: #fff; }
-.ad-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.85); animation: kenburns 15s linear forwards; }
-.ad-top { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; padding: calc(var(--status-h) + 8px) 12px 0; }
-.ad-tag { padding: 2px 8px; border-radius: 6px; background: rgba(0, 0, 0, .55); font: 800 11px/1.5 var(--num); }
-.ad-reward { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 14px; background: rgba(0, 0, 0, .55); font-size: 12.5px; font-weight: 700; }
-.ad-reward b { font-family: var(--num); }
-.ad-x { width: 32px; height: 32px; margin-left: auto; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, .5); color: rgba(255, 255, 255, .4); }
-.ov-ad.is-done .ad-x { background: rgba(0, 0, 0, .75); color: #fff; box-shadow: 0 0 0 2px #fff; }
-.ov-ad.is-done .ad-reward { background: var(--green); }
-.ad-card { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: auto 16px calc(var(--home-h) + 40px); padding: 18px; border-radius: 22px; background: rgba(255, 255, 255, .95); color: var(--text); text-align: center; }
-.ad-icon { width: 72px; height: 72px; margin-top: -54px; border-radius: 18px; box-shadow: 0 0 0 4px #fff, 0 10px 20px rgba(0, 0, 0, .3); }
-.ad-card b { margin-top: 6px; font-size: 19px; font-weight: 900; }
-.ad-card span { margin-bottom: 8px; font-size: 12.5px; color: var(--text-2); }
-.ad-card .btn { width: 100%; }
-.ad-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; height: 4px; background: rgba(255, 255, 255, .25); }
-.ad-bar i { display: block; width: 0; height: 100%; background: #ffd34d; }
 
 /* I10 余额不足 */
 .dlg-art img.is-small { height: 96px; margin-bottom: 6px; }
@@ -299,11 +268,10 @@
 .lack-op { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: #f5f6fa; text-align: left; }
 .lack-op:active { background: var(--blue-l); }
 .lack-op img { width: 36px; height: 36px; object-fit: contain; }
-.lack-op > span:not(.lack-tv) { flex: 1; }
+.lack-op > span { flex: 1; }
 .lack-op b { display: block; font-size: 14.5px; }
 .lack-op small { font-size: 12px; color: var(--text-2); }
 .lack-op > .ic { color: var(--text-3); }
-.lack-tv { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--g-blue); color: #fff; }
 .lack-op.is-vip { background: linear-gradient(135deg, #fff6dc, #ffeccc); box-shadow: inset 0 0 0 1px rgba(255, 190, 60, .45); }
 .lack-op.is-vip:active { background: #ffe9b8; }
 .lack-op > span.lack-vip-ic { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(135deg, #2b2240, #3d2a10); color: #ffcf4d; }

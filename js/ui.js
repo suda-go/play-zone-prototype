@@ -362,7 +362,7 @@
    * opt.type      sheet | dialog | full
    * opt.html      面板内容
    * opt.acts      面板内 data-act 处理；自带 close
-   * opt.closable  false 时返回键和遮罩都关不掉（看广告、领奖）
+   * opt.closable  false 时返回键和遮罩都关不掉（领奖）
    * opt.maskClose 点遮罩是否关闭，sheet 默认 true，dialog 默认 false
    * opt.onClose   关闭时回调（参数为 close(value) 的 value）
    * opt.onBack    closable 为 false 时按返回键的回调

@@ -116,7 +116,7 @@
     { id: 'c3', usd: 9.99, coins: 6800, bonus: 1000 },
     { id: 'c4', usd: 19.99, coins: 12800, bonus: 2400 },
   ];
-  D.bundle = { id: 'bundle', usd: 2.99, coins: 2000, name: '金币+免广告卡', desc: '2,000金币，外加30天免广告，广告奖励免看秒到账。' };
+  // V7 暂不集成广告：没有看广告领金币，也没有“金币+免广告卡”礼包
   /* ---------- 会员：两档（参考 Yalla Ludo Knight / Baron） ---------- */
   // Store.vipTier() 返回 0 / 1 / 2；Store.perk(key) 取当前档位的权益值（非会员取 tiers[0]）
   D.vip = {
@@ -170,7 +170,6 @@
     T('d_win', 'daily', '赢1局', 1, 'wins', { coins: 300 }, 'c4'),
     T('d_emoji', 'daily', '对局中发3个表情', 3, 'emojis', { coins: 50 }, 'c4'),
     T('d_share', 'daily', '分享1次', 1, 'shares', { coins: 100 }, 'share'),
-    T('d_ad', 'daily', '看1次广告', 1, 'ads', { coins: 30 }, 'ad'),
     T('w_friend', 'weekly', '和好友玩3局', 3, 'friendGames', { coins: 1000 }, 'friends'),
     T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { coins: 800 }, 'friends'),
     T('w_win', 'weekly', '赢10局', 10, 'wins', { coins: 200 }, 'c4'),

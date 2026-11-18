@@ -178,7 +178,6 @@
       if (kind === 'items') {
         grid = `<div class="bag-items">
           <div class="sh-prop"><span class="sh-prop-ic"><img src="${IMG}ui/rocket.png" alt=""></span><div class="row-main"><b>加速卡×${s.boost}</b><span>匹配时使用，1秒内找到对手</span></div><button class="btn btn-line btn-sm" data-go="shop" data-t="items">获取更多</button></div>
-          ${s.adFree ? `<div class="sh-prop"><span class="sh-prop-ic">${UI.ic('shield', 30)}</span><div class="row-main"><b>免广告卡</b><span>生效中 · 看广告奖励直接到账</span></div></div>` : ''}
         </div>`;
       } else {
         const cat = Store.catalog(kind);
@@ -264,7 +263,7 @@
           <div class="cells">
             <button class="cell" data-act="seedFriends"><span class="cell-ic">${UI.ic('users', 20)}</span><span class="cell-main">填充示例好友<small>${Store.s.friends.length ? `已有${Store.s.friends.length}位好友` : '纯新用户没有好友；点这里变成有好友和聊天记录的老用户'}</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <div class="cell"><span class="cell-ic">${UI.ic('phone', 20)}</span><span class="cell-main">模拟 iOS 设备<small>打开后登录页和绑定弹层显示“通过 Apple 登录”</small></span>${UI.toggle(Auth.isIOS(), 'plat')}</div>
-            <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务、签到和广告次数</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
+            <button class="cell" data-act="nextDay"><span class="cell-ic">${UI.ic('calendar', 20)}</span><span class="cell-main">跳到下一天<small>当前第${Store.s.day}天 · 刷新每日任务和签到</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell" data-act="coins"><span class="cell-ic">${UI.cur('coins', 20)}</span><span class="cell-main">金币清零<small>用于演示“金币不足”流程</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
             <button class="cell set-reset" data-act="reset"><span class="cell-ic">${UI.ic('refresh', 20)}</span><span class="cell-main">重置演示<small>恢复成全新玩家，从登录页重新开始</small></span>${UI.ic('right', 18, 'cell-arrow')}</button>
           </div>
@@ -292,7 +291,7 @@
       nextDay: () => {
         Store.nextDay();
         App.refresh('settings');
-        UI.toast(`已进入第${Store.s.day}天，每日任务、签到和广告已刷新`);
+        UI.toast(`已进入第${Store.s.day}天，每日任务和签到已刷新`);
       },
       coins: () => {
         if (Store.s.coins) Store.add('coins', -Store.s.coins, '演示：金币清零');

@@ -430,7 +430,7 @@ ol, ul { list-style: none; }
 .dlg-btns.is-row { flex-direction: row; }
 .dlg-btns.is-row .btn { flex: 1; padding: 0 10px; }
 
-/* 全屏浮层（玩法引导、广告） */
+/* 全屏浮层（玩法引导） */
 .ov-full .ov-panel { inset: 0; opacity: 0; transition: opacity .25s; }
 .ov-full.is-open .ov-panel { opacity: 1; }
 .ov-full .ov-mask { background: #000; }

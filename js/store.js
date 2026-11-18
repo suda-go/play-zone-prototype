@@ -9,7 +9,7 @@
   const KEY = 'soulgame.v7';
   const subs = [];
   const clone = (o) => JSON.parse(JSON.stringify(o));
-  const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, ads: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });
+  const zero = () => ({ games: 0, wins: 0, emojis: 0, shares: 0, invites: 0, seconds: 0, friendGames: 0, mates: 0 });
   const now = () => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -35,7 +35,7 @@
       user: { name: 'happy', uid: '82640317', bio: '四子棋重度玩家 · 快加我！', lv: 3, exp: 320 },
       gems: 0, coins: 0, boost: 0, pass: 0,
       mi: 25,
-      adFree: false, vip: false, firstPay: {},
+      vip: false, firstPay: {},
       log: [],
       sign: { count: 0, last: 0 },
       cnt: { day: zero(), week: zero(), all: zero() },
@@ -43,7 +43,6 @@
       claimed: {},
       mystery: { pick: 0, claimed: false, chest: false },
       streak: { days: 0, last: 0, chest: false, opened: false },
-      ads: { watched: 0, bonus: false },
       ranks: { c4: { tier: 1, pts: 60 } },
       // V7：纯新用户没有对局记录、好友、聊天、好友申请和一起玩过的人；演示老用户用设置里的“填充示例好友”（Store.seedFriends）
       record: { games: 0, wins: 0 },
@@ -452,7 +451,6 @@
     s.day += 1;
     s.cnt.day = zero();
     if ((s.day - 1) % 7 === 0) s.cnt.week = zero();
-    s.ads = { watched: 0, bonus: false };
     s.mystery = { pick: 0, claimed: false, chest: false };
     emit('day');
   }
