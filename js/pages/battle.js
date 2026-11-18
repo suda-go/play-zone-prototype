@@ -227,11 +227,11 @@ window.C4 = (() => {
     start(); // V7：不再先放15秒玩法说明，让新用户马上开局（首页“玩法”、对局里的“?”随时能看）
   }
   /** A 再战TA：和同一个对手按同一场次再来一局，一方同意后直接开局。byMe：是自己接受了对手的邀请（开场提示不说“对手接受了再战”） */
-  function rematch(opp, stakeId, { byMe = false } = {}) {
+  function rematch(opp, stakeId, { byMe = false, bot = 0 } = {}) {
     const st = stakeOf(stakeId);
     if (!checkEnter(st)) return false;
     Store.add('coins', -st.bet, `${st.name} · 底注（再战）`);
-    App.replace('game', { game: D.GAME, mode: 'quick', stake: st.id, opp, rematch: byMe ? 2 : 1, first: Math.random() < 0.5 ? 1 : 2 });
+    App.replace('game', { game: D.GAME, mode: 'quick', stake: st.id, opp, bot, rematch: byMe ? 2 : 1, first: Math.random() < 0.5 ? 1 : 2 });
     return true;
   }
   /** vs AI 免费练习：不扣金币、不计段位 */
@@ -268,6 +268,7 @@ window.C4 = (() => {
   'use strict';
 
   const IMG = D.IMG;
+  const BOT_AFTER_MS = 10000; // 等满 10 秒还匹配不到真人，用机器人补位（正式产品由服务端配置）
   let M = null;
 
   function stop() {
@@ -281,6 +282,7 @@ window.C4 = (() => {
     return UI.pick(pool.length ? pool : D.matchPool);
   }
 
+  /** how：'bot' 是匹配不到真人时由机器人补位。机器人和真人显示得一模一样，不告诉用户 */
   function found(opp, how) {
     if (!M || M.found) return;
     // 确认取消期间暂停“匹配成功”，避免弹窗还开着就跳进对局。
@@ -292,9 +294,8 @@ window.C4 = (() => {
     const el = M.el;
     const P = D.people[opp];
     el.querySelector('.mt-title').innerHTML = how === 'boost' ? '加速成功！已匹配' : '匹配成功！';
-    el.querySelector('.mt-fast').hidden = true;
-    el.querySelector('.mt-tip').textContent = P.ai ? '极速匹配：对手是AI' : `${P.name} · 水平相近`;
-    el.querySelector('.mt-opp').innerHTML = `${UI.av(opp, 92)}<b>${P.name}${P.ai ? ' <i class="ai-tag">AI</i>' : ''}</b><span>${P.ai ? '极速匹配' : `胜率${P.win}%`}</span>`;
+    el.querySelector('.mt-tip').textContent = `${P.name} · 水平相近`;
+    el.querySelector('.mt-opp').innerHTML = `${UI.av(opp, 92)}<b>${P.name}</b><span>胜率${P.win}%</span>`;
     el.classList.add('is-found');
     // 超级会员入场特效：彩色光环 + 登场横幅
     if (Store.perk('entryFx')) {
@@ -310,8 +311,8 @@ window.C4 = (() => {
     M.timers.push(setTimeout(() => el.classList.add('is-loading'), 900));
     M.timers.push(setTimeout(() => {
       stop();
-      // 先手双方各 50%（正式产品由服务端在开局时随机决定）
-      App.replace('game', { game: p.game, mode: P.ai ? 'fast' : 'quick', stake: p.stake, opp, double: p.double, first: Math.random() < 0.5 ? 1 : 2 });
+      // 先手双方各 50%（正式产品由服务端在开局时随机决定）。bot 只给演示用：机器人不说话、不通过好友申请
+      App.replace('game', { game: p.game, mode: 'quick', stake: p.stake, opp, double: p.double, bot: how === 'bot' ? 1 : 0, first: Math.random() < 0.5 ? 1 : 2 });
     }, 2000));
   }
 
@@ -354,9 +355,6 @@ window.C4 = (() => {
         </div>
         <h2 class="mt-title">匹配中<i class="mt-dots"><b>.</b><b>.</b><b>.</b></i></h2>
         <div class="mt-wait"><span class="mt-time">00:00</span><span class="mt-tip">正在为你寻找水平相近的对手</span></div>
-        <div class="mt-fast" hidden>
-          <button class="btn btn-glass btn-md" data-act="fast">${UI.ic('bot', 17)} 极速匹配 · 人机</button>
-        </div>
         <div class="mt-arena">
           <div class="mt-half is-blue"><img class="mt-lines" src="${IMG}fx/speedlines.png" alt=""><img class="mt-tone" src="${IMG}fx/halftone.png" alt=""></div>
           <div class="mt-half is-red"><img class="mt-lines" src="${IMG}fx/speedlines.png" alt=""><img class="mt-tone" src="${IMG}fx/halftone.png" alt=""></div>
@@ -371,25 +369,22 @@ window.C4 = (() => {
     },
     shown(el, p) {
       stop();
-      M = { p, el, t0: Date.now(), found: false, paused: false, pendingFound: null, timers: [], fast: false };
+      M = { p, el, t0: Date.now(), found: false, paused: false, pendingFound: null, timers: [] };
       Sfx.play('match');
       M.tick = setInterval(() => {
         if (!M) return;
         const sec = Math.floor((Date.now() - M.t0) / 1000);
         el.querySelector('.mt-time').textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
-        if (sec >= 5 && !M.fast) {
-          M.fast = true;
-          el.querySelector('.mt-fast').hidden = false;
-          el.querySelector('.mt-tip').textContent = '等太久？试试极速匹配';
-        }
       }, 250);
-      M.timers.push(setTimeout(() => found(pickOpp()), Store.s.vip ? 1800 : 3500)); // V7：缩短等待，会员更快
+      // V7：优先匹配真人（会员更快）；等满 10 秒还没有真人，由机器人补位，页面和匹配到真人时一样。
+      // 演示：大约每 4 局有 1 局匹配不到真人
+      const human = Math.random() >= 0.25;
+      M.timers.push(setTimeout(() => found(pickOpp(), human ? '' : 'bot'), human ? (Store.s.vip ? 1800 : 3500) : BOT_AFTER_MS));
     },
     leave: () => stop(),
     back() { cancel(); return false; },
     act: {
       cancel: () => cancel(),
-      fast: () => found('bot', 'fast'),
     },
   });
 })();
@@ -519,7 +514,7 @@ window.C4 = (() => {
   function botMove() {
     if (!G || G.over || G.turn !== 2) return;
     const mine = C4.winningCols(G.board, 1);
-    // 人机和模拟的真人对手一样强（正式产品按用户的水平分调整人机难度）
+    // 补位的机器人和模拟的真人对手一样强（正式产品按用户的水平分调整机器人难度）
     const col = C4.bot(G.board, 2, 1, 0.85);
     const row = C4.drop(G.board, col, 2);
     G.turn = 0;
@@ -662,7 +657,7 @@ window.C4 = (() => {
   }
   /** 真人对手隔一会儿说几句；扬声器关了就听不到 */
   function scheduleTalk() {
-    if (!G || oppIsAI()) return;
+    if (!G || oppIsAI() || G.p.bot) return; // 补位的机器人不说话
     later(() => {
       if (!G || G.over) return;
       if (Store.s.voice.spk) talk(2, 1200 + Math.random() * 1400);
@@ -726,7 +721,8 @@ window.C4 = (() => {
           Store.request(uid);
           done();
           UI.toast('好友申请已发送');
-          // 演示：对方几秒后通过
+          // 演示：真人几秒后通过；补位的机器人不会通过，申请一直是“已申请”
+          if (G && G.p.bot) return;
           setTimeout(() => {
             if (!Store.s.sent.includes(uid)) return;
             Store.addFriend(uid);
@@ -880,7 +876,7 @@ window.C4 = (() => {
     const params = {
       game: g.id, mode: p.mode, room: p.room || '', opp, outcome, stake: st.id,
       forfeit: opt.forfeit ? 1 : 0, timeout: opt.timeout ? 1 : 0, coins, net,
-      blocks, moves, sec, double: p.double || 0, bet: roomBet,
+      blocks, moves, sec, double: p.double || 0, bet: roomBet, bot: p.bot ? 1 : 0,
     };
     if (min) {
       // 不在对局页：结果先放进悬浮窗，回来再看结算（金币已经到账）
@@ -999,7 +995,6 @@ window.C4 = (() => {
 
   const IMG = D.IMG;
   let acceptTimer = 0;
-  const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   function title(p) {
     if (p.outcome === 'draw') return '平局';
@@ -1057,13 +1052,10 @@ window.C4 = (() => {
     </div>`;
   }
 
-  /** 结算面板：好友房说明 + 本局数据（V7 首发版不做经验和段位） */
+  /** 结算面板：只有好友房有，一行规则说明。V7 首发版不展示本局数据（步数、拦截、用时），也不做经验和段位 */
   function progress(p) {
-    const stats = `<div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div>`;
-    if (p.mode === 'room') {
-      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} 好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}。</p>${stats}</div>`;
-    }
-    return `<div class="rs-panel">${stats}</div>`;
+    if (p.mode !== 'room') return '';
+    return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} 好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}。</p></div>`;
   }
 
   function taskList() {
@@ -1202,21 +1194,23 @@ window.C4 = (() => {
           return;
         }
         UI.toast(`${P.name}接受了再战！`);
-        Battle.rematch(p.opp, p.stake);
+        Battle.rematch(p.opp, p.stake, { bot: p.bot });
       },
       inviteYes: () => {
         const p = App.params('result');
         clearInvite();
         // 接受时自己金币不够：rematch 里弹金币不足，对方收到拒绝，信息条恢复
-        if (!Battle.rematch(p.opp, p.stake, { byMe: true })) restoreMate(p);
+        if (!Battle.rematch(p.opp, p.stake, { byMe: true, bot: p.bot })) restoreMate(p);
       },
       inviteNo: () => restoreMate(App.params('result')),
       addFriend: (el) => {
-        const uid = App.params('result').opp;
+        const p = App.params('result');
+        const uid = p.opp;
         Store.request(uid);
         el.outerHTML = `<span class="rs-friend is-done">${UI.ic('check', 15)} 已申请</span>`;
         UI.toast('好友申请已发送');
         clearTimeout(acceptTimer);
+        if (p.bot) return; // 演示：补位的机器人不会通过好友申请，一直是“已申请”
         acceptTimer = setTimeout(() => {
           if (!Store.s.sent.includes(uid)) return;
           Store.addFriend(uid);
