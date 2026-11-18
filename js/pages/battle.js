@@ -983,7 +983,7 @@ window.C4 = (() => {
     if (!P || P.ai || p.mode === 'ai') return '';
     const friend = Store.isFriend(p.opp);
     const n = Store.s.mateGames[p.opp] || 0;
-    const line = friend ? (n ? `你们已经一起玩了${n}局` : '好友对局不扣金币也能约') : p.outcome === 'win' ? `${P.name}说：再来一局，我不服！` : p.outcome === 'lose' ? `${P.name}说：打得不错，加个好友？` : `${P.name}说：难分高下，交个朋友吧`;
+    const line = friend ? (n ? `你们已经一起玩了${n}局` : '下次可以在“和好友玩”里约TA') : p.outcome === 'win' ? `${P.name}说：再来一局，我不服！` : p.outcome === 'lose' ? `${P.name}说：打得不错，加个好友？` : `${P.name}说：难分高下，交个朋友吧`;
     return `<div class="rs-mate">
       ${UI.av(p.opp, 46, { on: true })}
       <div class="rs-mate-m"><b>${UI.esc(P.name)}</b><span>${line}</span></div>
