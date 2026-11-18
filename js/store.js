@@ -39,11 +39,12 @@
       vip: false, firstPay: {},
       log: [],
       sign: { count: 0, last: 0 },
-      cnt: { day: zero(), week: zero(), all: zero() },
+      cnt: { day: zero(), week: zero(), all: zero(), act: {} }, // act：每个限时任务活动期内的计数
       friendsAdded: 0, framesEquipped: 0,
       claimed: {},
       mystery: { pick: 0, claimed: false, chest: false },
-      streak: { days: 0, last: 0, chest: false, opened: false },
+      // chest：有没打开的大宝箱，n 是没打开的个数（又达成一轮时一起发）；opened：第 7 天当天已经打开过
+      streak: { days: 0, last: 0, chest: false, n: 0, opened: false },
       ranks: { c4: { tier: 1, pts: 60 } },
       // V7：纯新用户没有对局记录、好友、聊天、好友申请和一起玩过的人；演示老用户用设置里的“填充示例好友”（Store.seedFriends）
       record: { games: 0, wins: 0 },
@@ -171,11 +172,26 @@
     return { before, after, up: after.tier > before.tier, down: after.tier < before.tier };
   }
 
+  /* ---------- 演示日历 ---------- */
+  /** 当前演示日期 yyyy-mm-dd：第 1 天是 D.DAY1，之后每“跳到下一天”加一天 */
+  function today() {
+    const d = new Date(`${D.DAY1}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + s.day - 1);
+    return d.toISOString().slice(0, 10);
+  }
+  /** 限时任务是否在活动期内（其他任务一直有效） */
+  const active = (t) => !t.start || (t.start <= today() && today() <= t.end);
+
   /* ---------- 计数（驱动任务进度） ---------- */
   function count(metric, n = 1, val) {
     ['day', 'week', 'all'].forEach((k) => {
       const c = s.cnt[k];
       if (Array.isArray(c[metric])) { if (!c[metric].includes(val)) c[metric].push(val); } else c[metric] = (c[metric] || 0) + n;
+    });
+    // 限时任务只算活动期内的行为：每个活动单独计数
+    D.tasks.filter((t) => t.group === 'limited' && t.metric === metric && active(t)).forEach((t) => {
+      s.cnt.act = s.cnt.act || {};
+      s.cnt.act[t.id] = (s.cnt.act[t.id] || 0) + n;
     });
     checkBadges();
     emit('count', { metric });
@@ -184,6 +200,7 @@
   /* ---------- 任务 ---------- */
   const week = () => Math.ceil(s.day / 7);
   function metricVal(t) {
+    if (t.group === 'limited') return (s.cnt.act || {})[t.id] || 0;
     const c = t.group === 'weekly' ? s.cnt.week : (t.group === 'daily' || t.group === 'mystery') ? s.cnt.day : s.cnt.all;
     switch (t.metric) {
       case 'minutes': return Math.floor(c.seconds / 60);
@@ -204,16 +221,23 @@
     const claimed = isClaimed(t);
     return { ...t, cur, claimed, state: claimed ? 'done' : cur >= t.goal ? 'claim' : 'go' };
   }
-  const tasks = (group) => D.tasks.filter((t) => !group || t.group === group).map(task);
+  // 不在活动期内的限时任务不显示、不能领
+  const tasks = (group) => D.tasks.filter((t) => (!group || t.group === group) && active(t)).map(task);
   function claim(id) {
-    const t = task(D.tasks.find((x) => x.id === id));
+    const def = D.tasks.find((x) => x.id === id);
+    if (!active(def)) return null;
+    const t = task(def);
     if (t.state !== 'claim') return null;
     s.claimed[id] = t.group === 'daily' ? s.day : t.group === 'weekly' ? week() : true;
     const dailyAll = D.tasks.filter((x) => x.group === 'daily').every(isClaimed);
     if (dailyAll && s.streak.last !== s.day) {
       s.streak.days = Math.min(7, s.streak.days + 1);
       s.streak.last = s.day;
-      if (s.streak.days >= 7) s.streak.chest = true;
+      if (s.streak.days >= 7) {
+        // 上一轮的大宝箱还没打开时一起保留，打开时一起发
+        s.streak.n = (s.streak.chest ? s.streak.n || 1 : 0) + 1;
+        s.streak.chest = true;
+      }
     }
     checkBadges();
     emit('task', { id });
@@ -233,22 +257,27 @@
     emit('task');
     return mystery();
   }
+  /** 领取神秘任务：一次完成标记领取、随机开箱和加金币，之后的宝箱弹窗只是展示 */
   function claimMystery() {
-    if (mystery().state !== 'claim') return false;
+    if (mystery().state !== 'claim') return null;
+    const r = { coins: 600 + 100 * Math.floor(Math.random() * 4) };
     s.mystery.claimed = true;
-    emit('task');
-    return true;
-  }
-  function openChest() {
     s.mystery.chest = true;
+    s.mystery.reward = r;
+    add('coins', r.coins, '神秘宝箱');
     emit('task');
-    return { coins: 600 + 100 * Math.floor(Math.random() * 4) };
+    return r;
   }
+  /** 打开大宝箱：没打开的几个一起发；只有第 7 天当天打开才算“已打开”，第二天开始新一轮 */
   function openStreakChest() {
+    const n = s.streak.chest ? s.streak.n || 1 : 0;
+    const r = { coins: 4000 * Math.max(1, n) };
     s.streak.chest = false;
-    s.streak.opened = true;
+    s.streak.n = 0;
+    s.streak.opened = s.streak.days >= 7;
+    add('coins', r.coins, '连续7天宝箱'); // 打开时就到账，弹窗只是展示
     emit('task');
-    return { coins: 4000 };
+    return r;
   }
   function claimable() {
     let n = tasks().filter((t) => t.state === 'claim').length;
@@ -266,9 +295,14 @@
     if (k > 1) { if (r.gems) r.gems *= k; if (r.coins) r.coins *= k; }
     return r;
   }
+  /** 签到格子上显示的奖励：已领的天显示当时实际到账的，没领的天按现在的会员身份和头像框算 */
+  const signShown = (i) => (i < s.sign.count && s.sign.got && s.sign.got[i]) || signReward(i);
   function sign() {
     if (!canSign()) return null;
     const r = signReward(s.sign.count);
+    // 记下实际到账的奖励：已领的格子显示这个数，不再按现在的会员身份重新算
+    s.sign.got = s.sign.got || [];
+    s.sign.got[s.sign.count] = r;
     s.sign.count += 1;
     s.sign.last = s.day;
     emit('sign');
@@ -476,7 +510,11 @@
 
   /* ---------- 模拟下一天 ---------- */
   function nextDay() {
-    if (s.streak.last !== s.day && s.streak.days < 7) s.streak.days = 0;
+    const st = s.streak;
+    // 连续 7 天：第 7 天达成后的第二天开始新一轮（没打开的大宝箱继续保留）；今天没达成就清零
+    if (st.days >= 7) { st.days = 0; st.opened = false; } else if (st.last !== s.day) st.days = 0;
+    // 7 日签到：第 7 天领完后的第二天开始新一轮
+    if (s.sign.count >= 7) s.sign = { count: 0, last: s.sign.last, got: [] };
     s.day += 1;
     s.cnt.day = zero();
     if ((s.day - 1) % 7 === 0) s.cnt.week = zero();
@@ -565,8 +603,8 @@
     need, addExp,
     rank, score, addRank,
     count,
-    tasks, task, claim, claimable, mystery, revealMystery, claimMystery, openChest, openStreakChest, metricVal,
-    canSign, sign, signReward,
+    tasks, task, claim, claimable, mystery, revealMystery, claimMystery, openStreakChest, metricVal, today,
+    canSign, sign, signReward, signShown,
     catalog, owns, own, buy, equip, buyItem, canUse, ownedCount,
     isFriend, addFriend, request, decline, unfriend, addRecent, isBlocked, block, unblock,
     dm, post, read, unread, newGroup,

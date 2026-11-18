@@ -43,7 +43,7 @@
     const s = Store.s;
     const can = Store.canSign();
     const cell = (i) => {
-      const r = Store.signReward(i);
+      const r = Store.signShown(i); // 已领的天显示实际到账的数
       const st = i < s.sign.count ? 'is-done' : i === s.sign.count ? (can ? 'is-today' : 'is-next') : '';
       const it = UI.items(r);
       const main = it[0];
@@ -85,16 +85,20 @@
     const today = Store.s.streak.last === Store.s.day;
     const daily = Store.tasks('daily');
     const done = daily.filter((t) => t.state === 'done').length;
+    const ok = `今日已完成！${UI.ic('check', 13)}`;
+    const ft = !today ? `今日：已领取${done}/${daily.length}个每日任务`
+      : s.days < 7 ? `${ok} 明天再来完成第${s.days + 1}天`
+        : s.chest ? `${ok} 7天全勤，快打开大宝箱` : `${ok} 明天开始新一轮`;
     return `<div class="tk-streak">
       <div class="tk-streak-hd">
         <div><b>连续7天</b><span>连续7天完成全部每日任务，即可打开大宝箱</span></div>
-        <button class="tk-chest ${s.chest ? 'is-ready' : ''} ${s.opened ? 'is-opened' : ''}" data-act="streakChest"><img src="${CHEST}" alt="大宝箱"></button>
+        <button class="tk-chest ${s.chest ? 'is-ready' : ''} ${!s.chest && s.opened && s.days >= 7 ? 'is-opened' : ''}" data-act="streakChest"><img src="${CHEST}" alt="大宝箱"></button>
       </div>
       <div class="tk-days">${[1, 2, 3, 4, 5, 6, 7].map((d) => {
         const st = d <= s.days ? 'is-done' : d === s.days + 1 && !today ? 'is-now' : '';
         return `<span class="tk-day ${st}"><i>${d <= s.days ? UI.ic('check', 14) : d}</i><em>第${d}天</em></span>`;
       }).join('')}</div>
-      <p class="tk-streak-ft">${today ? `今日已完成！${UI.ic('check', 13)} 明天再来完成第${Math.min(7, s.days + 1)}天` : `今日：已领取${done}/${daily.length}个每日任务`}</p>
+      <p class="tk-streak-ft">${ft}</p>
     </div>`;
   }
 
@@ -108,10 +112,10 @@
         <span class="tk-mys-cta">翻开</span>
       </button>`;
     }
-    const btn = m.chest ? '<span class="tk-btn is-done">已打开</span>'
+    // 领取时奖励已经到账，没有“打开”这个中间状态
+    const btn = m.claimed ? '<span class="tk-btn is-done">已打开</span>'
       : m.state === 'claim' ? '<button class="btn btn-orange btn-sm" data-act="mysClaim">领取</button>'
-        : m.state === 'done' ? '<button class="btn btn-gold btn-sm" data-act="openChest">打开</button>'
-          : `<button class="btn btn-line btn-sm" data-act="go" data-go-to="${m.go}">去完成</button>`;
+        : `<button class="btn btn-line btn-sm" data-act="go" data-go-to="${m.go}">去完成</button>`;
     return `<div class="tk-mys is-open">
       <span class="tk-mys-card is-front"><img src="${CHEST}" alt=""></span>
       <span class="tk-mys-txt"><b>神秘任务：${m.title}</b>${UI.bar(m.cur, m.goal, 'is-thin is-purple')}<span>${m.cur}/${m.goal} · 奖励：神秘宝箱</span></span>
@@ -135,18 +139,29 @@
     </div>`;
   }
 
-  async function openMysteryChest() {
+  /** 神秘宝箱：点“领取”时奖励已经到账（余额先停在旧值），两个弹窗只是展示，最后点“领取”金币飞入余额 */
+  async function claimMysteryChest() {
+    UI.hold('coins');
+    const r = Store.claimMystery();
+    if (!r) { UI.release('coins'); return; }
+    App.refresh('tasks');
     const art = `<span class="chest-art is-shake"><img src="${CHEST}" alt=""><i class="chest-burst"></i></span>`;
-    const k = await UI.dialog({
+    await UI.dialog({
       cls: 'dlg-chest', art, title: '恭喜！神秘宝箱已解锁', text: '神秘任务完成啦，打开宝箱看看里面有什么！',
       x: false, buttons: [{ label: '打开宝箱', key: 'open', cls: 'btn-orange' }], closable: false,
     });
-    if (k !== 'open') return;
     Sfx.play('chest');
-    const r = Store.openChest();
-    await UI.reward({ title: '宝箱已打开！', sub: '神秘宝箱里开出了这些：', img: CHEST, items: r, note: '神秘宝箱' });
-    App.refresh('tasks');
+    const from = await UI.reward({ title: '宝箱已打开！', sub: '神秘宝箱里开出了这些：', img: CHEST, items: r, grant: false });
+    await UI.fly('coins', from.coins, r.coins);
+    UI.release('coins');
   }
+
+  /** 领完最后一个每日任务时的提示（任务中心和结算页共用） */
+  function streakToast(before) {
+    const d = Store.s.streak.days;
+    if (d > before) UI.toast(d >= 7 ? '连续7天达成！快去打开大宝箱' : `每日任务全部完成 · 已连续${d}/7天！`);
+  }
+  window.Tasks = { streakToast };
 
   App.page('tasks', {
     render(el) {
@@ -158,6 +173,8 @@
           <div class="tk-sec"><div class="tk-sec-hd"><h2>神秘任务</h2><span>每天都有新惊喜</span></div>${mystery()}</div>
           ${D.taskGroups.map((gr) => {
             const list = Store.tasks(gr.id);
+            // 分组里没有任务时不显示（例如没有进行中的限时活动）；新手任务全部领完后整组隐藏
+            if (!list.length || (gr.id === 'newbie' && list.every((t) => t.state === 'done'))) return '';
             const n = list.filter((t) => t.state === 'claim').length;
             return `<div class="tk-sec"><div class="tk-sec-hd"><h2>${gr.name}${n ? ` <i class="count is-inline">${n}</i>` : ''}</h2><span>${gr.sub}</span></div>
               <div class="tk-list">${list.map(row).join('')}</div></div>`;
@@ -197,9 +214,7 @@
         el.textContent = '已领取';
         await UI.grant(r, t.title, el);
         App.refresh('tasks');
-        if (Store.s.streak.days > before) {
-          UI.toast(Store.s.streak.chest ? '连续7天达成！快去打开大宝箱' : `每日任务全部完成 · 已连续${Store.s.streak.days}/7天！`);
-        }
+        streakToast(before);
       },
       reveal: (el) => {
         const card = el.querySelector('.tk-mys-card');
@@ -211,20 +226,21 @@
           UI.toast(m.state === 'claim' ? `神秘任务「${m.title}」已完成，快去领取！` : `神秘任务：${m.title}`);
         }, 520);
       },
-      mysClaim: () => {
-        if (!Store.claimMystery()) return;
-        App.refresh('tasks');
-        openMysteryChest();
-      },
-      openChest: () => openMysteryChest(),
+      mysClaim: () => claimMysteryChest(),
       streakChest: async () => {
         const s = Store.s.streak;
-        if (s.opened) { UI.toast('大宝箱已经打开过了，下周开启新一轮'); return; }
-        if (!s.chest) { UI.toast(`再完成${7 - s.days}天的全部每日任务，就能打开大宝箱`); return; }
+        if (!s.chest) {
+          UI.toast(s.opened && s.days >= 7 ? '大宝箱已经打开过了，明天开始新一轮' : `再完成${7 - s.days}天的全部每日任务，就能打开大宝箱`);
+          return;
+        }
+        // 打开时金币已经到账（余额先停在旧值），奖励弹窗只是展示，点“领取”金币飞入余额
         Sfx.play('chest');
+        UI.hold('coins');
         const r = Store.openStreakChest();
-        await UI.reward({ title: '大宝箱已打开！', sub: '连续7天全勤，你就是每日达人！', img: CHEST, items: r, note: '连续7天宝箱' });
         App.refresh('tasks');
+        const from = await UI.reward({ title: '大宝箱已打开！', sub: '连续7天全勤，你就是每日达人！', img: CHEST, items: r, grant: false });
+        await UI.fly('coins', from.coins, r.coins);
+        UI.release('coins');
       },
     },
   });

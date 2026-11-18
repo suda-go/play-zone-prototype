@@ -173,9 +173,12 @@
     T('w_friend', 'weekly', '和好友玩3局', 3, 'friendGames', { coins: 1000 }, 'friends'),
     T('w_invite', 'weekly', '邀请1位好友进房间', 1, 'invites', { coins: 800 }, 'friends'),
     T('w_win', 'weekly', '赢10局', 10, 'wins', { coins: 200 }, 'c4'),
-    T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { coins: 1000 }, 'recent', { period: '2026.11.01 - 11.30' }),
-    T('l_share', 'limited', '分享3次', 3, 'shares', { coins: 1000 }, 'share', { period: '2026.11.01 - 12.31' }),
+    // 限时任务：只在活动期 start～end（含）内显示和计数，活动开始前的行为不算
+    T('l_mate', 'limited', '加1位一起对局过的玩家为好友', 1, 'mates', { coins: 1000 }, 'recent', { period: '2026.11.01 - 11.30', start: '2026-11-01', end: '2026-11-30' }),
+    T('l_share', 'limited', '分享3次', 3, 'shares', { coins: 1000 }, 'share', { period: '2026.11.01 - 12.31', start: '2026-11-01', end: '2026-12-31' }),
   ];
+  // 演示日历：原型没有真实日期，第 1 天当成 2026-11-18，“跳到明天”每次往后推一天（限时任务按这个日期判断活动期）
+  D.DAY1 = '2026-11-18';
   D.taskGroups = [
     { id: 'newbie', name: '新手任务', sub: '轻松上手，奖励拿不停' },
     { id: 'daily', name: '每日任务', sub: '每天00:00刷新' },

@@ -623,7 +623,7 @@ window.C4 = (() => {
     if (locked()) { UI.toast('专心对局！对手回合才能发表情'); return; }
     closePanel();
     emote('me', type, text);
-    Store.count('emojis');
+    if (G.p.mode !== 'local') Store.count('emojis'); // 本地对战不计入任务
     Sfx.play('tap');
     if (Math.random() < 0.5) {
       later(() => {
@@ -1062,7 +1062,8 @@ window.C4 = (() => {
 
   function taskList() {
     const ids = ['n_first', 'd_win', 'd_play', 'l_mate', 'w_friend', 'd_emoji', 'n_time'];
-    const list = ids.map((id) => Store.task(D.tasks.find((t) => t.id === id))).filter((t) => t.state !== 'done');
+    const all = Store.tasks(); // 不含活动期外的限时任务
+    const list = ids.map((id) => all.find((t) => t.id === id)).filter((t) => t && t.state !== 'done');
     list.sort((a, b) => (b.state === 'claim') - (a.state === 'claim'));
     return list.slice(0, 3);
   }
@@ -1224,12 +1225,14 @@ window.C4 = (() => {
       claim: async (el) => {
         const id = el.dataset.id;
         const t = D.tasks.find((x) => x.id === id);
+        const before = Store.s.streak.days;
         const r = Store.claim(id);
         if (!r) return;
         el.disabled = true;
         await UI.grant(r, t.title, el);
         const box = document.querySelector('.page[data-page="result"] .rs-tasks-box');
         if (box) { box.innerHTML = tasksHtml(); UI.decorate(box); }
+        window.Tasks?.streakToast(before); // 领完最后一个每日任务时，和任务中心一样提示连续天数
       },
       share: () => {
         const p = App.params('result');
