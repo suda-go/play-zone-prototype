@@ -64,7 +64,7 @@
       doubleNext: false,
       howto: {},
       pinged: false,
-      stake: 's1',                      // 上次选的金币场
+      stake: '',                        // 上次选的金币场（新账号没有，快速开始默认新手场）
       voice: { mic: false, spk: true }, // 局内语音：麦克风、扬声器
       mateGames: {},                    // 和每位好友玩过的局数（默契搭档徽章）
       vipDaily: 0,                      // 会员每日福利上次领取的 day
@@ -91,7 +91,7 @@
     };
   }
 
-  let s = load();
+  let s = noFreeRooms(load());
 
   function load() {
     try {
@@ -102,6 +102,11 @@
       }
     } catch (_) { /* 数据损坏时回到初始状态 */ }
     return fresh();
+  }
+  /** V7 好友房去掉免费档：入场金币为 0 的房间（包括旧数据里的）改成最低一档 */
+  function noFreeRooms(st) {
+    (st.rooms || []).forEach((r) => { if (!r.bet) r.bet = D.roomBets[0]; });
+    return st;
   }
   let resetting = false;
   function save() {

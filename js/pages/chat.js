@@ -216,7 +216,7 @@
     const label = !r ? '已过期' : inRoom ? '进入房间' : full ? '已满' : mine ? '进入房间' : '加入';
     return `<div class="ivc">
       <div class="ivc-cover" style="background-image:url(${g.cover || g.icon})"><span class="tag tag-dark">${UI.ic('gamepad', 11)} 游戏邀请</span></div>
-      <div class="ivc-b"><img src="${g.icon}" alt=""><span class="row-main"><b>${g.name}</b><span>${r ? `${UI.esc(r.name)} · ${r.seats.length}/${r.max} · ${r.bet ? `底注${UI.fmt(r.bet)}` : '免费房'}` : '房间已关闭'}</span></span></div>
+      <div class="ivc-b"><img src="${g.icon}" alt=""><span class="row-main"><b>${g.name}</b><span>${r ? `${UI.esc(r.name)} · ${r.seats.length}/${r.max} · 底注${UI.fmt(r.bet)}` : '房间已关闭'}</span></span></div>
       <p>${UI.esc(m.text)}</p>
       <button class="btn ${!r || full ? 'is-disabled' : 'btn-primary'} btn-md btn-block" data-act="join" data-room="${m.room || ''}">${label}</button>
     </div>`;
@@ -339,14 +339,14 @@
         input.focus();
       },
       game: async () => {
-        // 只有四子棋：先选入场金币（V6，含免费档），再建私密房间并发邀请卡片
+        // 只有四子棋：先选入场金币（V7 没有免费档，金币不够最低一档时弹金币不足），再建私密房间并发邀请卡片
         const id = App.params('dm').id;
         const c = Store.s.chats[id];
         const gm = D.game[D.GAME];
         const bet = await Rooms.pickBet();
         if (bet === null || App.top() !== 'dm' || App.params('dm').id !== id) return;
         const r = Store.createRoom({ name: `${Store.s.user.name}的${gm.name}房间`, game: D.GAME, max: 2, private: true, premium: false, lang: '中文', bet });
-        Store.post(id, { from: 'me', type: 'invite', game: D.GAME, room: r.id, text: bet ? `来我房间下一局四子棋！底注${UI.fmt(bet)}金币，赢家拿走奖池` : '来我房间下一局四子棋！免费房' });
+        Store.post(id, { from: 'me', type: 'invite', game: D.GAME, room: r.id, text: `来我房间下一局四子棋！底注${UI.fmt(bet)}金币，赢家拿走奖池` });
         Store.count('invites');
         paintMsgs(id);
         const who = c.type === 'dm' ? c.with : UI.pick(c.members);

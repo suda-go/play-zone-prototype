@@ -356,6 +356,7 @@
   const UI = window.UI;
   const ovs = [];
   const scr = () => document.querySelector('.screen');
+  let coachDone = null; // 正在显示的新手引导气泡的关闭函数（返回键用）
 
   /**
    * opt.type      sheet | dialog | full
@@ -402,8 +403,9 @@
     ctrl.opt.onClose?.(v);
   }
 
-  /** 返回键：关最上面的浮层；关不掉的浮层吞掉返回键 */
+  /** 返回键：新手引导气泡在最上层，先关它（等同点任意处）；再关最上面的浮层；关不掉的浮层吞掉返回键 */
   UI.closeTop = () => {
+    if (coachDone) { coachDone(); return true; }
     const t = ovs[ovs.length - 1];
     if (!t) return false;
     if (t.opt.closable === false) { t.opt.onBack?.(); return true; }
@@ -495,11 +497,15 @@
       <div class="coach-tip is-${place}" style="${tipTop !== null ? `top:${tipTop}px;` : ''}${tipBottom}--ax:${cx}px">${text}<small>点击任意处继续</small></div>`;
     document.querySelector('.screen').appendChild(el);
     requestAnimationFrame(() => el.classList.add('is-show'));
-    el.addEventListener('click', () => {
+    const done = () => {
+      if (coachDone === done) coachDone = null;
+      if (!el.isConnected) return;
       el.remove();
       if (key) { Store.s.tips[key] = 1; Store.save(); }
       res();
-    });
+    };
+    coachDone = done; // 按返回键也是关掉气泡，不再落到页面的返回逻辑（例如首页的退出挽留）
+    el.addEventListener('click', done);
   });
 })();
 

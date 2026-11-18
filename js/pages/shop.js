@@ -252,14 +252,14 @@
     App.refresh();
   }
 
-  /* ---------- I10 金币不足（对局入场，由 Battle.quick 调用） ---------- */
+  /* ---------- I10 金币不足（快速开始入场、好友房入场；where 是文案里“底注”前面的说明） ---------- */
   function lack(o = {}) {
     // 兼容旧调用 lack(need)
-    const { need, stake } = typeof o === 'object' && o ? o : { need: o };
+    const { need, stake, where } = typeof o === 'object' && o ? o : { need: o };
     const st = D.stake[stake];
     const bet = need || (st ? st.bet : 0);
-    const where = st ? st.name : '开局';
-    return lackDialog({ text: `${where}底注<b>${UI.fmt(bet)}金币</b>，你只有<b>${UI.fmt(Store.s.coins)}</b>` });
+    const label = where || (st ? st.name : '开局');
+    return lackDialog({ text: `${label}底注<b>${UI.fmt(bet)}金币</b>，你只有<b>${UI.fmt(Store.s.coins)}</b>` });
   }
 
   /* ---------- 各 Tab 内容 ---------- */

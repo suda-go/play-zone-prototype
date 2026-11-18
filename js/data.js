@@ -203,8 +203,9 @@
   ];
 
   /* ---------- 房间 ---------- */
-  // V6 入场金币（参考 Yalla Ludo 私人房）：房主创建时选，0 是免费档；开局扣除，赢家拿走奖池（底注×2），平局退还
-  D.roomBets = [0, 100, 500, 2000, 10000];
+  // V6 入场金币（参考 Yalla Ludo 私人房）：房主创建时选；开局扣除，赢家拿走奖池（底注×2），平局退还
+  // V7 去掉免费档：和好友玩最低 100
+  D.roomBets = [100, 500, 2000, 10000];
   D.rooms = [
     { id: 'r1', name: '四子棋休闲局 🌙', game: 'c4', max: 2, seats: ['hana'], host: 'hana', lang: '中文', premium: false, bet: 0 },
     { id: 'r2', name: '今晚不睡 🎉', game: 'c4', max: 2, seats: ['mia', 'zoe'], host: 'mia', lang: '中文', premium: false, bet: 100 },
@@ -218,7 +219,7 @@
   // 聊天邀请卡片对应的私密房间
   D.inviteRooms = {
     lily: { id: 'lily', name: '莉莉的房间', game: 'c4', max: 2, seats: ['lily'], host: 'lily', lang: '中文', premium: false, private: true, bet: 100 },
-    squad: { id: 'squad', name: '周末小队房间', game: 'c4', max: 2, seats: ['lucas'], host: 'lucas', lang: '中文', premium: false, private: true, bet: 0 },
+    squad: { id: 'squad', name: '周末小队房间', game: 'c4', max: 2, seats: ['lucas'], host: 'lucas', lang: '中文', premium: false, private: true, bet: 100 },
   };
 
   /* ---------- 聊天 ---------- */

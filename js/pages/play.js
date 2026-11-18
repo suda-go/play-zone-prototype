@@ -99,7 +99,7 @@
       <button class="hm-tile is-friends" data-act="friends">
         <img class="hm-art" src="${IMG}brand/mascot-cheer.png" alt="">
         <b class="hm-name">和好友玩</b>
-        <span class="hm-desc">${hasFriends ? '选入场金币 · 含免费档' : '约朋友来下一局'}</span>
+        <span class="hm-desc">${hasFriends ? '选入场金币' : '约朋友来下一局'}</span>
         <span class="hm-avs">${hasFriends ? `${online.slice(0, 3).map((p) => UI.av(p.id, 24)).join('')}<em>${online.length}人在线</em>` : `<i class="hm-avs-add">${UI.ic('userPlus', 14)}</i><em>还没有好友</em>`}</span>
       </button>
       <button class="hm-tile is-local" data-act="local">
@@ -141,18 +141,25 @@
   }
 
   /* ================= B2 新手礼包、B6 离线收益 ================= */
-  async function welcome() {
+  // 点“全部领取”才算领过，和金币一起存盘：弹窗开着时关掉 app，下次进首页还会弹
+  const GIFT = { coins: 1500 };
+  let gifting = null; // 礼包弹窗开着时再进首页，不重复弹
+  function welcome() {
+    if (!gifting) gifting = gift().finally(() => { gifting = null; });
+    return gifting;
+  }
+  async function gift() {
     await UI.sleep(200);
-    Store.s.welcome = true;
-    Store.save();
-    await UI.reward({
+    const from = await UI.reward({
       title: '欢迎来到 Soulgame！',
       sub: '先下一局，再交个朋友。见面礼请收好！',
       img: `${IMG}brand/mascot-gift.png`,
-      items: { coins: 1500 },
+      items: GIFT,
       btn: '全部领取',
-      note: '新手礼包',
+      grant: false,
     });
+    Store.s.welcome = true; // 下一行发金币时一起存盘
+    await UI.grant(GIFT, '新手礼包', from);
     await UI.sleep(350);
     if (App.top() !== 'play') return;
     // 先教开局，让新用户马上玩上第一局；签到的引导等打完第一局回到首页再出（见 shown）
@@ -183,7 +190,8 @@
     if (k === 'play') {
       Store.s.doubleNext = true;
       Store.save();
-      Battle.quick();
+      // 和首页“开始游戏”一样按场次自动选择：金币不够上次场次时换成能进的一档
+      Battle.quick(pickStake().id);
     } else if (k === 'claim') {
       App.go('tasks');
     } else if (k === 'leave') {
@@ -259,7 +267,9 @@
       howto: () => Battle.howto(D.GAME, { manual: true }),
       friends: async () => {
         if (!Store.s.friends.length) { noFriends(); return; }
-        const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '选好友后再选入场金币，有免费档', onlineOnly: true });
+        // V7 好友房没有免费档：金币连最低一档都不够时直接弹金币不足，不用先选好友
+        if (!Rooms.checkCoins()) return;
+        const uid = await UI.pickFriend({ title: '邀请好友下四子棋', sub: '选好友后再选入场金币', onlineOnly: true });
         if (uid) Rooms.withFriend(uid);
       },
     },

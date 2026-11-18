@@ -3,7 +3,8 @@
  * J5 邀请好友、J6 高级房需要房卡
  * 只有四子棋（D.GAME），房间固定2人；房间对局不计段位
  * V7 首发版：不做房间列表 Tab 和创建房间页，房间只用在“和好友玩”（私密房，房主选入场金币）
- * V6 入场金币（参考 Yalla Ludo）：房主创建房间时选（D.roomBets，含免费档），开局扣除，赢家拿走奖池（底注×2），平局退还
+ * V6 入场金币（参考 Yalla Ludo）：房主创建房间时选（D.roomBets），开局扣除，赢家拿走奖池（底注×2），平局退还
+ * V7 去掉免费档：最低一档 100，金币不够时先弹金币不足
  */
 (() => {
   'use strict';
@@ -15,19 +16,27 @@
   const nameOf = (uid) => (uid === 'me' ? '你' : D.people[uid].name);
   const pageEl = () => document.querySelector('.page[data-page="room"]');
   const betOf = (r) => (r && r.bet) || 0;
-  const betText = (b) => (b ? `底注${UI.cur('coins', 13)}${UI.fmt(b)} · 奖池${UI.fmt(b * 2)}` : '免费房 · 不扣金币');
-  // 默认选100（金币不够就选免费）
-  const defBet = () => (Store.s.coins >= 100 ? 100 : 0);
+  const betText = (b) => `底注${UI.cur('coins', 13)}${UI.fmt(b)} · 奖池${UI.fmt(b * 2)}`;
+  // V7 没有免费档：默认选最低一档（100）
+  const minBet = () => D.roomBets[0];
+  const defBet = minBet;
+  /** 金币不够最低一档入场金币时弹金币不足（和快速开始一样给出拿金币的办法）；够的话返回 true */
+  function checkCoins() {
+    if (Store.s.coins >= minBet()) return true;
+    Shop.lack({ need: minBet(), where: '好友房最低' });
+    return false;
+  }
 
   /* ================= V6 入场金币：选项卡片、选择弹层 ================= */
   function betOpt(b, sel) {
     const poor = b > Store.s.coins;
-    return `<button class="bet-op ${b ? '' : 'is-free'} ${sel === b ? 'is-on' : ''} ${poor ? 'is-poor' : ''}" data-act="bet" data-b="${b}">
-      <b>${b ? `${UI.cur('coins', 18)}${UI.fmt(b)}` : '免费'}</b><span>${b ? `奖池 ${UI.fmt(b * 2)}` : '不扣金币'}</span>${poor ? '<i>金币不足</i>' : ''}</button>`;
+    return `<button class="bet-op ${sel === b ? 'is-on' : ''} ${poor ? 'is-poor' : ''}" data-act="bet" data-b="${b}">
+      <b>${UI.cur('coins', 18)}${UI.fmt(b)}</b><span>奖池 ${UI.fmt(b * 2)}</span>${poor ? '<i>金币不足</i>' : ''}</button>`;
   }
   const poorToast = () => { UI.toast('金币不够这一档，选低一点或先去赚金币'); Sfx.play('error'); };
-  /** 选入场金币，返回 Promise：金币数（0 为免费），关掉弹层为 null */
-  function pickBet({ title = '选择入场金币', sub = '赢家拿走奖池（底注×2），平局退还；选免费就不扣金币' } = {}) {
+  /** 选入场金币，返回 Promise：金币数；关掉弹层、或金币连最低一档都不够（弹金币不足）时为 null */
+  function pickBet({ title = '选择入场金币', sub = '赢家拿走奖池（底注×2），平局退还' } = {}) {
+    if (!checkCoins()) return Promise.resolve(null);
     return new Promise((resolve) => {
       let val = null;
       const c = UI.sheet({
@@ -58,7 +67,7 @@
     if (!r) { UI.toast('房间已不存在'); return; }
     if (r.seats.includes('me')) { App.go('room', { id }); return; }
     if (r.seats.length >= r.max) { UI.toast('房间已满，试试快速加入吧'); return; }
-    if (betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r) }); return; }
+    if (betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r), where: '好友房' }); return; }
     if (r.premium && Store.perk('freePass')) {
       UI.toast('会员免房卡进入');
     } else if (r.premium) {
@@ -80,7 +89,7 @@
     }
     Store.sit(id, 'me');
     const st = state(id);
-    st.msgs.push({ type: 'sys', text: betOf(r) ? `你加入了房间。入场金币${UI.fmt(betOf(r))}，开局时扣除` : '你加入了房间（免费房）' });
+    st.msgs.push({ type: 'sys', text: `你加入了房间。入场金币${UI.fmt(betOf(r))}，开局时扣除` });
     App.go('room', { id });
   }
 
@@ -95,14 +104,14 @@
   /** 默认房间名：只有四子棋一款游戏 */
   const defName = () => `${Store.s.user.name}的${D.game[D.GAME].name}房间`;
 
-  /** 和好友一起玩：先选入场金币（含免费档），再建私密房间并邀请（gameId 可省略，默认四子棋） */
+  /** 和好友一起玩：先选入场金币（V7 没有免费档），再建私密房间并邀请（gameId 可省略，默认四子棋） */
   async function withFriend(uid, game = D.GAME) {
     const g = D.game[game] || D.game[D.GAME];
     const bet = await pickBet({ title: `和${nameOf(uid)}玩 · 选入场金币` });
     if (bet === null) return;
     const r = Store.createRoom({ name: defName(), game: g.id, max: 2, private: true, premium: false, lang: '中文', bet });
     const st = state(r.id);
-    st.msgs.push({ type: 'sys', text: bet ? `房间已创建，入场金币${UI.fmt(bet)}，赢家拿走奖池${UI.fmt(bet * 2)}。` : '免费房已创建，快邀请好友入座吧。' });
+    st.msgs.push({ type: 'sys', text: `房间已创建，入场金币${UI.fmt(bet)}，赢家拿走奖池${UI.fmt(bet * 2)}。` });
     App.go('room', { id: r.id, invite: uid });
   }
 
@@ -396,7 +405,7 @@
         const r = Store.room(App.params('room').id);
         const st = state(r.id);
         if (st.cd) { clearInterval(st.cd); st.cd = 0; st.ready.me = false; sys(r, '已取消倒计时'); return; }
-        if (!st.ready.me && betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r) }); return; }
+        if (!st.ready.me && betOf(r) > Store.s.coins) { Shop.lack({ need: betOf(r), where: '好友房' }); return; }
         st.ready.me = !st.ready.me;
         Sfx.play('tap');
         paint(r);
@@ -430,5 +439,5 @@
     state(r.id).timers.push(setTimeout(() => say(r, UI.pick(others), UI.pick(['😂', '好嘞！', '+1', '冲冲冲', '准备好了！', 'GG'])), 1400 + Math.random() * 1200));
   }
 
-  window.Rooms = { join, withFriend, quickJoin, pickBet, betText };
+  window.Rooms = { join, withFriend, quickJoin, pickBet, betText, checkCoins };
 })();

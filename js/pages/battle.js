@@ -237,7 +237,7 @@ window.C4 = (() => {
   function fromRoom(room, opp) {
     if (busy()) return;
     const bet = room.bet || 0;
-    if (bet && !Store.spend('coins', bet, '好友房 · 底注')) { Shop.lack({ need: bet }); return; }
+    if (bet && !Store.spend('coins', bet, '好友房 · 底注')) { Shop.lack({ need: bet, where: '好友房' }); return; }
     App.go('game', { game: room.game, mode: 'room', room: room.id, opp, bet, first: Math.random() < 0.5 ? 1 : 2 }, { anim: 'fade' });
   }
 
@@ -738,7 +738,7 @@ window.C4 = (() => {
     G.paused = true;
     const ok = await UI.confirm({
       title: practice ? '结束练习？' : '确定认输？',
-      text: practice ? '练习局结束没有惩罚。' : room ? (G.p.bet ? `认输算作失败，底注<b>${UI.fmt(G.p.bet)}金币</b>不予退还。` : '免费好友房认输不扣金币，但这局算你输。') : `认输算作失败，底注<b>${UI.fmt(Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
+      text: practice ? '练习局结束没有惩罚。' : `认输算作失败，底注<b>${UI.fmt(room ? G.p.bet : Battle.stakeOf(G.p.stake).bet)}金币</b>不予退还。`,
       ok: practice ? '结束' : '认输', cancel: '继续玩', danger: !practice,
     });
     if (!G) return;
@@ -798,7 +798,7 @@ window.C4 = (() => {
     const board = C4.copy(G.board);
     G = null;
     const practice = p.mode === 'ai';
-    const room = p.mode === 'room'; // 好友房：V6 起房主可以设入场金币（0 为免费房）
+    const room = p.mode === 'room'; // 好友房：房主设的入场金币（V7 没有免费档）
     const roomBet = room ? (p.bet || 0) : 0;
     const staked = !practice && !room;
     const st = Battle.stakeOf(p.stake);
@@ -1017,7 +1017,7 @@ window.C4 = (() => {
   function progress(p) {
     const stats = `<div class="rs-stats"><span>步数 <b>${p.moves}</b></span><span>拦截 <b>${p.blocks}</b></span><span>用时 <b>${mmss(p.sec)}</b></span></div>`;
     if (p.mode === 'room') {
-      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} ${p.bet ? `好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}。` : '免费好友房：不扣金币，只管和朋友玩。'}</p>${stats}</div>`;
+      return `<div class="rs-panel rs-practice"><p>${UI.ic('users', 18)} 好友房 · 底注${UI.fmt(p.bet)}金币，赢家拿走奖池${UI.fmt(p.bet * 2)}。</p>${stats}</div>`;
     }
     return `<div class="rs-panel">${stats}</div>`;
   }
