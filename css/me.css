@@ -12,9 +12,12 @@
 .me-card { display: flex; flex-direction: column; align-items: center; margin: 76px 16px 0; padding: 0 16px 16px; border-radius: 24px; background: #fff; box-shadow: var(--shadow); text-align: center; }
 .me-av { margin-top: -48px; }
 .me-av .av-img { box-shadow: 0 0 0 4px #fff; }
-.me-card h1 { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 23px; font-weight: 900; }
+.me-card h1 { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; margin-top: 12px; font-size: 23px; font-weight: 900; }
+.me-card h1 .vname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-id { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 12.5px; color: var(--text-2); }
-.me-bio { margin-top: 8px; font-size: 14px; }
+/* 签名最多两行；没有签名时自己看到灰色的“写一句个性签名吧”，点了去编辑资料 */
+.me-bio { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-width: 100%; margin-top: 8px; overflow: hidden; font-size: 14px; word-break: break-word; }
+.me-bio.is-empty { color: var(--text-3); }
 .me-lv { display: flex; align-items: center; gap: 10px; align-self: stretch; margin-top: 14px; }
 .me-lv .bar { flex: 1; }
 .me-lv em { font: 700 12px var(--num); font-style: normal; color: var(--text-2); white-space: nowrap; }
@@ -47,7 +50,8 @@
 .page[data-page="edit"], .page[data-page="wallet"], .page[data-page="bag"], .page[data-page="stats"], .page[data-page="badges"], .page[data-page="settings"] { background: var(--bg); }
 .ed-prev { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 170px; margin: 4px 16px 0; padding-bottom: 14px; border-radius: 20px; color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
 .ed-prev .av-img { box-shadow: 0 0 0 3px #fff; }
-.ed-prev b { font-size: 17px; font-weight: 800; }
+/* 浅色背景（极光）上白字看不清：昵称加一层半透明深色底 */
+.ed-prev b { max-width: calc(100% - 32px); padding: 1px 12px; overflow: hidden; border-radius: 12px; background: rgba(0, 0, 0, .32); font-size: 17px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .ed-sec { position: relative; margin: 18px 16px 0; }
 .ed-sec h3 { margin: 0 2px 8px; font-size: 14px; font-weight: 800; color: var(--text-2); }
 .ed-bio { display: block; width: 100%; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); font-size: 15px; resize: none; }
@@ -77,6 +81,7 @@
 .wl-row em { font: 800 16px var(--num); font-style: normal; white-space: nowrap; }
 .wl-row em.is-in { color: #10a76a; }
 .wl-row em.is-out { color: var(--text); }
+.wl-end { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--text-3); }
 
 /* ---------- L5 背包 ---------- */
 .bag-seg { flex-shrink: 0; gap: 20px; }
@@ -87,6 +92,9 @@
 .bag-body .sh-state.is-eq { color: var(--blue); }
 .bag-body .sh-item > b { color: var(--text); }
 .bag-body .sh-prop { background: #fff; box-shadow: var(--shadow-s); }
+/* 会员到期后的会员框：还在背包里，盖一层灰，显示“会员专属” */
+.bag-body .sh-item.is-vlock .sh-prev { filter: grayscale(1); opacity: .55; }
+.bag-body .sh-item.is-vlock .sh-state { color: var(--text-3); }
 .bag-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 14px; padding: 12px; border-radius: 16px; border: 1.5px dashed #c5cad8; color: var(--text-2); font-size: 13.5px; font-weight: 700; }
 
 /* ---------- L3 战绩 ---------- */
@@ -106,6 +114,10 @@
 .st-row i { display: flex; align-items: center; gap: 2px; font: 700 12px var(--num); font-style: normal; color: var(--text-2); }
 .st-row i img { width: 14px; height: 14px; border-radius: 0; }
 .st-row i.is-up { color: #e8740c; }
+.st-row.is-tap { cursor: pointer; }
+.st-row.is-tap:active { background: #f5f7fb; }
+.st-row b .st-ai { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 6px; background: #eef1f6; color: var(--text-2); font: 800 10.5px/1.6 var(--num); font-style: normal; vertical-align: 1px; }
+.st-go { display: flex; justify-content: center; padding: 0 0 18px; }
 .st-row i.st-tag { padding: 2px 8px; border-radius: 10px; background: var(--blue-l); color: var(--blue); font: 700 11px/1.5 var(--num); }
 /* 四子棋段位卡 */
 .st-game { display: flex; align-items: center; gap: 12px; margin: 0 16px; padding: 14px; }
@@ -130,6 +142,8 @@
 .set-hd { margin: 18px 4px 8px; font-size: 13px; font-weight: 800; color: var(--text-2); }
 .set-body .cell-main small { margin-top: 1px; }
 .set-reset .cell-ic, .set-reset .cell-main { color: var(--red); }
+.set-sys { gap: 10px; background: #fff7e8; }
+.set-sys .cell-main { font-size: 13.5px; font-weight: 700; color: #9a5a00; white-space: normal; }
 .set-foot { margin: 24px 0 0; text-align: center; font-size: 12px; line-height: 1.6; color: var(--text-3); }
 /* V7：不做等级，我的页只剩金币一项 */
 .me-wallet { grid-template-columns: 1fr; }
@@ -145,3 +159,10 @@
 .me-coin-m .me-coin-n { font: 900 28px/1.15 var(--num); color: #5a3200; }
 .me-coin-m em { display: flex; align-items: center; gap: 1px; font-size: 11.5px; font-style: normal; color: #9a6a10; }
 .me-coin-btn { position: relative; z-index: 2; flex-shrink: 0; }
+
+/* ---------- L8 黑名单 ---------- */
+.page[data-page="blocks"] { background: var(--bg); }
+.bl-body { padding-top: 4px; }
+.bl-list { margin: 0 16px; overflow: hidden; border-radius: 18px; background: #fff; box-shadow: var(--shadow-s); }
+.bl-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.bl-row + .bl-row { border-top: .5px solid var(--line); }

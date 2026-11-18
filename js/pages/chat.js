@@ -59,7 +59,7 @@
   function msgsSeg() {
     const s = Store.s;
     // V7：已有好友时不显示顶部「最近一起玩」这排头像和“找更多”入口（和好友列表一致）
-    const recent = s.friends.length ? [] : s.recent.filter((u) => D.people[u]);
+    const recent = s.friends.length ? [] : s.recent.filter((u) => D.people[u] && !Store.isBlocked(u));
     const rows = s.chatOrder.filter((id) => s.chats[id]).map((id) => {
       const c = s.chats[id];
       const last = c.msgs[c.msgs.length - 1];
@@ -105,7 +105,7 @@
   }
   /** 好友页顶部「最近一起玩」：最新的在前，每人带加好友按钮 */
   function recentSec() {
-    const list = Store.s.recent.filter((u) => D.people[u]);
+    const list = Store.s.recent.filter((u) => D.people[u] && !Store.isBlocked(u));
     const rows = list.map((u) => {
       const P = D.people[u];
       return `<div class="fr-row fr-rc" data-go="profile" data-uid="${u}">${UI.av(u, 46, { on: true })}
@@ -317,6 +317,7 @@
       callVideo: () => { const c = Store.s.chats[App.params('dm').id]; if (c && c.type === 'dm') call(c.with, 'video'); },
       callAgain: (el) => { const c = Store.s.chats[App.params('dm').id]; if (c && c.type === 'dm') call(c.with, el.dataset.kind); },
       send: () => {
+        if (blockedDm()) return;
         const el = document.querySelector('.page[data-page="dm"]');
         const input = el.querySelector('.dm-in');
         const text = input.value.trim();
@@ -340,6 +341,7 @@
       },
       game: async () => {
         // 只有四子棋：先选入场金币（V7 没有免费档，金币不够最低一档时弹金币不足），再建私密房间并发邀请卡片
+        if (blockedDm()) return;
         const id = App.params('dm').id;
         const c = Store.s.chats[id];
         const gm = D.game[D.GAME];
@@ -424,6 +426,7 @@
     const sent = Store.s.sent.includes(p.id);
     const req = Store.s.requests.includes(p.id);
     const btn = f ? `<span class="af-st">${UI.ic('userCheck', 14)} 已是好友</span>`
+      : Store.isBlocked(p.id) ? `<span class="af-st">${UI.ic('ban', 14)} 已拉黑</span>`
       : sent ? '<span class="af-st">已申请</span>'
         : req ? `<button class="btn btn-primary btn-sm" data-act="accept" data-uid="${p.id}">同意</button>`
           : `<button class="btn btn-primary btn-sm" data-act="add" data-uid="${p.id}">${UI.ic('plus', 14)} 加好友</button>`;
@@ -431,7 +434,7 @@
   }
   App.page('addfriend', {
     render(el) {
-      const recent = Store.s.recent.filter((u) => D.people[u]);
+      const recent = Store.s.recent.filter((u) => D.people[u] && !Store.isBlocked(u));
       el.innerHTML = `${UI.nav({ title: '添加好友', cls: 'is-white' })}
         <div class="body af-body" data-scroll="main">
           <form class="field af-search" onsubmit="return false">${UI.ic('search', 18)}<input class="af-in" placeholder="搜索昵称或ID" value="${UI.esc(query)}" enterkeyhint="search"><button type="button" class="btn btn-primary btn-sm" data-act="search">搜索</button></form>
@@ -440,7 +443,7 @@
           <div class="fr-hd">最近一起玩过</div>
           ${recent.map((u) => personRow(D.people[u])).join('') || UI.empty('玩一局就能认识新朋友')}
           <div class="fr-hd">可能认识的人</div>
-          ${['noah', 'zoe', 'jade', 'ethan'].filter((u) => !recent.includes(u)).map((u) => personRow(D.people[u])).join('')}
+          ${['noah', 'zoe', 'jade', 'ethan'].filter((u) => !recent.includes(u) && !Store.isBlocked(u)).map((u) => personRow(D.people[u])).join('')}
           <div class="bottom-space"></div>
         </div>`;
       const input = el.querySelector('.af-in');
@@ -529,7 +532,8 @@
           <div class="bottom-space" style="height:100px"></div>
         </div>
         <div class="pf-foot">
-          ${f ? `<button class="btn btn-ghost btn-lg" data-go="dm" data-id="${P.id}">${UI.ic('msg', 18)} 发消息</button><button class="btn btn-primary btn-lg" data-act="invite">${UI.ic('gamepad', 18)} 邀请</button>`
+          ${Store.isBlocked(P.id) ? `<button class="btn btn-ghost btn-lg btn-block" data-act="unblock">${UI.ic('ban', 18)} 已拉黑 · 移出黑名单</button>`
+            : f ? `<button class="btn btn-ghost btn-lg" data-go="dm" data-id="${P.id}">${UI.ic('msg', 18)} 发消息</button><button class="btn btn-primary btn-lg" data-act="invite">${UI.ic('gamepad', 18)} 邀请</button>`
             : req ? `<button class="btn btn-primary btn-lg btn-block" data-act="accept">${UI.ic('userCheck', 18)} 同意申请</button>`
               : sent ? `<button class="btn is-disabled btn-lg btn-block">${UI.ic('check', 18)} 已发送申请</button>`
                 : `<button class="btn btn-primary btn-lg btn-block" data-act="add">${UI.ic('userPlus', 18)} 加好友</button>`}
@@ -556,12 +560,16 @@
         UI.toast(`你和${nameOf(uid)}已经是好友了`);
         App.refresh('profile');
       },
+      unblock: () => unblockOf(App.params('profile').uid),
       more: () => {
         const uid = App.params('profile').uid;
         const f = Store.isFriend(uid);
+        const b = Store.isBlocked(uid);
         const c = UI.sheet({
           html: `<div class="cells sheet-cells">
             ${f ? `<button class="cell" data-act="remove">${UI.ic('userMinus', 20, 'cell-ic')}<span class="cell-main">删除好友</span></button>` : ''}
+            ${b ? `<button class="cell" data-act="unblock">${UI.ic('ban', 20, 'cell-ic')}<span class="cell-main">移出黑名单</span></button>`
+              : `<button class="cell" data-act="block">${UI.ic('ban', 20, 'cell-ic')}<span class="cell-main">拉黑</span></button>`}
             <button class="cell" data-act="report">${UI.ic('flag', 20, 'cell-ic')}<span class="cell-main">举报</span></button>
             <button class="cell" data-act="close"><span class="cell-main" style="text-align:center">取消</span></button></div>`,
           acts: {
@@ -574,9 +582,33 @@
               App.refresh('profile');
             },
             report: () => { c.close(); UI.toast('感谢反馈，我们会尽快核实'); },
+            block: async () => {
+              c.close();
+              const ok = await UI.confirm({ title: `拉黑${nameOf(uid)}？`, text: `拉黑后对方不能给你发消息、发游戏邀请、申请加你好友${f ? '，你们的好友关系也会解除' : ''}。可以在“设置 → 黑名单”里移出。`, ok: '拉黑', danger: true });
+              if (!ok) return;
+              if (Store.block(uid) === 'full') { UI.toast('黑名单已满，先移出一些人'); return; }
+              UI.toast(`已拉黑${nameOf(uid)}`);
+              App.refresh('profile');
+            },
+            unblock: () => { c.close(); unblockOf(uid); },
           },
         });
       },
     },
   });
+  /** 移出黑名单（玩家主页的底部按钮和“更多”里都用它；设置 → 黑名单页有自己的一份） */
+  async function unblockOf(uid) {
+    const ok = await UI.confirm({ title: `把${nameOf(uid)}移出黑名单？`, text: '移出后对方可以再给你发消息、加你好友。', ok: '移出' });
+    if (!ok) return;
+    Store.unblock(uid);
+    UI.toast('已移出黑名单');
+    App.refresh('profile');
+  }
+  /** 私聊页：对方在黑名单里时不能发消息和游戏邀请 */
+  function blockedDm() {
+    const c = Store.s.chats[App.params('dm').id];
+    if (!c || c.type !== 'dm' || !Store.isBlocked(c.with)) return false;
+    UI.toast('你已拉黑对方，移出黑名单后才能发消息');
+    return true;
+  }
 })();

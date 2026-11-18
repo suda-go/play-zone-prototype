@@ -278,8 +278,10 @@ window.C4 = (() => {
     M = null;
   }
   function pickOpp() {
-    const pool = D.matchPool.filter((id) => !Store.isFriend(id));
-    return UI.pick(pool.length ? pool : D.matchPool);
+    // 不匹配到好友；拉黑的人也不再匹配到一起（我的与设置 4.10）
+    const open = D.matchPool.filter((id) => !Store.isBlocked(id));
+    const pool = open.filter((id) => !Store.isFriend(id));
+    return UI.pick(pool.length ? pool : open.length ? open : D.matchPool);
   }
 
   /** how：'bot' 是匹配不到真人时由机器人补位。机器人和真人显示得一模一样，不告诉用户 */
@@ -544,7 +546,7 @@ window.C4 = (() => {
   async function localEnd(winner) {
     if (!G) return;
     clearAll();
-    Store.count('seconds', Math.max(1, Math.round((Date.now() - G.t0) / 1000)));
+    // 本地对战不计入游戏时长和任务（我的与设置 4.6、签到与任务 4.12）
     G = null;
     const who = winner === 1 ? `${UI.esc(Store.s.user.name)}（蓝方）` : '好友（红方）';
     const k = await UI.dialog({

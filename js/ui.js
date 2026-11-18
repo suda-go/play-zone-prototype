@@ -16,6 +16,8 @@
     if (Math.abs(n) >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '万';
     return n.toLocaleString('zh-CN');
   };
+  /** 完整数字（千分位，不用“万”），钱包页对账用 */
+  UI.fmtFull = (n) => Math.round(n).toLocaleString('zh-CN');
   UI.usd = (n) => '$' + n.toFixed(2);
   UI.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   UI.pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -95,6 +97,7 @@
     user: '<circle cx="12" cy="8" r="4.5"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     play: '<path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor" stroke="none"/>',
     phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+    ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
     trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
     star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
     sparkles: '<path d="M9.9 15.5A2 2 0 0 0 8.5 14l-6.1-1.6a.5.5 0 0 1 0-1L8.5 9.9A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1L15.5 14a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/>',
@@ -288,7 +291,9 @@
 
   const real = (k) => Store.s[k] || 0;
   UI.val = (k) => (k in shown ? shown[k] : real(k));
-  UI.bind = (k, cls = '') => `<b class="num ${cls}" data-bind="${k}" data-fly="${k}">${UI.fmt(UI.val(k))}</b>`;
+  // opt.full：显示完整数字（例如钱包页的 12,580），默认和首页一样用“万”
+  const fmtOf = (e) => (e.dataset.fmt === 'full' ? UI.fmtFull : UI.fmt);
+  UI.bind = (k, cls = '', opt = {}) => `<b class="num ${cls}" data-bind="${k}" data-fly="${k}"${opt.full ? ' data-fmt="full"' : ''}>${(opt.full ? UI.fmtFull : UI.fmt)(UI.val(k))}</b>`;
   // 奖励写入 Store 前先冻结当前显示值，否则首次奖励会把旧余额误判为已同步。
   UI.hold = (k) => {
     if (!(k in shown)) shown[k] = real(k);
@@ -311,7 +316,7 @@
     const step = (t) => {
       const p = Math.min(1, (t - t0) / dur);
       const v = from + (to - from) * (1 - Math.pow(1 - p, 3));
-      els.forEach((e) => { e.textContent = UI.fmt(v); });
+      els.forEach((e) => { e.textContent = fmtOf(e)(v); });
       if (p < 1) timers[k] = requestAnimationFrame(step);
     };
     timers[k] = requestAnimationFrame(step);
@@ -345,7 +350,7 @@
   /** 每次整页渲染后由 app.js 调用 */
   UI.decorate = (root) => {
     UI.dots(root);
-    root.querySelectorAll('[data-bind]').forEach((e) => { e.textContent = UI.fmt(UI.val(e.dataset.bind)); });
+    root.querySelectorAll('[data-bind]').forEach((e) => { e.textContent = fmtOf(e)(UI.val(e.dataset.bind)); });
   };
 })();
 

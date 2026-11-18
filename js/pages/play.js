@@ -216,7 +216,8 @@
       pingTimer = 0;
       Store.s.pinged = true;
       Store.post('lily', { from: 'lily', type: 'invite', game: 'c4', room: 'lily', text: '来一局？我在房间等你！' });
-      UI.notify({ img: D.people.lily.avatar, title: `${D.people.lily.name}邀请你一起玩`, text: `四子棋 · ${D.people.lily.name}的房间 1/2`, btn: '查看', ms: 7000, onTap: () => App.go('dm', { id: 'lily' }) });
+      // 设置 → 通知 →“游戏邀请”关掉后不弹 app 内通知，邀请照常进私聊（我的与设置 4.9）
+      if (Store.s.settings.invite) UI.notify({ img: D.people.lily.avatar, title: `${D.people.lily.name}邀请你一起玩`, text: `四子棋 · ${D.people.lily.name}的房间 1/2`, btn: '查看', ms: 7000, onTap: () => App.go('dm', { id: 'lily' }) });
     };
     pingTimer = setTimeout(tryPing, 22000);
   }

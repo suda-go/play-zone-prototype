@@ -32,7 +32,8 @@
       tips: {},
       lastExit: 0,
       // 默认昵称 happy、默认头像 avatars/happy.jpg（游客和邮箱注册用）；Google / Facebook 登录换成第三方的昵称和头像
-      user: { name: 'happy', uid: '82640317', bio: '四子棋重度玩家 · 快加我！', lv: 3, exp: 320 },
+      // 我的与设置：新账号的个性签名为空，我的页显示“写一句个性签名吧”
+      user: { name: 'happy', uid: '82640317', bio: '', lv: 3, exp: 320 },
       gems: 0, coins: 0, boost: 0, pass: 0,
       mi: 25,
       vip: false, firstPay: {},
@@ -53,6 +54,7 @@
       friends: [],
       requests: [],
       sent: [],
+      blocked: [],                      // 黑名单 [{ id, t }]，新拉黑的在前（我的与设置 4.10）
       recent: [],
       chats: { system: clone(D.chats.system) },
       chatOrder: ['system'],
@@ -291,10 +293,18 @@
     checkBadges();
     return 'ok';
   }
+  /** 会员框要求的会员档位：会员金框 1、超级会员框 2，其他装扮 0。会员到期后会员框留在背包里，但不能用 */
+  const needTier = (kind, id) => (kind === 'frame' && D.frames[id] ? +(D.frames[id].vip || 0) : 0);
+  const canUse = (kind, id) => !id || needTier(kind, id) <= vipTier();
+  /** 背包件数：不算默认装扮（经典气泡、极光背景），也不算会员到期后不能用的会员框 */
+  const DEFAULT_ITEMS = { frame: [], bubble: ['default'], bg: ['aurora'] };
+  const ownedCount = () => ['frame', 'bubble', 'bg'].reduce((n, k) => n + s.owned[k].filter((id) => !DEFAULT_ITEMS[k].includes(id) && canUse(k, id)).length, 0);
   function equip(kind, id) {
+    if (!canUse(kind, id)) return false;
     s.equip[kind] = id;
     if (kind === 'frame' && id) s.framesEquipped += 1;
     emit('equip', { kind, id });
+    return true;
   }
   function buyItem(id) {
     const it = D.items.find((x) => x.id === id);
@@ -327,6 +337,24 @@
   }
   function unfriend(id) {
     s.friends = s.friends.filter((x) => x !== id);
+    emit('friend', { id });
+  }
+  /* ---------- 黑名单（我的与设置 4.10）：拉黑同时解除好友、清掉双方的申请；最多 500 人 ---------- */
+  const BLOCK_MAX = 500;
+  const isBlocked = (id) => (s.blocked || []).some((b) => b.id === id);
+  function block(id) {
+    if (!s.blocked) s.blocked = [];
+    if (isBlocked(id)) return 'already';
+    if (s.blocked.length >= BLOCK_MAX) return 'full';
+    s.blocked.unshift({ id, t: Date.now() });
+    s.friends = s.friends.filter((x) => x !== id);
+    s.requests = s.requests.filter((x) => x !== id);
+    s.sent = s.sent.filter((x) => x !== id);
+    emit('friend', { id });
+    return 'ok';
+  }
+  function unblock(id) {
+    s.blocked = (s.blocked || []).filter((b) => b.id !== id);
     emit('friend', { id });
   }
   function addRecent(id) {
@@ -404,8 +432,9 @@
 
   /* ---------- 对局记录 ---------- */
   function addMatch(m) {
-    s.history.unshift({ t: now(), ...m });
-    if (s.history.length > 30) s.history.length = 30;
+    // ts：结束时间，战绩页按它显示“今天 / 昨天 / 几月几日”；最多保留最近 50 局
+    s.history.unshift({ t: now(), ts: Date.now(), ...m });
+    if (s.history.length > 50) s.history.length = 50;
     if (!m.practice) {
       s.record.games += 1;
       if (m.win) s.record.wins += 1;
@@ -463,6 +492,8 @@
     const f = D.vip.tiers[tier].frame;
     if (f && !s.owned.frame.includes(f)) s.owned.frame.push(f);
     if (tier === 2 && !s.owned.frame.includes('vip')) s.owned.frame.push('vip');
+    // 会员到期或降档：超出档位的会员框不能再用，正在用的卸下（我的与设置 4.8）
+    if (s.equip.frame && !canUse('frame', s.equip.frame)) s.equip.frame = null;
     emit('vip', { tier });
   }
   /** 会员每日福利：返回奖励对象，已领或非会员返回 null */
@@ -505,8 +536,8 @@
   /** 演示：变成有好友的老用户（10位好友、2条好友申请、聊天记录、最近一起玩），已有的好友和聊天保留 */
   const DEMO_FRIENDS = ['lily', 'kai', 'mia', 'alex', 'daniel', 'lucas', 'sofia', 'emma', 'aisha', 'ryan'];
   function seedFriends() {
-    s.friends = [...new Set([...s.friends, ...DEMO_FRIENDS])];
-    s.requests = [...new Set([...s.requests, 'noah', 'grace'])].filter((u) => !s.friends.includes(u));
+    s.friends = [...new Set([...s.friends, ...DEMO_FRIENDS])].filter((u) => !isBlocked(u));
+    s.requests = [...new Set([...s.requests, 'noah', 'grace'])].filter((u) => !s.friends.includes(u) && !isBlocked(u));
     s.recent = [...new Set([...s.recent, 'victor', 'marco', 'hana'])].slice(0, 8);
     const demo = clone(D.chats);
     Object.keys(demo).forEach((id) => { if (!s.chats[id]) s.chats[id] = demo[id]; });
@@ -536,8 +567,8 @@
     count,
     tasks, task, claim, claimable, mystery, revealMystery, claimMystery, openChest, openStreakChest, metricVal,
     canSign, sign, signReward,
-    catalog, owns, own, buy, equip, buyItem,
-    isFriend, addFriend, request, decline, unfriend, addRecent,
+    catalog, owns, own, buy, equip, buyItem, canUse, ownedCount,
+    isFriend, addFriend, request, decline, unfriend, addRecent, isBlocked, block, unblock,
     dm, post, read, unread, newGroup,
     room, createRoom, sit, leaveRoom,
     addMatch, checkBadges, badge,

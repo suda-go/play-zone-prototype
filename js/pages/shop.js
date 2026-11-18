@@ -20,8 +20,10 @@
     const it = Store.catalog(kind)[id];
     const owned = Store.owns(kind, id);
     const equipped = Store.s.equip[kind] === id;
-    const lock = !owned && it.vip ? (it.vip === 2 ? '超级会员专属' : '会员专属') : '';
-    return { it, owned, equipped, lock };
+    // 会员到期后：会员框还在背包里（owned），但不能用，按“会员专属”显示（我的与设置 4.8）
+    const usable = Store.canUse(kind, id);
+    const lock = (!owned || !usable) && it.vip ? (it.vip === 2 ? '超级会员专属' : '会员专属') : '';
+    return { it, owned: owned && usable, equipped, lock };
   }
   function itemCard(kind, id) {
     const { it, owned, equipped, lock } = state(kind, id);
@@ -57,7 +59,8 @@
       <div class="sd-info"><span class="tag">${KIND_NAME[kind]}</span><p>${where}</p>${owned ? '' : `<p class="sd-bal">我的金币：${UI.cur('coins', 15)}${UI.bind('coins')}</p>`}</div>
       ${foot}</div>`;
   }
-  function openItem(kind, id) {
+  /** opt.onBought(id)：买到后回调（编辑资料里买背景，买到后回到编辑资料并选中它） */
+  function openItem(kind, id, opt = {}) {
     const it = Store.catalog(kind)[id];
     const c = UI.sheet({
       title: it.name,
@@ -69,12 +72,18 @@
           const res = Store.buy(kind, id);
           if (res === 'poor') { lackCoins(it.price); return; }
           Sfx.play('reward');
+          if (opt.onBought) {
+            c.$('.sheet-bd').innerHTML = `<div class="sd-done"><img src="${IMG}fx/confetti.png" class="sd-confetti" alt="">${preview(kind, id, 96)}<h3>购买成功！</h3><p>${it.name}已放入背包，已为你选中，点“保存”就能用上。</p>
+              <button class="btn btn-primary btn-lg btn-block" data-act="close">知道了</button></div>`;
+            opt.onBought(id);
+            return;
+          }
           c.$('.sheet-bd').innerHTML = `<div class="sd-done"><img src="${IMG}fx/confetti.png" class="sd-confetti" alt="">${preview(kind, id, 96)}<h3>购买成功！</h3><p>${it.name}已放入背包。</p>
             <button class="btn btn-primary btn-lg btn-block" data-act="equip">立即装备</button><button class="btn btn-ghost btn-lg btn-block" data-act="close">稍后</button></div>`;
           App.refresh('shop');
         },
         equip: () => {
-          Store.equip(kind, id);
+          if (!Store.equip(kind, id)) { c.close(); if (it.vip) Vip.open(it.vip === 2 ? 2 : 1); return; }
           c.close();
           App.refresh('shop');
           UI.notify({ img: UI.person('me').avatar, title: `${it.name}已装备`, text: '去个人主页看看效果吧', btn: '查看', onTap: () => App.tab('me') });
